@@ -26,6 +26,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.snackbar.Snackbar;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageLibraryBinding;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.DragSelectionItemTouchListener;
@@ -57,6 +59,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     private List<GalleryItem> galleryItems;
     private GalleryViewModel viewModel;
     private RecyclerView linearRecyclerView;
+    private Vibration vibration;
 
 
     @Nullable
@@ -82,6 +85,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        vibration = PhotonCamera.getVibration();
         // Keep the grid and FABs above the transparent navigation bar.
         SystemBarsHelper.padBottomForNavBar(view);
         // M3E spring press-scale for the action FABs.
@@ -135,6 +139,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
                 @Override
                 public void onItemClicked(int position, View view, GalleryItem galleryFolder) {
                     frag.onImageSelectionStopped();
+                    if (vibration != null) vibration.confirm();
                     viewModel.setCurrentFolderImages(galleryFolder);
                 }
 
@@ -177,6 +182,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     private void initListeners() {
         fragmentGalleryImageLibraryBinding.numberFab.setOnLongClickListener(v -> {
+            if (vibration != null) vibration.deselect();
             onImageSelectionStopped();
             return true;
         });
@@ -188,10 +194,13 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         fragmentGalleryImageLibraryBinding.settingsFab.setOnLongClickListener(new View.OnLongClickListener() {
             @Override
             public boolean onLongClick(View v) {
-                if (fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView.getVisibility() == View.VISIBLE)
+                if (fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView.getVisibility() == View.VISIBLE) {
                     fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView.setVisibility(View.GONE);
-                else
+                    if (vibration != null) vibration.toggle(false);
+                } else {
                     fragmentGalleryImageLibraryBinding.scrollingGalleryFolderView.setVisibility(View.VISIBLE);
+                    if (vibration != null) vibration.toggle(true);
+                }
                 return true;
             }
         });
@@ -200,6 +209,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     private void onCompareFabClicked(View view) {
         List<GalleryItem> selectedItems = imageGridAdapter.getSelectedItems();
         if (selectedItems.size() == 2) {
+            if (vibration != null) vibration.confirm();
             NavController navController = Navigation.findNavController(view);
             Bundle b = new Bundle(2);
             int image1pos = galleryItems.indexOf(selectedItems.get(0));
@@ -207,6 +217,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
             b.putInt(Constants.IMAGE1_KEY, image1pos);
             b.putInt(Constants.IMAGE2_KEY, image2pos);
             navController.navigate(R.id.action_imageLibraryFragment_to_imageCompareFragment, b);
+        } else if (vibration != null) {
+            vibration.reject();
         }
     }
 
@@ -220,11 +232,15 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
                 .setTitle(android.R.string.dialog_alert_title)
                 .setIcon(R.drawable.ic_delete)
                 .setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
-                .setPositiveButton(R.string.yes, (dialog, which) -> GalleryFileOperations.deleteImageFiles(getActivity(), filesToDelete.stream().map(galleryItem -> (ImageFile) galleryItem.getFile()).collect(Collectors.toList()), this::handleImagesDeletedCallback))
+                .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    if (vibration != null) vibration.confirm();
+                    GalleryFileOperations.deleteImageFiles(getActivity(), filesToDelete.stream().map(galleryItem -> (ImageFile) galleryItem.getFile()).collect(Collectors.toList()), this::handleImagesDeletedCallback);
+                })
                 .create());
     }
 
     private void onShareFabClicked(View view) {
+        if (vibration != null) vibration.confirm();
         ArrayList<Uri> imageUris = (ArrayList<Uri>) imageGridAdapter.getSelectedItems().stream().map(galleryItem -> galleryItem.getFile().getFileUri()).collect(Collectors.toList());
         Intent shareIntent = new Intent();
         shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
@@ -239,9 +255,11 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
         } else {
             closeFABMenu();
         }
+        if (vibration != null) vibration.toggle(isFABOpen);
     }
 
     private void onSettingsFabClicked(View view) {
+        if (vibration != null) vibration.confirm();
         NavController navController = Navigation.findNavController(view);
         navController.navigate(R.id.action_imageLibraryFragment_to_gallerySettingsFragment);
         imageGridAdapter.deselectAll();
@@ -271,6 +289,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     @Override
     public void onItemClicked(int position, View view, GalleryItem galleryItem) {
+        if (vibration != null) vibration.confirm();
         Bundle b = new Bundle();
         b.putInt(Constants.IMAGE_POSITION_KEY, position);
         NavController navController = Navigation.findNavController(view);
@@ -315,6 +334,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     public void handleImagesDeletedCallback(boolean isDeleted) {
         if (isDeleted) {
+            if (vibration != null) vibration.confirm();
             List<GalleryItem> filesToDelete = imageGridAdapter.getSelectedItems();
 
             String numOfFiles = String.valueOf(filesToDelete.size());
@@ -332,6 +352,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
                     getString(R.string.multiple_deleted_success, numOfFiles, totalFileSize),
                     Snackbar.LENGTH_SHORT).show();
         } else {
+            if (vibration != null) vibration.reject();
             Snackbar.make(getView(),
                     "Deletion Failed!",
                     Snackbar.LENGTH_SHORT).show();

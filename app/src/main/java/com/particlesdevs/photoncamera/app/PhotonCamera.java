@@ -22,8 +22,10 @@ import androidx.core.os.HandlerCompat;
 
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.control.Gravity;
 import com.particlesdevs.photoncamera.control.Gyro;
+import com.particlesdevs.photoncamera.control.ManualHaptics;
 import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.debugclient.Debugger;
 import com.particlesdevs.photoncamera.pro.SensorSpecifics;
@@ -240,6 +242,7 @@ public class PhotonCamera extends Application {
         mGyro = new Gyro(sensorManager);
 
         mVibration = new Vibration(this);
+        ManualInstanceProvider.setHapticPerformer(new ManualHaptics(mVibration));
 
         mSettingsManager = new SettingsManager(this);
         mSupportedDevice = new SupportedDevice(mSettingsManager, this);

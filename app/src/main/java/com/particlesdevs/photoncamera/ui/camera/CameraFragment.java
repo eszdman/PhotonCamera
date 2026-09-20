@@ -93,6 +93,7 @@ import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.CameraFragmentBinding;
 import com.particlesdevs.photoncamera.gallery.ui.GalleryActivity;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
@@ -1806,6 +1807,8 @@ public class CameraFragment extends Fragment {
             if (mCameraUIView != null) {
                 mCameraUIView.setVideoRecordingInfoVisible(true);
             }
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) vibration.recordStart();
         }
 
         @Override
@@ -1820,6 +1823,8 @@ public class CameraFragment extends Fragment {
             if (mCameraUIView != null) {
                 mCameraUIView.setVideoRecordingInfoVisible(false);
             }
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) vibration.recordStop();
         }
 
         @Override
@@ -1827,6 +1832,8 @@ public class CameraFragment extends Fragment {
             if (memberId != null) {
                 auxButtonsViewModel.setActiveId(memberId);
             }
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) vibration.lensSwitch();
         }
 
         @Override
@@ -1885,6 +1892,8 @@ public class CameraFragment extends Fragment {
         public void onProcessingError(Object obj) {
             if (obj instanceof String)
                 showToast((String) obj);
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) vibration.error();
             mCameraUIView.lockUIForBurst(false);
             onProcessingFinished("Processing Finished Unexpectedly!!");
         }
@@ -1899,11 +1908,24 @@ public class CameraFragment extends Fragment {
             mCameraUIView.setCaptureProgressMax(frameCount);
         }
 
+        private boolean isStillMode() {
+            CameraMode mode = PhotonCamera.getSettings().selectedMode;
+            return mode == CameraMode.PHOTO || mode == CameraMode.MOTION || mode == CameraMode.NIGHT;
+        }
+
+        private boolean isStillBurst() {
+            return isStillMode() && PreferenceKeys.getFrameCountValue() > 1;
+        }
+
         @Override
         public void onCaptureStillPictureStarted(Object o) {
             if (PhotonCamera.getSettings().selectedMode != CameraMode.RAWVIDEO) {
                 mCameraUIView.setCaptureProgressBarOpacity(1.0f);
                 mCameraUIView.lockUIForBurst(true);
+            }
+            if (isStillBurst()) {
+                Vibration vibration = PhotonCamera.getVibration();
+                if (vibration != null) vibration.captureStart();
             }
             //textureView.post(() -> textureView.setAlpha(0.8f));
         }
@@ -1941,6 +1963,10 @@ public class CameraFragment extends Fragment {
                 if (o instanceof TimerFrameCountViewModel.FrameCntTime) {
                     timerFrameCountViewModel.setFrameTimeCnt((TimerFrameCountViewModel.FrameCntTime) o);
                 }
+                if (isStillBurst()) {
+                    Vibration vibration = PhotonCamera.getVibration();
+                    if (vibration != null) vibration.burstFrame();
+                }
             }
         }
 
@@ -1951,6 +1977,10 @@ public class CameraFragment extends Fragment {
                 if (player != null) {
                     player.start();
                 }
+            }
+            if (isStillMode()) {
+                Vibration vibration = PhotonCamera.getVibration();
+                if (vibration != null) vibration.captureComplete();
             }
             timerFrameCountViewModel.clearFrameTimeCnt();
             mCameraUIView.resetCaptureProgressBar();

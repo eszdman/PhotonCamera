@@ -84,6 +84,8 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
+    <string name="haptics">Haptic Feedback</string>
+    <string name="haptics_summary">Vibrate on controls, capture and gestures</string>
     <string name="record_video_desc">Record video</string>
     <string name="stop_recording_desc">Stop recording</string>
     <string name="energy_saving">Battery Saver</string>

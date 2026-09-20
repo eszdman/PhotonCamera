@@ -15,7 +15,9 @@ import androidx.viewbinding.ViewBinding;
 import com.google.android.material.card.MaterialCardView;
 import com.google.android.material.color.MaterialColors;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.ThumbnailSquareImageViewBinding;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
 import com.particlesdevs.photoncamera.gallery.interfaces.GalleryItemClickedListener;
@@ -125,6 +127,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     private void selectView(View view) {
         selectedViews.add(view);
         animatedSelect(view, true);
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.select();
         if (gridAdapterCallback != null) gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
         // Minimal invalidation - selection circle is bound per item; payload could be used but keep cheap
         // Avoid full notifyDataSetChanged which rebinds all thumbnails and triggers Glide reloads
@@ -136,6 +140,8 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     private void deselectView(View view) {
         selectedViews.remove(view);
         animatedSelect(view, false);
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.deselect();
         if (selectionHelper.isEmpty()) {
             if (gridAdapterCallback != null) gridAdapterCallback.onImageSelectionStopped();
         } else {

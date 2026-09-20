@@ -18,9 +18,11 @@ import androidx.transition.TransitionManager;
 
 import com.google.android.material.slider.Slider;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.ZoomSliderMapper;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 
@@ -67,6 +69,7 @@ public class LensZoomBarController {
     private final ImageButton lockButton;
     private final CaptureController captureController;
     private final CameraFragmentViewModel viewModel;
+    private final Vibration haptics;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable collapseRunnable = this::collapse;
 
@@ -89,6 +92,7 @@ public class LensZoomBarController {
         this.lockButton = lockButton;
         this.captureController = captureController;
         this.viewModel = viewModel;
+        this.haptics = PhotonCamera.getVibration();
     }
 
     public void init() {
@@ -109,6 +113,7 @@ public class LensZoomBarController {
         slider.setValueTo(SLIDER_MAX);
         slider.addOnChangeListener((seekBar, value, fromUser) -> {
             if (!fromUser || !expanded || CaptureController.isProcessing) return;
+            if (haptics != null) haptics.sliderTick();
             float zoom = ZoomSliderMapper.progressToZoom(Math.round(value), SLIDER_MAX,
                     captureController.getMinZoom(), captureController.getMaxZoom());
             // The slider is smooth: it skips the pinch detent snap and
@@ -132,6 +137,7 @@ public class LensZoomBarController {
             @Override
             public void onStopTrackingTouch(@NonNull Slider seekBar) {
                 sliderTouched = false;
+                if (haptics != null) haptics.confirm();
                 scheduleCollapse();
             }
         });
@@ -276,6 +282,7 @@ public class LensZoomBarController {
     /** Called on every handled pinch-to-zoom movement. Expands and restarts the 2s timer. */
     public void onPinchGesture() {
         if (settingsHidden) return;
+        if (haptics != null) haptics.zoomDetent();
         if (!expanded) expand();
         syncSlider();
         scheduleCollapse();
@@ -489,6 +496,7 @@ public class LensZoomBarController {
 
     private void toggleLock() {
         boolean locked = !PreferenceKeys.isZoomLockOn();
+        if (haptics != null) haptics.toggle(locked);
         captureController.setLensSwitchLocked(locked);
         PreferenceKeys.setZoomLock(locked);
         syncEffectiveLockState();

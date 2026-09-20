@@ -16,6 +16,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.CountdownTimer;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.ui.camera.model.TopBarSettingsData;
@@ -32,11 +33,13 @@ final class CameraUIController implements CameraUIEventsListener,
         Observer<TopBarSettingsData<?, ?>>, AuxButtonsLayout.AuxButtonListener {
     private static final String TAG = "CameraUIController";
     private final CameraFragment cameraFragment;
+    private final Vibration haptics;
     private CountDownTimer countdownTimer;
     private View shutterButton;
 
     public CameraUIController(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
+        this.haptics = PhotonCamera.getVibration();
     }
 
     @SuppressLint("NonConstantResourceId")
@@ -45,6 +48,7 @@ final class CameraUIController implements CameraUIEventsListener,
         switch (view.getId()) {
             case R.id.shutter_button:
                 shutterButton = view;
+                if (haptics != null) haptics.shutterPress();
                 switch (PhotonCamera.getSettings().selectedMode) {
                     case PHOTO:
                     case MOTION:
@@ -78,11 +82,13 @@ final class CameraUIController implements CameraUIEventsListener,
                 }
                 break;
             case R.id.settings_button:
+                if (haptics != null) haptics.confirm();
                 cameraFragment.launchSettings();
                 break;
 
             case R.id.hdrx_toggle_button:
                 PreferenceKeys.setHdrX(!PreferenceKeys.isHdrXOn());
+                if (haptics != null) haptics.toggle(PreferenceKeys.isHdrXOn());
                 if (PreferenceKeys.isHdrXOn())
                     CaptureController.setTargetFormat(CaptureController.RAW_FORMAT);
                 else
@@ -92,11 +98,13 @@ final class CameraUIController implements CameraUIEventsListener,
                 break;
 
             case R.id.gallery_image_button:
+                if (haptics != null) haptics.confirm();
                 cameraFragment.launchGallery();
                 break;
 
             case R.id.eis_toggle_button:
                 PreferenceKeys.setEisPhoto(!PreferenceKeys.isEisPhotoOn());
+                if (haptics != null) haptics.toggle(PreferenceKeys.isEisPhotoOn());
                 cameraFragment.showSnackBar(cameraFragment.getString(R.string.eis_toggle_text) + ':' + onOff(PreferenceKeys.isEisPhotoOn()));
                 if (PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
                     cameraFragment.captureController.applyVideoStabilization();
@@ -108,6 +116,7 @@ final class CameraUIController implements CameraUIEventsListener,
                 // The top-bar button only exists in video mode and edits the
                 // video/RAW-video rate.
                 PreferenceKeys.setVideoFpsMode((PreferenceKeys.getVideoFpsMode() + 1) % 4);
+                if (haptics != null) haptics.modeChange();
                 cameraFragment.captureController.applyFpsRange();
                 cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
                         .setFpsModeState(PreferenceKeys.getVideoFpsMode());
@@ -116,12 +125,14 @@ final class CameraUIController implements CameraUIEventsListener,
 
             case R.id.quad_res_toggle_button:
                 PreferenceKeys.setQuadBayer(!PreferenceKeys.isQuadBayerOn());
+                if (haptics != null) haptics.toggle(PreferenceKeys.isQuadBayerOn());
                 cameraFragment.showSnackBar(cameraFragment.getString(R.string.quad_bayer_toggle_text) + ':' + onOff(PreferenceKeys.isQuadBayerOn()));
                 this.restartCamera();
                 cameraFragment.updateSettingsBar();
                 break;
 
             case R.id.flip_camera_button:
+                if (haptics != null) haptics.modeChange();
                 view.animate().rotationBy(180).setDuration(Motion.durationLong1(view.getContext()))
                         .setInterpolator(Motion.emphasized(view.getContext())).start();
                 //cameraFragment.textureView.animate().rotationBy(360).setDuration(450).start();
@@ -131,6 +142,7 @@ final class CameraUIController implements CameraUIEventsListener,
                 break;
             case R.id.grid_toggle_button:
                 PreferenceKeys.setGridValue((PreferenceKeys.getGridValue() + 1) % view.getResources().getStringArray(R.array.vf_grid_entryvalues).length);
+                if (haptics != null) haptics.toggle(PreferenceKeys.getGridValue() != 0);
                 view.setSelected(PreferenceKeys.getGridValue() != 0);
                 cameraFragment.invalidateSurfaceView();
                 cameraFragment.updateSettingsBar();
@@ -138,6 +150,7 @@ final class CameraUIController implements CameraUIEventsListener,
 
             case R.id.flash_button:
                 PreferenceKeys.setAeMode((PreferenceKeys.getAeMode() + 1) % 2); //cycles in 0 (torch), 1 (off)
+                if (haptics != null) haptics.toggle(PreferenceKeys.getAeMode() != 0);
                 ((FlashButton) view).setFlashValueState(PreferenceKeys.getAeMode());
                 cameraFragment.captureController.setPreviewAEModeRebuild(PreferenceKeys.getAeMode());
                 cameraFragment.updateSettingsBar();
@@ -145,6 +158,7 @@ final class CameraUIController implements CameraUIEventsListener,
 
             case R.id.countdown_timer_button:
                 PreferenceKeys.setCountdownTimerIndex((PreferenceKeys.getCountdownTimerIndex() + 1) % view.getResources().getIntArray(R.array.countdowntimer_entryvalues).length);
+                if (haptics != null) haptics.modeChange();
                 ((TimerButton) view).setTimerIconState(PreferenceKeys.getCountdownTimerIndex());
                 cameraFragment.updateSettingsBar();
                 break;
@@ -159,9 +173,10 @@ final class CameraUIController implements CameraUIEventsListener,
     private void startTimer() {
         if (this.shutterButton != null) {
             this.shutterButton.setHovered(true);
+            int timerValue = getTimerValue(this.shutterButton.getContext());
             this.countdownTimer = new CountdownTimer(
                     cameraFragment.findViewById(R.id.frameTimer),
-                    getTimerValue(this.shutterButton.getContext()) * 1000L, 1000,
+                    timerValue * 1000L, 1000, timerValue > 0,
                     this::onTimerFinished).start();
         }
     }
@@ -174,6 +189,7 @@ final class CameraUIController implements CameraUIEventsListener,
     @Override
     public void onAuxButtonClicked(String id) {
         Log.d(TAG, "onAuxButtonClicked() called with: id = [" + id + "]");
+        if (haptics != null) haptics.confirm();
         if (id != null
                 && com.particlesdevs.photoncamera.api.LogicalCameraResolver.isMemberId(id)
                 && cameraFragment.captureController != null

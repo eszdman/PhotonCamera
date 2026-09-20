@@ -3,7 +3,6 @@ package com.particlesdevs.photoncamera.circularbarlib.console;
 import android.app.Activity;
 import android.content.Context;
 import android.hardware.camera2.CameraCharacteristics;
-import android.os.Vibrator;
 import android.view.View;
 
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
@@ -138,19 +137,18 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         CameraProperties cameraProperties = new CameraProperties(cameraCharacteristics);
         double preservedWb = (this.preserveManualWb) ? manualParamModel.getCurrentWbValue() : ManualParamModel.WB_AUTO;
         manualParamModel.reset();
-        Vibrator v = (Vibrator) context.getSystemService(Context.VIBRATOR_SERVICE);
         mfModel = new FocusModel(context, cameraCharacteristics, cameraProperties.focusRange, manualParamModel,
-                manualModeModel::setFocusText, v);
+                manualModeModel::setFocusText);
         evModel = new EvModel(context, cameraCharacteristics, cameraProperties.evRange, manualParamModel,
-                manualModeModel::setEvText, v);
+                manualModeModel::setEvText);
         ((EvModel) evModel).setEvStep(
                 (cameraCharacteristics.get(CameraCharacteristics.CONTROL_AE_COMPENSATION_STEP).floatValue()));
         isoModel = new IsoModel(context, cameraCharacteristics, cameraProperties.isoRange, manualParamModel,
-                manualModeModel::setIsoText, v);
+                manualModeModel::setIsoText);
         expoTimeModel = new ShutterModel(context, cameraCharacteristics, cameraProperties.expRange, manualParamModel,
-                manualModeModel::setExposureText, v);
+                manualModeModel::setExposureText);
         wbModel = new WbModel(context, cameraCharacteristics, null, manualParamModel,
-                manualModeModel::setWbText, v);
+                manualModeModel::setWbText);
 
         // Restore manual White Balance temperature across camera lenses if enabled
         if (preservedWb != ManualParamModel.WB_AUTO) {

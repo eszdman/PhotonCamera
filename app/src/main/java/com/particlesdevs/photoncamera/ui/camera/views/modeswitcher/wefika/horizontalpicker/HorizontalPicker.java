@@ -691,7 +691,7 @@ public class HorizontalPicker extends View {
                     int currentItem = getSelectedItem();
                     if (currentItem != lastTickItem) {
                         lastTickItem = currentItem;
-                        vibration.Tick();
+                        vibration.sliderTick();
                     }
 
                     invalidate();
@@ -750,7 +750,7 @@ public class HorizontalPicker extends View {
                             if (tappedItem >= 0 && tappedItem < values.length
                                     && tappedItem != lastTickItem) {
                                 lastTickItem = tappedItem;
-                                vibration.Tick();
+                                vibration.sliderTick();
                             }
                             smoothScrollBy(relativePos);
                         }
@@ -788,7 +788,7 @@ public class HorizontalPicker extends View {
         if (onItemClicked != null) {
 
             post(() -> {
-                vibration.Click();
+                vibration.modeChange();
                 onItemClicked.onItemClicked(getSelectedItem());
             });
         }
@@ -1059,7 +1059,7 @@ public class HorizontalPicker extends View {
         // tick when a new item settles after a scroll/fling/press
         if (item != lastTickItem) {
             lastTickItem = item;
-            vibration.Tick();
+            vibration.sliderTick();
         }
 
         int itemX = (int) ((itemWidth + dividerSize) * item + getItemCenterBias());

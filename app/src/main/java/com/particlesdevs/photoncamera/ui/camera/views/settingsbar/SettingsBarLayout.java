@@ -119,7 +119,7 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
 
     @Override
     public void onEntryUpdated(SettingsBarEntryModel entryModel, SettingsBarButtonModel buttonModel) {
-        vibration.Click();
+        vibration.confirm();
         for (SettingsBarButtonModel model : entryModel.getSettingsBarButtonModels()) {
             findViewById(entryModel.getId()).findViewById(model.getId()).setSelected(model.isSelected());
         }

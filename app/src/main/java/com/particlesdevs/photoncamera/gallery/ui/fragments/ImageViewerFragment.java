@@ -44,7 +44,9 @@ import androidx.viewpager2.widget.ViewPager2;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageAdapter;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
@@ -145,6 +147,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private SSIVListener ssivListener = new SSIVListener() {
         @Override public void onScaleChanged(float newScale, int origin) {
             updateScaleText();
+            if (origin == SubsamplingScaleImageView.ORIGIN_DOUBLE_TAP_ZOOM && vibration != null) {
+                vibration.zoomDetent();
+            }
             if (viewPager != null) {
                 CustomSSIV cur = getCurrentSSIV();
                 if (cur != null && cur.isReady()) {
@@ -163,6 +168,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     };
     private int indexToDelete = -1;
     private GalleryViewModel viewModel;
+    private Vibration vibration;
     private ViewPager2.OnPageChangeCallback pageCallback;
     // Deferred EXIF refresh after swipes: must be cancellable so it never
     // fires on a detached fragment (requireContext() would throw).
@@ -318,6 +324,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        vibration = PhotonCamera.getVibration();
         // Keep bottom controls above the transparent navigation bar.
         // The photo pager itself stays full-bleed behind it.
         View bottomControls = view.findViewById(R.id.bottom_controls_container);
@@ -343,6 +350,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         pageCallback = new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
                 seek_position = position;
+                if (vibration != null) vibration.pageSnap();
                 updateScaleText();
                 linearRecyclerView.smoothScrollToPosition(position);
                 onPageHdrSelected(position);
@@ -442,6 +450,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (adapter == null || viewPager == null) return;
         int position = viewPager.getCurrentItem();
         if (!adapter.isHdrAvailable(position)) return;
+        if (vibration != null) vibration.toggle(!adapter.isHdrActive(position));
         CustomSSIV ssiv = getSsivAt(position);
         if (adapter.isHdrActive(position)) {
             adapter.releaseHdrForPosition(ssiv, position);
@@ -494,6 +503,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onBack(View view) {
+        if (vibration != null) vibration.confirm();
         // Match system back: pop the nav graph; only finish when launched externally.
         if (navController != null && navController.navigateUp()) return;
         if (getActivity() != null) getActivity().finish();
@@ -501,6 +511,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     private void onQuickCompare(View view) {
         if (galleryItems.size() >= 2) {
+            if (vibration != null) vibration.confirm();
             NavController navController = Navigation.findNavController(view);
             Bundle b = new Bundle(2);
             int image1pos = viewPager.getCurrentItem();
@@ -509,16 +520,21 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             b.putInt(Constants.IMAGE1_KEY, image1pos);
             b.putInt(Constants.IMAGE2_KEY, image2pos);
             navController.navigate(R.id.action_imageViewerFragment_to_imageCompareFragment, b);
-        } else Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+        } else {
+            if (vibration != null) vibration.reject();
+            Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void onGalleryButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         if (navController.getPreviousBackStackEntry() == null)
             navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
         else navController.navigateUp();
     }
 
     private void onEditButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && getContext() != null) {
             GalleryItem galleryItem = galleryItems.get(position);
@@ -539,6 +555,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.REQUEST_EDIT_IMAGE) {
             if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                if (vibration != null) vibration.confirm();
                 String savedFilePath = data.getData().getPath();
                 Toast.makeText(getContext(), "Saved : " + savedFilePath, Toast.LENGTH_LONG).show();
                 viewModel.fetchAllMedia();
@@ -558,6 +575,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
         builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    if (vibration != null) vibration.confirm();
                     indexToDelete = viewPager.getCurrentItem();
                     GalleryFileOperations.deleteImageFiles(getActivity(), Collections.singletonList((ImageFile) galleryItems.get(indexToDelete).getFile()), this::handleImagesDeletedCallback);
                 });
@@ -565,6 +583,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onShareButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         int position = viewPager.getCurrentItem();
         GalleryItem galleryItem = galleryItems.get(position);
         String fileName = galleryItem.getFile().getDisplayName();
@@ -579,6 +598,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     private void onExifButtonClick(View view) {
         isExifVisible = !isExifVisible;
+        if (vibration != null) vibration.toggle(isExifVisible);
         fragmentGalleryImageViewerBinding.setExifDialogVisible(isExifVisible);
         updateExif();
     }
@@ -590,6 +610,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (panel == null || scroll == null) return;
         Context context = view.getContext();
         isDescriptionExpanded = !isDescriptionExpanded;
+        if (vibration != null) vibration.toggle(isDescriptionExpanded);
         int duration = Motion.durationMedium1(context);
         TimeInterpolator interpolator = Motion.emphasized(context);
         // Animate the panel's bounds so the description is revealed downwards;
@@ -659,6 +680,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onImageViewClicked(View view) {
+        if (vibration != null) vibration.chromeToggle();
         if (isCompareMode()) {
             onExifButtonClick(null);
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!isExifVisible);
@@ -1051,6 +1073,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     public void handleImagesDeletedCallback(boolean isDeleted) {
         if (!isAdded()) return;
         if (isDeleted && indexToDelete >= 0) {
+            if (vibration != null) vibration.confirm();
             galleryItems.remove(indexToDelete);
             seek_position=indexToDelete;
             if (!galleryItems.isEmpty()) initImageAdapter(galleryItems);
@@ -1058,6 +1081,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT).show();
             indexToDelete = -1;
             if (galleryItems.isEmpty()) { viewModel.setUpdatePending(true); navController.navigateUp(); }
-        } else Toast.makeText(getContext(), "Deletion Failed!", Toast.LENGTH_SHORT).show();
+        } else {
+            if (vibration != null) vibration.reject();
+            Toast.makeText(getContext(), "Deletion Failed!", Toast.LENGTH_SHORT).show();
+        }
     }
 }

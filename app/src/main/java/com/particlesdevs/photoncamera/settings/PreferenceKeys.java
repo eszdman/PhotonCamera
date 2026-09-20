@@ -44,6 +44,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Key.KEY_CAMERA_SOUNDS.mValue);
+        COMMON_KEYS.add(Key.KEY_HAPTICS.mValue);
         COMMON_KEYS.add(Key.KEY_VIEWFINDER_BACKGROUND.mValue);
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_FOCUS_PEAK.mValue);
@@ -102,6 +103,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, 0);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HAPTICS, resources.getBoolean(R.bool.pref_haptics_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, 0); // Default to disable bracketing
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_METERING_STD, -1); // Default to Off
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, resources.getString(R.string.pref_video_resolution_default));
@@ -153,6 +155,10 @@ public class PreferenceKeys {
                 }
             }
             PhotonCamera.getSettings().loadCache();
+            if (Key.KEY_HAPTICS.mValue.equals(key) && !isHapticsOn()
+                    && PhotonCamera.getVibration() != null) {
+                PhotonCamera.getVibration().cancel();
+            }
             //Log.d(TAG, key + " : changed!");
         });
     }
@@ -406,6 +412,14 @@ public class PreferenceKeys {
 
     public static boolean isCameraSoundsOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_CAMERA_SOUNDS);
+    }
+
+    public static boolean isHapticsOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_HAPTICS, true);
+    }
+
+    public static void setHaptics(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HAPTICS, value);
     }
 
     public static int getChromaNrValue() {
@@ -798,6 +812,7 @@ public class PreferenceKeys {
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
         KEY_LENS_BAR_POSITION(R.string.pref_lens_bar_position_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
+        KEY_HAPTICS(R.string.pref_haptics_key),
         KEY_CHROMA_NR_SEEKBAR(R.string.pref_chroma_nr_seekbar_key),
         KEY_LUMA_NR_SEEKBAR(R.string.pref_luma_nr_seekbar_key),
         KEY_COMPRESSOR_SEEKBAR(R.string.pref_compressor_seekbar_key),

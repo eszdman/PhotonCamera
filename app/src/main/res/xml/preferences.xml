@@ -42,6 +42,14 @@
                 android:icon="@drawable/ic_camera_sounds"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_haptics_key"
+                android:defaultValue="@bool/pref_haptics_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/haptics"
+                android:summary="@string/haptics_summary"
+                android:icon="@drawable/ic_vibration"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_hide_gallery_icon_key"
                 android:defaultValue="@bool/pref_hide_gallery_icon_default"
                 android:layout="@layout/preference_with_margin"
