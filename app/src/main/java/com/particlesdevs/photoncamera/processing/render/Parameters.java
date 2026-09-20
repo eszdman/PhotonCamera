@@ -687,29 +687,28 @@ public class Parameters {
     @NonNull
     @Override
     public String toString() {
-        return "parameters:\n" +
-                "\n hasGainMap=" + hasGainMap +
-                "\n FrameCount=" + FrameNumberSelector.frameCount +
-                "\n CameraID=" + cameraID +
-                "\n DenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
-                "\n Sharp=" + FltFormat(PreferenceKeys.getSharpnessValue()) +
-                "\n Sat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
-                "\n Contrast=" + FltFormat(PreferenceKeys.getContrastValue()) +
-                "\n ExpoCorrect=" + FltFormat(PhotonCamera.getSettings().exposureCompensation) +
-                "\n Denoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR)) +
-                "\n Noise Merging=" + FltFormat(PhotonCamera.getSettings().mergeStrength) +
-                "\n Shadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
-                "\n Compressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
-                "\n Align=" + PhotonCamera.getSettings().alignAlgorithm +
-                "\n Color=" + PhotonCamera.getSettings().colorMethod +
-                "\n PreviewFormat=" + PhotonCamera.getSettings().previewFormat +
-                "\n FocalL=" + FltFormat(focalLength) +
-                "\n TotalProcessingTime=" + totalProcessingTimeMs + "ms" +
+        return "hasGainMap=" + hasGainMap +
+                "\nFrameCount=" + FrameNumberSelector.frameCount +
+                "\nCameraID=" + cameraID +
+                "\nDenoiseOn=" + PhotonCamera.getSettings().hdrxNR +
+                "\nSharp=" + FltFormat(PreferenceKeys.getSharpnessValue()) +
+                "\nSat=" + FltFormat(PreferenceKeys.getSaturationValue()) +
+                "\nContrast=" + FltFormat(PreferenceKeys.getContrastValue()) +
+                "\nExpoCorrect=" + FltFormat(PhotonCamera.getSettings().exposureCompensation) +
+                "\nDenoise=" + FltFormat(PreferenceKeys.getFloat(PreferenceKeys.Key.KEY_NOISESTR_SEEKBAR)) +
+                "\nNoise Merging=" + FltFormat(PhotonCamera.getSettings().mergeStrength) +
+                "\nShadows=" + FltFormat(PhotonCamera.getSettings().shadows) +
+                "\nCompressor=" + FltFormat(PhotonCamera.getSettings().compressor) +
+                "\nAlign=" + PhotonCamera.getSettings().alignAlgorithm +
+                "\nColor=" + PhotonCamera.getSettings().colorMethod +
+                "\nPreviewFormat=" + PhotonCamera.getSettings().previewFormat +
+                "\nFocalL=" + FltFormat(focalLength) +
+                "\nTotalProcessingTime=" + totalProcessingTimeMs + "ms" +
                 (PhotonCamera.DEBUG
-                        ? "\n PeakVram=" + peakVramMB + "MB"
-                        + "\n PeakMemory=" + peakMemoryMB + "MB"
+                        ? "\nPeakVram=" + peakVramMB + "MB"
+                        + "\nPeakMemory=" + peakMemoryMB + "MB"
                         : "") +
-                "\n Version=" + PhotonCamera.getVersion();
+                "\nVersion=" + PhotonCamera.getVersion();
     }
 
     @SuppressLint("DefaultLocale")
