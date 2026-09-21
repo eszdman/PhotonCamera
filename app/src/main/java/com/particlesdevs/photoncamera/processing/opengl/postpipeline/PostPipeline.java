@@ -707,13 +707,16 @@ public class PostPipeline extends GLBasePipeline {
         Log.d("TiledHarness", "gainmap grid=" + rotatedSize.x + "x" + rotatedSize.y);
         Allocator.logStage("PostPipeline", "gainmap-enter");
         GLTexture.logLive("TiledHarness", "gainmap-enter");
-        GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
+        // RGBA8: the banded path draws into this processor's renderbuffer and
+        // streams the bands straight into gmBmp (same bytes the old per-band
+        // RGBA8 outTex produced), so the render target format must match the
+        // 8-bit gain map. The legacy full path still uses its own RGBA8 outTex.
+        GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8, 4);
         // Unbacked dummy output keeps the GLImage/GLCoreBlockProcessing
         // null-guards happy. Allocate.None skips the full-frame Direct malloc
-        // (~490 MB at 64 MP): this pass never draws into the block
-        // processor's output buffer (readback goes through outTex), so every
-        // GL call below is unchanged. If this pass ever fails, callers fall
-        // back to SDR JPEG as before.
+        // (~490 MB at 64 MP): the readback goes through PBOs into the caller's
+        // bitmap, never through the block processor's output buffer. If this
+        // pass ever fails, callers fall back to SDR JPEG as before.
         GLImage output = new GLImage(rotatedSize, format, false);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, output, format, GLDrawParams.Allocate.None);
         // Do not destroy the previous EGL context here: PostPipeline historically
@@ -734,6 +737,16 @@ public class PostPipeline extends GLBasePipeline {
         }
 
         GLTexture gainTex = null;
+        // cpuSdrMedian is a pure single-threaded walk over the whole SDR
+        // bitmap (~50 MB at 12.6 MP) whose result is only needed for the
+        // anchor far below. Run it on a worker so it overlaps the gain-map
+        // context setup, the scene-luma grid upload/render and the GPU
+        // histogram. Joined before the anchor, and again in the finally for
+        // the error paths (nothing else touches the bitmap concurrently).
+        final java.util.concurrent.FutureTask<Float> sdrMedianTask =
+                new java.util.concurrent.FutureTask<>(() -> cpuSdrMedian(sdr, 256));
+        final Thread sdrMedianThread = new Thread(sdrMedianTask, "SdrMedian");
+        sdrMedianThread.start();
         try {
 
             Point linearSize = demosaicLinearSize != null ? new Point(demosaicLinearSize) : null;
@@ -922,8 +935,17 @@ public class PostPipeline extends GLBasePipeline {
             try {
                 lMed = Math.max(histogramMedian(hist.Compute(lTex), histSize, gridCh), 1e-4f);
                 // Identical math on the bitmap directly (full-res binning,
-                // same median + linearize): no 201 MB texture upload.
-                float sMedDisp = cpuSdrMedian(sdr, histSize);
+                // same median + linearize): no 201 MB texture upload. The
+                // worker has been running since the method entry.
+                float sMedDisp;
+                try {
+                    sMedDisp = sdrMedianTask.get();
+                } catch (java.util.concurrent.ExecutionException e) {
+                    throw new RuntimeException("SDR median failed", e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("SDR median interrupted", e);
+                }
                 sMedLin = srgbToLinear(sMedDisp);
             } finally {
                 hist.close();
@@ -1083,55 +1105,35 @@ public class PostPipeline extends GLBasePipeline {
                 prog.setVar("uScale", scale);
                 prog.setVar("uEps", GainMapComputer.DECODE_OFFSET);
                 int sdrStride = sdr.getWidth() * 4;
-                for (int[] gb : TileDriver.computeBands(gh, 512)) {
-                    int b0 = gb[0], rows = gb[1] - gb[0];
-                    GLTexture sdrBand = null, outBand = null;
-                    try {
-                        sdrBand = new GLTexture(new Point(gw, rows),
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
+                // One persistent slice texture (bands are <= 512 rows) plus the
+                // shared PBO ring instead of an alloc/draw/blocking-read pair
+                // per band: band n's readback DMA overlaps band n+1's draw, and
+                // the sink bytes land in the still-locked gmBmp as before.
+                GLTexture sdrBand = new GLTexture(new Point(gw, Math.min(512, gh)),
+                        new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
+                try {
+                    for (int[] gb : TileDriver.computeBands(gh, 512)) {
+                        int b0 = gb[0], rows = gb[1] - gb[0];
                         java.nio.ByteBuffer view = imgWrapped.duplicate();
                         view.position(b0 * sdrStride);
                         view.limit((b0 + rows) * sdrStride);
                         sdrBand.loadDataOffset(0, 0, gw, rows, view.slice());
-                        outBand = new GLTexture(new Point(gw, rows),
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
-                        outBand.BufferLoad();
                         if (b0 == 0) {
                             GLTexture.logLive("TiledHarness", "gainmap-drawpeak");
                         }
                         prog.setTexture("InputBuffer", sdrBand);
-                        // Band target: full-tile viewport with zero origin (the
-                        // tile already holds exactly image rows [b0,b0+rows)).
-                        // An offset viewport here would sit outside the band
-                        // texture and draw nothing (silent stale-VRAM bands).
+                        // Band-local origin (the slice holds exactly image rows
+                        // [b0,b0+rows)); streamBandAsync draws at viewport
+                        // (0,0,gw,rows) with the caller-owned yOffset.
                         prog.setVar("uInOrigin", 0, 0);
                         prog.setVar("yOffset", b0);
-                        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, outBand.mBuffer);
-                        GLES30.glViewport(0, 0, gw, rows);
-                        prog.draw();
-                        int gmErr;
-                        while ((gmErr = GLES30.glGetError()) != GLES30.GL_NO_ERROR) {
-                            Log.e("TiledHarness", "gainmap band [" + b0 + "," + (b0 + rows)
-                                    + ") GL error 0x" + Integer.toHexString(gmErr));
-                        }
-                        wrapped.position(b0 * gw * 4);
-                        wrapped.limit((b0 + rows) * gw * 4);
-                        outBand.textureBuffer(
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4),
-                                wrapped);
-                    } finally {
-                        if (sdrBand != null) {
-                            try {
-                                sdrBand.close();
-                            } catch (Exception ignored) {
-                            }
-                        }
-                        if (outBand != null) {
-                            try {
-                                outBand.close();
-                            } catch (Exception ignored) {
-                            }
-                        }
+                        glproc.streamBandAsync(b0, rows, wrapped, gw * 4);
+                    }
+                    glproc.finishStreamedBands();
+                } finally {
+                    try {
+                        sdrBand.close();
+                    } catch (Exception ignored) {
                     }
                 }
                 lTex.close();
@@ -1163,6 +1165,13 @@ public class PostPipeline extends GLBasePipeline {
             Allocator.logStage("PostPipeline", "post-gainmap-render");
             return new GainMapRaw(gmBmp, gw, gh, scale);
         } finally {
+            // Error paths may leave the median worker mid-walk; the caller
+            // owns the bitmap, so make sure we are not still reading it.
+            try {
+                sdrMedianThread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             if (gainTex != null) {
                 try { gainTex.close(); } catch (Exception ignored) {}
             }
