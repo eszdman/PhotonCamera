@@ -32,7 +32,8 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     @Override
     public void AfterRun() {
         if(lutLoaded) {
-            lutbm.close();
+            // lutbm is owned by the process-wide cache; closing it would null
+            // the cached pixel buffer. Only the per-shot texture is released.
             lut.close();
         }
         if (postLut != null) postLut.close();
@@ -60,6 +61,105 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     GLTexture LookupTexture;
     GLImage lutbm;
     float highersatmpy = 1.0f;
+
+    /**
+     * Process-wide cache for the CPU-side artifacts that do not depend on the
+     * per-shot EGL context: the decoded CLUT bitmap, the interpolated intense
+     * curve and the gamma ramp. GL textures are still created per shot (a new
+     * context owns new names); the bitmap decode and the 1024-sample builds
+     * are skipped when the inputs are unchanged.
+     */
+    private static final Object sCpuCacheLock = new Object();
+    private static GLImage sCachedLutImage;
+    private static String sCachedLutKey;
+    private static float[] sCachedCurve;
+    private static String sCachedCurveKey;
+    private static float[] sCachedGamma;
+    private static float sCachedGammaKey = Float.NaN;
+
+    private float[] cachedGammaArray() {
+        if (sCachedGamma != null && sCachedGammaKey == gammaKoefficientGenerator) {
+            return sCachedGamma;
+        }
+        float[] gamma = new float[1024];
+        for (int i = 0; i < gamma.length; i++) {
+            double pos = ((float) i) / (gamma.length - 1.f);
+            gamma[i] = (float) (Math.pow(pos, 1. / gammaKoefficientGenerator));
+        }
+        synchronized (sCpuCacheLock) {
+            sCachedGamma = gamma;
+            sCachedGammaKey = gammaKoefficientGenerator;
+        }
+        return gamma;
+    }
+
+    private float[] cachedInterpolatedCurve() {
+        String key = ((PostPipeline) basePipeline).softLight + "|" + Arrays.toString(intenseCurveX)
+                + "|" + Arrays.toString(intenseCurveY)
+                + "|" + Arrays.toString(intenseHardCurveX)
+                + "|" + Arrays.toString(intenseHardCurveY);
+        if (sCachedCurve != null && key.equals(sCachedCurveKey)) {
+            return sCachedCurve;
+        }
+        ArrayList<Float> curveX = new ArrayList<>();
+        ArrayList<Float> curveY = new ArrayList<>();
+        ArrayList<Float> curveHardX = new ArrayList<>();
+        ArrayList<Float> curveHardY = new ArrayList<>();
+        for (int i = 0; i < curvePointsCount; i++) {
+            curveX.add(intenseCurveX[i]);
+            curveY.add(intenseCurveY[i]);
+            curveHardX.add(intenseHardCurveX[i]);
+            curveHardY.add(intenseHardCurveY[i]);
+        }
+        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX, curveY);
+        SplineInterpolator splineInterpolatorHard = SplineInterpolator.createMonotoneCubicSpline(curveHardX, curveHardY);
+        float[] interpolatedCurveArr = new float[1024];
+        float softLight = ((PostPipeline) basePipeline).softLight;
+        for (int i = 0; i < interpolatedCurveArr.length; i++) {
+            float line = i / (interpolatedCurveArr.length - 1.f);
+            interpolatedCurveArr[i] = mix(splineInterpolatorHard.interpolate(line), splineInterpolator.interpolate(line), softLight);
+        }
+        synchronized (sCpuCacheLock) {
+            sCachedCurve = interpolatedCurveArr;
+            sCachedCurveKey = key;
+        }
+        return interpolatedCurveArr;
+    }
+
+    /**
+     * Returns the decoded CLUT bitmap for the custom tuning file when present,
+     * otherwise the bundled asset, decoded once per (file, mtime, size). The
+     * caller must NOT close the returned image; the cache owns it.
+     */
+    private GLImage cachedLutImage(File customlut) {
+        String key;
+        boolean isCustom = customlut != null && customlut.exists();
+        if (isCustom) {
+            key = "file:" + customlut.getAbsolutePath() + ":" + customlut.length()
+                    + ":" + customlut.lastModified();
+        } else {
+            key = "asset:initial_lut.png";
+        }
+        synchronized (sCpuCacheLock) {
+            if (sCachedLutImage != null && key.equals(sCachedLutKey)) {
+                return sCachedLutImage;
+            }
+            GLImage image;
+            if (isCustom) {
+                image = new GLImage(customlut);
+            } else {
+                try {
+                    image = new GLImage(PhotonCamera.getAssetLoader().getInputStream("initial_lut.png"));
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    return null;
+                }
+            }
+            sCachedLutImage = image;
+            sCachedLutKey = key;
+            return image;
+        }
+    }
     @Tunable(title = "Gamma Coefficient", category = "Color & Tone", min = 1.0f, max = 3.0f, defaultValue = 2.2f)
     float gammaKoefficientGenerator = 2.2f;
     
@@ -313,25 +413,9 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         intenseCurveY = getTuning("FusionIntenseCurveY", intenseCurveY);
         intenseHardCurveX = getTuning("FusionIntenseHardCurveX", intenseHardCurveX);
         intenseHardCurveY = getTuning("FusionIntenseHardCurveY", intenseHardCurveY);
-        ArrayList<Float> curveX = new ArrayList<>();
-        ArrayList<Float> curveY = new ArrayList<>();
-        ArrayList<Float> curveHardX = new ArrayList<>();
-        ArrayList<Float> curveHardY = new ArrayList<>();
-        for(int i =0; i<curvePointsCount;i++){
-            curveX.add(intenseCurveX[i]);
-            curveY.add(intenseCurveY[i]);
-            curveHardX.add(intenseHardCurveX[i]);
-            curveHardY.add(intenseHardCurveY[i]);
-        }
-        SplineInterpolator splineInterpolator = SplineInterpolator.createMonotoneCubicSpline(curveX,curveY);
-        SplineInterpolator splineInterpolatorHard = SplineInterpolator.createMonotoneCubicSpline(curveHardX,curveHardY);
-        float[] interpolatedCurveArr = new float[1024];
-        float softLight = ((PostPipeline)(basePipeline)).softLight;
-        for(int i =0 ;i<interpolatedCurveArr.length;i++){
-            float line = i/ (interpolatedCurveArr.length-1.f);
-            interpolatedCurveArr[i] = mix(splineInterpolatorHard.interpolate(line),splineInterpolator.interpolate(line),softLight);
-        }
-
+        // CPU-heavy artifacts (spline sampling, gamma ramp, CLUT decode) are
+        // cached across shots; GL textures stay per-shot.
+        float[] interpolatedCurveArr = cachedInterpolatedCurve();
         interpolatedCurve = new GLTexture(new Point(interpolatedCurveArr.length,1),
                 new GLFormat(GLFormat.DataType.FLOAT_16), BufferUtils.getFrom(interpolatedCurveArr),GL_LINEAR,GL_CLAMP_TO_EDGE);
 
@@ -342,28 +426,18 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
 
         // Shot defines live in renderInitialDefines() (re-issued per band).
         // Program bind plus uniforms/textures live in renderInitialBinds().
-        float[] gamma = new float[1024];
-        for (int i = 0; i < gamma.length; i++) {
-            double pos = ((float) i) / (gamma.length - 1.f);
-            gamma[i] = (float) (Math.pow(pos, 1. / gammaKoefficientGenerator));
-        }
+        float[] gamma = cachedGammaArray();
         GammaTexture = new GLTexture(gamma.length,1,
                 new GLFormat(GLFormat.DataType.FLOAT_16),BufferUtils.getFrom(gamma),GL_LINEAR,GL_CLAMP_TO_EDGE);
         File customlut = new File(FileManager.sPHOTON_TUNING_DIR,"initial_lut.png");
-        boolean loaded = false;
-        if(customlut.exists()){
-            lutbm = new GLImage(customlut);
+        // The cache owns the image; don't close it in AfterRun.
+        GLImage lutImage = cachedLutImage(customlut);
+        if(lutImage != null) {
+            lutbm = lutImage;
             lutLoaded = true;
-        } else {
-            try {
-                lutbm = new GLImage(PhotonCamera.getAssetLoader().getInputStream("initial_lut.png"));
-                lutLoaded = true;
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        }
-        if(lutLoaded) {
             lut = new GLTexture(lutbm, GL_LINEAR, GL_CLAMP_TO_EDGE, 0);
+        } else {
+            lutLoaded = false;
         }
         if (basePipeline.mParameters.HSVMap != null) {
             HSVTexture = new GLTexture(new Point(basePipeline.mParameters.HSVMapSize[1], basePipeline.mParameters.HSVMapSize[0]), new GLFormat(GLFormat.DataType.FLOAT_32, 3), BufferUtils.getFrom(basePipeline.mParameters.HSVMap), GL_LINEAR, GL_CLAMP_TO_EDGE);
