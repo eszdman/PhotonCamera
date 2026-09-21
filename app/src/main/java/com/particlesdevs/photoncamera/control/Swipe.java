@@ -30,9 +30,15 @@ public class Swipe {
     private ImageView ocManual;
     private ZoomGestureListener zoomGestureListener;
 
-    /** Notified on every handled pinch-to-zoom movement (used to reveal the zoom slider). */
+    /** Notified on handled pinch-to-zoom gestures (used to reveal the zoom slider). */
     public interface ZoomGestureListener {
         void onZoomGesture();
+
+        default void onZoomGestureStart() {
+        }
+
+        default void onZoomGestureEnd() {
+        }
     }
 
     public void setZoomGestureListener(ZoomGestureListener listener) {
@@ -119,6 +125,17 @@ public class Swipe {
             }
         });
         scaleDetector = new ScaleGestureDetector(cameraFragment.getContext(), new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                if (zoomGestureListener != null) zoomGestureListener.onZoomGestureStart();
+                return true;
+            }
+
+            @Override
+            public void onScaleEnd(ScaleGestureDetector detector) {
+                if (zoomGestureListener != null) zoomGestureListener.onZoomGestureEnd();
+            }
+
             @Override
             public boolean onScale(ScaleGestureDetector detector) {
                 // Ignore pinch while a burst/processing is active or the manual

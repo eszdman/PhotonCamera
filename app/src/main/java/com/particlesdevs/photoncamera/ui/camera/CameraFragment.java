@@ -378,7 +378,7 @@ public class CameraFragment extends Fragment {
                 (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
         edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
         textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
-        mSwipe.setZoomGestureListener(lensZoomBarController::onPinchGesture);
+        mSwipe.setZoomGestureListener(lensZoomBarController);
         cameraFragmentViewModel.getCameraFragmentModel().addOnPropertyChangedCallback(
                 new Observable.OnPropertyChangedCallback() {
                     @Override

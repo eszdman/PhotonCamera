@@ -22,6 +22,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.ZoomSliderMapper;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
@@ -47,7 +48,7 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewMode
  * The total-zoom indicator above the pill is driven by data binding; only its
  * constraints are managed here.
  */
-public class LensZoomBarController {
+public class LensZoomBarController implements Swipe.ZoomGestureListener {
     /** Pill docked to the right edge, rendered vertically. */
     public static final String POSITION_RIGHT = "right";
     /** Pill centered horizontally, rendered horizontally. */
@@ -70,6 +71,7 @@ public class LensZoomBarController {
     private final CaptureController captureController;
     private final CameraFragmentViewModel viewModel;
     private final Vibration haptics;
+    private final ZoomHapticGate zoomHapticGate = new ZoomHapticGate();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable collapseRunnable = this::collapse;
 
@@ -113,13 +115,13 @@ public class LensZoomBarController {
         slider.setValueTo(SLIDER_MAX);
         slider.addOnChangeListener((seekBar, value, fromUser) -> {
             if (!fromUser || !expanded || CaptureController.isProcessing) return;
-            if (haptics != null) haptics.sliderTick();
             float zoom = ZoomSliderMapper.progressToZoom(Math.round(value), SLIDER_MAX,
                     captureController.getMinZoom(), captureController.getMaxZoom());
             // The slider is smooth: it skips the pinch detent snap and
             // hysteresis so dragging feels continuous, but still
             // auto-switches lenses exactly at the native boundary.
             captureController.setZoom(zoom, 0.5f, 0.5f, false);
+            zoomHaptic(captureController.getZoomRatio());
             viewModel.setZoomRatio(captureController.getZoomRatio());
             viewModel.setZoomOffNative(
                     !captureController.isZoomOnNative(captureController.getZoomRatio()));
@@ -130,6 +132,7 @@ public class LensZoomBarController {
             public void onStartTrackingTouch(@NonNull Slider seekBar) {
                 // The user grabbed the slider: hold the expanded state while dragging.
                 sliderTouched = true;
+                zoomHapticGate.prime(captureController.getZoomRatio());
                 handler.removeCallbacks(collapseRunnable);
                 if (!expanded) expand();
             }
@@ -280,12 +283,34 @@ public class LensZoomBarController {
     }
 
     /** Called on every handled pinch-to-zoom movement. Expands and restarts the 2s timer. */
-    public void onPinchGesture() {
+    @Override
+    public void onZoomGesture() {
         if (settingsHidden) return;
-        if (haptics != null) haptics.zoomDetent();
+        zoomHaptic(captureController.getZoomRatio());
         if (!expanded) expand();
         syncSlider();
         scheduleCollapse();
+    }
+
+    /** Primes the fallback gate so a pinch only ticks once the indicator steps. */
+    @Override
+    public void onZoomGestureStart() {
+        zoomHapticGate.prime(captureController.getZoomRatio());
+    }
+
+    /**
+     * Zoom detent feedback: composed primitives play on every movement, while
+     * fallback effects are gated to displayed indicator steps.
+     */
+    private void zoomHaptic(float zoomRatio) {
+        if (haptics == null) return;
+        if (haptics.usesComposedPrimitives()) {
+            haptics.zoomDetent();
+            return;
+        }
+        if (zoomHapticGate.accept(zoomRatio)) {
+            haptics.zoomDetent();
+        }
     }
 
     /** Called when the bound zoom ratio changes (pinch, slider, lens switch). */
@@ -317,6 +342,7 @@ public class LensZoomBarController {
     public void onPause() {
         handler.removeCallbacks(collapseRunnable);
         expanded = false;
+        zoomHapticGate.reset();
         resetSlider();
         updateBarVisibility(false);
     }

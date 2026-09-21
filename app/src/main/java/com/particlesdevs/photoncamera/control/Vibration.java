@@ -80,6 +80,11 @@ public class Vibration {
         return capabilities;
     }
 
+    /** True when the device renders effects through composed primitives. */
+    public boolean usesComposedPrimitives() {
+        return capabilities.supportsPrimitives();
+    }
+
     public void toggle(boolean on) {
         play(on ? HapticEvent.TOGGLE_ON : HapticEvent.TOGGLE_OFF);
     }
