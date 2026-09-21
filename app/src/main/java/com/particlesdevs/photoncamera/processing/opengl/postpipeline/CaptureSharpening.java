@@ -225,7 +225,8 @@ public class CaptureSharpening extends Node {
             throw new IllegalStateException("tail produce bitmap lock failed");
         }
         try {
-            TileDriver.runTailProduce(this, shp, rot, entry, glproc, wrapped);
+            TileDriver.runTailProduce(this, shp, rot, entry, glproc, wrapped,
+                    pp.debugTiledCompare);
         } finally {
             Allocator.unlockBitmap(sink);
         }

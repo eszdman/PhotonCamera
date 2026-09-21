@@ -948,7 +948,8 @@ public final class TileDriver {
     public static int runTailProduce(CaptureSharpening cap, Sharpen2 shp,
                                      RotateWatermark rot, GLTexture entry,
                                      GLCoreBlockProcessing glproc,
-                                     java.nio.ByteBuffer wrapped) {
+                                     java.nio.ByteBuffer wrapped,
+                                     boolean logBindState) {
         String tag = "TiledHarness";
         if (cap == null || shp == null || rot == null) {
             throw new IllegalStateException("tail produce without segment");
@@ -1010,8 +1011,10 @@ public final class TileDriver {
                         : newTile(imgW, we[1] - we[0], float4);
                 cap.renderTile(entry, capTile,
                         columns ? we[0] : 0, columns ? 0 : we[0]);
-                logProgramState(tag, "cap-band" + b0, cap.glProg,
-                        "InputBuffer", cap.tileProgram);
+                if (logBindState) {
+                    logProgramState(tag, "cap-band" + b0, cap.glProg,
+                            "InputBuffer", cap.tileProgram);
+                }
                 shp.glProg.rebindProgram(shp.tileProgram);
                 sharpTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
                         : newTile(imgW, ws[1] - ws[0], float4);
@@ -1020,8 +1023,10 @@ public final class TileDriver {
                 }
                 shp.renderTile(capTile, sharpTile,
                         columns ? off : 0, columns ? 0 : off);
-                logProgramState(tag, "shp-band" + b0, shp.glProg,
-                        "InputBuffer", shp.tileProgram);
+                if (logBindState) {
+                    logProgramState(tag, "shp-band" + b0, shp.glProg,
+                            "InputBuffer", shp.tileProgram);
+                }
                 // Rotate band straight to the sink (same yOffset sampling the
                 // oracles prove; same viewport/draw/readPixels sequence as
                 // the shared sink loop, via streamBand). Compensation per
@@ -1042,8 +1047,10 @@ public final class TileDriver {
                     yOff = b0 - (imgW - ws[1]);
                 }
                 rot.glProg.setVar("yOffset", yOff);
-                logProgramState(tag, "rot-band" + b0, rot.glProg,
-                        "InputBuffer", rot.tileProgram);
+                if (logBindState) {
+                    logProgramState(tag, "rot-band" + b0, rot.glProg,
+                            "InputBuffer", rot.tileProgram);
+                }
                 // Async PBO readback: the band DMA overlaps the next band's
                 // render instead of draining the queue here. Copied into the
                 // wrapped sink at the end of the loop (still under its lock).
