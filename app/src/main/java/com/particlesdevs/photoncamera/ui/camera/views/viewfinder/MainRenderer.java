@@ -164,6 +164,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mBlur2dProgram;
     private int mPanelBlurProgram;
     private int mEdgeBlurProgram;
+    private int mAnalysisProgram;
     private int uCornerRadius;
     private int uSharpOrigin;
     private int uEdgeViewSize;
@@ -210,6 +211,35 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mBlurH;
     private int mViewW = 1;
     private int mViewH = 1;
+
+    /**
+     * Pre-peaking analysis target used by the histogram/waveform scopes. The
+     * camera texture is sampled once into this small offscreen buffer so the
+     * scopes never see the focus-peaking overlay baked into the sharp pass.
+     */
+    public static final int ANALYSIS_WIDTH = 256;
+    public static final int ANALYSIS_HEIGHT = 192;
+    private int mAnalysisFbo;
+    private int mAnalysisTex;
+    private ByteBuffer mAnalysisBuffer;
+    private int uAnalysisTexRotateMatrix;
+    private int uAnalysisMirror;
+    private AnalysisCallback mPendingAnalysis;
+
+    public interface AnalysisCallback {
+        void onAnalysisFrame(byte[] rgba, int width, int height);
+    }
+
+    /**
+     * Queues one analysis readback (GL thread). The callback receives a copy of
+     * the RGBA bytes for the frame rendered after the request and runs on the
+     * GL thread; a newer request replaces an unserviced one.
+     */
+    public void requestAnalysis(AnalysisCallback callback) {
+        if (callback == null) return;
+        mPendingAnalysis = callback;
+        mView.requestRender();
+    }
 
     /**
      * Frames to observe before an ISZ lens transition is considered settled.
@@ -269,7 +299,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         // A program can fail to build (unreadable asset, driver hiccup); retry
         // rarely so the pipeline can heal itself without hammering the GL thread.
         if (mSharpProgram == 0 || mBlurOesProgram == 0 || mBlur2dProgram == 0
-                || mPanelBlurProgram == 0 || mEdgeBlurProgram == 0) {
+                || mPanelBlurProgram == 0 || mEdgeBlurProgram == 0
+                || mAnalysisProgram == 0) {
             if (--mProgramRetryCountdown <= 0) {
                 ensureGlPrograms();
                 mProgramRetryCountdown = PROGRAM_RETRY_FRAMES;
@@ -281,6 +312,11 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 mSTexture.updateTexImage();
                 mUpdateST = false;
             }
+        }
+
+        // Scopes sample the camera texture before the peaking shader runs.
+        if (mPendingAnalysis != null) {
+            runAnalysisPass();
         }
 
         // Sharp preview, letterboxed into the viewfinder rect when the surface
@@ -522,6 +558,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // The EGL context is fresh: drop any GL resources from the previous one.
         releaseBlurTargets();
+        releaseAnalysisTarget();
 
         initTex();
         mSTexture = new SurfaceTexture(hTex[0]);
@@ -533,6 +570,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         mBlur2dProgram = 0;
         mPanelBlurProgram = 0;
         mEdgeBlurProgram = 0;
+        mAnalysisProgram = 0;
         mProgramRetryCountdown = PROGRAM_RETRY_FRAMES;
         ensureGlPrograms();
 
@@ -632,6 +670,16 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 mEdgeBlurRadiusPx = mView.getResources().getDimension(R.dimen.cam_panel_blur_radius);
             }
         }
+
+        if (mAnalysisProgram == 0) {
+            mAnalysisProgram = loadShader(loadAsset("shaders/preview/main_vs.glsl"),
+                    loadAsset("shaders/preview/analysis_fs.glsl"));
+            if (mAnalysisProgram != 0) {
+                uAnalysisTexRotateMatrix =
+                        GLES20.glGetUniformLocation(mAnalysisProgram, "uTexRotateMatrix");
+                uAnalysisMirror = GLES20.glGetUniformLocation(mAnalysisProgram, "mirror");
+            }
+        }
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
@@ -712,6 +760,74 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         }
         mBlurW = 0;
         mBlurH = 0;
+    }
+
+    private boolean ensureAnalysisTarget() {
+        if (mAnalysisFbo != 0 && mAnalysisTex != 0) {
+            return true;
+        }
+        releaseAnalysisTarget();
+        mAnalysisTex = createBlurTexture(ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
+        mAnalysisFbo = createBlurFramebuffer(mAnalysisTex);
+        if (mAnalysisTex == 0 || mAnalysisFbo == 0) {
+            releaseAnalysisTarget();
+            return false;
+        }
+        return true;
+    }
+
+    private void releaseAnalysisTarget() {
+        if (mAnalysisFbo != 0) {
+            int[] fbo = new int[]{mAnalysisFbo};
+            GLES30.glDeleteFramebuffers(1, fbo, 0);
+            mAnalysisFbo = 0;
+        }
+        if (mAnalysisTex != 0) {
+            int[] tex = new int[]{mAnalysisTex};
+            GLES20.glDeleteTextures(1, tex, 0);
+            mAnalysisTex = 0;
+        }
+        mAnalysisBuffer = null;
+    }
+
+    /**
+     * Renders the camera texture into the analysis target and reads it back.
+     * Mirrors the sharp pass's rotation/mirror so the scope's columns match the
+     * displayed image, but applies no focus peaking. GL thread only.
+     */
+    private void runAnalysisPass() {
+        AnalysisCallback callback = mPendingAnalysis;
+        mPendingAnalysis = null;
+        if (callback == null || mAnalysisProgram == 0 || !ensureAnalysisTarget()) {
+            return;
+        }
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, mAnalysisFbo);
+        GLES30.glViewport(0, 0, ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
+        GLES20.glDisable(GLES20.GL_BLEND);
+        GLES20.glUseProgram(mAnalysisProgram);
+        GLES20.glUniformMatrix4fv(uAnalysisTexRotateMatrix, 1, false, mTexRotateMatrix, 0);
+        GLES20.glUniform1i(uAnalysisMirror, mMirrorPreview ? 1 : 0);
+        bindQuadAttributes(mAnalysisProgram);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex[0]);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        int bytes = ANALYSIS_WIDTH * ANALYSIS_HEIGHT * 4;
+        if (mAnalysisBuffer == null || mAnalysisBuffer.capacity() < bytes) {
+            mAnalysisBuffer = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder());
+        }
+        mAnalysisBuffer.position(0);
+        GLES20.glPixelStorei(GLES20.GL_PACK_ALIGNMENT, 1);
+        GLES20.glReadPixels(0, 0, ANALYSIS_WIDTH, ANALYSIS_HEIGHT,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mAnalysisBuffer);
+
+        byte[] copy = new byte[bytes];
+        mAnalysisBuffer.position(0);
+        mAnalysisBuffer.get(copy);
+
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+        GLES30.glViewport(0, 0, mViewW, mViewH);
+        callback.onAnalysisFrame(copy, ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
     }
 
     public SurfaceTexture getmSTexture() {

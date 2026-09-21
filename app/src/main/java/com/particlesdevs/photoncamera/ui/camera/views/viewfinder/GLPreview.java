@@ -174,6 +174,17 @@ public class GLPreview extends GLSurfaceView {
         mRenderer.setOrientation(or);
     }
 
+    /**
+     * Requests one pre-peaking frame readback for the histogram/waveform scopes.
+     * The callback fires on the GL thread with a copy of the RGBA pixels; a
+     * newer request replaces an unserviced one.
+     */
+    public void requestAnalysisFrame(MainRenderer.AnalysisCallback callback) {
+        if (mRenderer != null) {
+            queueEvent(() -> mRenderer.requestAnalysis(callback));
+        }
+    }
+
     public void setMirror(boolean mirror) {
         mRenderer.setMirror(mirror);
         requestRender();

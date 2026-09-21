@@ -19,7 +19,6 @@
  */
 
 package com.particlesdevs.photoncamera.ui.camera;
-import android.graphics.Bitmap;
 import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Dialog;
@@ -43,6 +42,7 @@ import android.os.Bundle;
 import android.util.DisplayMetrics;
 
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.PreviewScopeAnalyzer;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.manual.ManualAutoValues;
@@ -1484,11 +1484,8 @@ public class CameraFragment extends Fragment {
         return "AWB";
     }
 
-    private Bitmap mHistBitmap = null;
     private long lastHistTime = 0;
     private static final long HIST_INTERVAL_MS = 120; // 8.3 Hz sampling rate for zero CPU load
-    private final int[] mHistPixels = new int[128 * 96];
-    private final int[][] mHistData = new int[3][64];
 
     private void requestLiveHistogram() {
         if (textureView == null || surfaceView == null) return;
@@ -1497,68 +1494,23 @@ public class CameraFragment extends Fragment {
             return;
         }
         lastHistTime = now;
-
-        if (mHistBitmap == null) {
-            mHistBitmap = Bitmap.createBitmap(128, 96, Bitmap.Config.ARGB_8888);
-        }
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                android.view.PixelCopy.request(textureView, mHistBitmap, copyResult -> {
-                    if (copyResult == android.view.PixelCopy.SUCCESS) {
-                        processExecutorService.execute(this::processHistogramData);
-                    }
-                }, surfaceView.getHandler() != null ? surfaceView.getHandler() : new android.os.Handler(android.os.Looper.getMainLooper()));
-            } catch (Exception ignored) {
-            }
-        }
+        textureView.requestAnalysisFrame(this::onAnalysisFrame);
     }
 
-    private void processHistogramData() {
-        if (mHistBitmap == null || mHistBitmap.isRecycled()) return;
-        int w = mHistBitmap.getWidth();
-        int h = mHistBitmap.getHeight();
-        int size = 64;
-        mHistBitmap.getPixels(mHistPixels, 0, w, 0, 0, w, h);
+    private void onAnalysisFrame(byte[] rgba, int width, int height) {
+        processExecutorService.execute(() -> processHistogramData(rgba, width, height));
+    }
 
-        // Clear previous histogram bins
-        for (int i = 0; i < 3; i++) {
-            Arrays.fill(mHistData[i], 0);
-        }
-
-        int total = w * h;
-        for (int i = 0; i < total; i += 2) { // 2x subsampling for maximum performance
-            int c = mHistPixels[i];
-            int r = (c >> 16) & 0xFF;
-            int g = (c >> 8) & 0xFF;
-            int b = c & 0xFF;
-
-            // Mathematically neutralize artificial magenta focus peaking boost (delta added equally to R and B)
-            int delta = Math.max(0, Math.min(r - g, b - g));
-            int cleanR = r - delta;
-            int cleanB = b - delta;
-
-            mHistData[0][cleanR * size / 256]++;
-            mHistData[1][g * size / 256]++;
-            mHistData[2][cleanB * size / 256]++;
-        }
-
-        // Square-root compression as in original Histogram.java
-        int maxY = 1;
-        for (int i = 0; i < 3; i++) {
-            for (int j = 0; j < size; j++) {
-                mHistData[i][j] = (int) Math.sqrt(mHistData[i][j]);
-                if (mHistData[i][j] > maxY) {
-                    maxY = mHistData[i][j];
-                }
-            }
-        }
+    private void processHistogramData(byte[] rgba, int width, int height) {
+        int size = PreviewScopeAnalyzer.HISTOGRAM_BINS;
+        int[][] bins = new int[3][size];
+        PreviewScopeAnalyzer.fillHistogram(rgba, width, height, bins, size);
+        int maxY = PreviewScopeAnalyzer.applySqrtScale(bins);
 
         final int calculatedMaxY = maxY;
         if (mViewfinderHudView != null) {
-            mViewfinderHudView.post(() -> {
-                mViewfinderHudView.setHistogramData(mHistData, calculatedMaxY, size);
-            });
+            mViewfinderHudView.post(() ->
+                    mViewfinderHudView.setHistogramData(bins, calculatedMaxY, size));
         }
     }
 
