@@ -31,7 +31,6 @@
 
     <application
         android:name="com.particlesdevs.photoncamera.app.PhotonCamera"
-        android:launchMode="singleTask"
         android:taskAffinity=""
         android:enableOnBackInvokedCallback="true"
         android:hardwareAccelerated="true"

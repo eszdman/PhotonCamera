@@ -22,8 +22,8 @@
 // libarchive public headers — used for opaque types, constants, and function
 // pointer signatures.  The actual symbols come from libarchive-jni.so which is
 // loaded at runtime via dlopen (the library has no prefab / CMake export).
-#include <archive.h>
-#include <archive_entry.h>
+#include "deps/archive.h"
+#include "deps/archive_entry.h"
 
 static const double COMPRESSION_GAMMA = 2.2;
 static const int STORED_LEVELS_10 = 1024;

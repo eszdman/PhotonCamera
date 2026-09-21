@@ -92,7 +92,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopy(JNIEnv *env, 
     jobject buffer = env->NewDirectByteBuffer(allocation, capacity);
     if (buffer == nullptr) {
         // Handle allocation failure
-        LOGD("Failed to allocate buffer of size %ld", capacity);
+        LOGD("Failed to allocate buffer of size %d", capacity);
         if (allocation != nullptr) {
             free(allocation);
         }
