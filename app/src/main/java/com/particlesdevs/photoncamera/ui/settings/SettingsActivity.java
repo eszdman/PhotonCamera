@@ -45,6 +45,7 @@ import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.settings.TunablePreferenceGenerator;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.HideReorderModesPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.util.Log;
@@ -817,21 +818,14 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         }
 
         /**
-         * Summary for "Hide modes": "All modes shown" when empty, otherwise
-         * "N hidden".
+         * Summary for "Hide or reorder modes": "All modes shown" when empty,
+         * otherwise "N hidden".
          */
         private void updateHideModesSummary() {
             try {
-                androidx.preference.MultiSelectListPreference pref = findPreference(
-                        mContext.getString(R.string.pref_hide_modes_key));
-                if (pref == null) {
-                    return;
-                }
-                int hiddenCount = PreferenceKeys.getHiddenModes().size();
-                if (hiddenCount == 0) {
-                    pref.setSummary(mContext.getString(R.string.hide_modes_summary_none));
-                } else {
-                    pref.setSummary(mContext.getString(R.string.hide_modes_summary, hiddenCount));
+                Preference pref = findPreference(mContext.getString(R.string.pref_hide_modes_key));
+                if (pref instanceof HideReorderModesPreference) {
+                    ((HideReorderModesPreference) pref).updateSummary();
                 }
             } catch (Exception e) {
                 Log.e("SettingsFragment", "updateHideModesSummary failed", e);

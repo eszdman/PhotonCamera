@@ -14,7 +14,6 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -76,8 +75,9 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_STEREO.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_SOURCE.mValue);
-        // Hidden camera modes are global like the selected camera mode.
+        // Hidden camera modes and their order are global like the selected mode.
         COMMON_KEYS.add(Key.KEY_HIDE_MODES.mValue);
+        COMMON_KEYS.add(Key.KEY_MODE_ORDER.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -664,42 +664,49 @@ public class PreferenceKeys {
     }
 
     /**
-     * Modes in enum order minus hidden ones. Never empty: if everything is
-     * hidden (e.g. via a restored backup), all modes are returned so the
-     * selector never ends up with zero items.
+     * User-defined display order of all modes. Stored as comma-separated
+     * ordinals; absent or corrupt data falls back to enum order.
      */
-    public static List<CameraMode> getVisibleModes() {
-        Set<String> hidden = getHiddenModes();
-        List<CameraMode> visible = new ArrayList<>();
-        for (CameraMode mode : CameraMode.values()) {
-            if (!hidden.contains(String.valueOf(mode.ordinal()))) {
-                visible.add(mode);
+    public static List<CameraMode> getModeOrder() {
+        try {
+            return CameraMode.parseOrder(
+                    preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_MODE_ORDER, ""));
+        } catch (Exception e) {
+            return CameraMode.parseOrder(null);
+        }
+    }
+
+    public static void setModeOrder(List<CameraMode> order) {
+        StringBuilder builder = new StringBuilder();
+        if (order != null) {
+            for (CameraMode mode : order) {
+                if (mode == null) {
+                    continue;
+                }
+                if (builder.length() > 0) {
+                    builder.append(',');
+                }
+                builder.append(mode.ordinal());
             }
         }
-        if (visible.isEmpty()) {
-            visible.addAll(Arrays.asList(CameraMode.values()));
-        }
-        return visible;
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_MODE_ORDER, builder.toString());
     }
 
     /**
-     * Next visible mode after {@code current} in enum order, wrapping around.
-     * Used when the currently selected mode becomes hidden.
+     * Modes in the user's display order minus hidden ones. Never empty: if
+     * everything is hidden (e.g. via a restored backup), the full order is
+     * returned so the selector never ends up with zero items.
+     */
+    public static List<CameraMode> getVisibleModes() {
+        return CameraMode.filterVisible(getModeOrder(), getHiddenModes());
+    }
+
+    /**
+     * Next visible mode after {@code current} in the user's order, wrapping
+     * around. Used when the currently selected mode becomes hidden.
      */
     public static CameraMode getFallbackMode(CameraMode current) {
-        List<CameraMode> visible = getVisibleModes();
-        if (current != null && visible.contains(current)) {
-            return current;
-        }
-        CameraMode[] all = CameraMode.values();
-        int start = current != null ? current.ordinal() : CameraMode.PHOTO.ordinal();
-        for (int i = 1; i <= all.length; i++) {
-            CameraMode candidate = all[(start + i) % all.length];
-            if (visible.contains(candidate)) {
-                return candidate;
-            }
-        }
-        return CameraMode.PHOTO;
+        return CameraMode.findFallback(getModeOrder(), getHiddenModes(), current);
     }
 
     public static String getToneMap() {
@@ -927,6 +934,7 @@ public class PreferenceKeys {
         KEY_VIEWFINDER_BACKGROUND(R.string.pref_viewfinder_background_key),
         KEY_HIDE_GALLERY_ICON(R.string.pref_hide_gallery_icon_key),
         KEY_HIDE_MODES(R.string.pref_hide_modes_key),
+        KEY_MODE_ORDER(R.string.pref_mode_order_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_AE_METERING_STD(R.string.pref_ae_metering_std_key),
