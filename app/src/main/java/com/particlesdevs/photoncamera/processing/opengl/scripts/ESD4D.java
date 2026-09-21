@@ -305,6 +305,16 @@ public class ESD4D extends GLOneScript {
     float kernelSigma;
     GLTexture result;
     GLTexture inputAlter;
+    /**
+     * Second slot of the alter-frame upload ring. The merge loop alternates
+     * between {@link #inputAlter} and this texture so an upload never targets
+     * the texture the previous frame's merge00 is still reading. A GLsync
+     * fence recorded right after each merge00 guards the two-frames-later
+     * reuse.
+     */
+    GLTexture inputAlterAlt;
+    /** GLsync handles for the two upload-ring slots (0 = none). */
+    private final long[] alterUploadFences = new long[2];
     GLTexture alter;
     GLTexture alignmentTex;
     /** Dense optical-flow alignment (FlowNet); non-null when useNcnnFlow ran. */
@@ -499,6 +509,40 @@ public class ESD4D extends GLOneScript {
      */
     private void gpuSyncProfile() {
         if (profileGpuSync) android.opengl.GLES30.glFinish();
+    }
+
+    /**
+     * Blocks until the merge00 pass that last read this upload-ring slot has
+     * completed on the GPU, so the following {@code glTexSubImage2D} can
+     * overwrite it without the driver inserting its own full-queue
+     * write-after-read stall. A timeout is non-fatal: driver command ordering
+     * still guarantees correctness, we only lose the overlap.
+     */
+    private void waitAlterUploadFence(int slot) {
+        long fence = alterUploadFences[slot];
+        if (fence == 0) return;
+        alterUploadFences[slot] = 0;
+        android.opengl.GLES30.glClientWaitSync(fence,
+                android.opengl.GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 100_000_000L);
+        android.opengl.GLES30.glDeleteSync(fence);
+    }
+
+    /** Records the completion point of the given slot's last reader (merge00). */
+    private void markAlterUploadFence(int slot) {
+        if (alterUploadFences[slot] != 0) {
+            android.opengl.GLES30.glDeleteSync(alterUploadFences[slot]);
+        }
+        alterUploadFences[slot] = android.opengl.GLES30.glFenceSync(
+                android.opengl.GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
+    private void deleteAlterUploadFences() {
+        for (int i = 0; i < alterUploadFences.length; i++) {
+            if (alterUploadFences[i] != 0) {
+                android.opengl.GLES30.glDeleteSync(alterUploadFences[i]);
+                alterUploadFences[i] = 0;
+            }
+        }
     }
 
     @Override
@@ -924,6 +968,9 @@ public class ESD4D extends GLOneScript {
         // re-upload duplicates. -48 MB VRAM, -8 uploads; bit-exact (same
         // texture object sampled identically).
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        // Second ring slot: see the merge loop. Sharing with FlowNet/Pyramid
+        // stays on the first slot (alignment completes before the loop).
+        inputAlterAlt = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
         // Merge tile size: parameters.tile (16 raw px) normally, doubled
         // when the Halide aligner runs without flow refinement - its plain
         // level-1 field carries one vector per 32 raw px, the alignment
@@ -1037,6 +1084,7 @@ public class ESD4D extends GLOneScript {
         GLTexture mergeAcc = base;
 
         long mergeLoopT = System.currentTimeMillis();
+        int alterSlot = 0;
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -1049,8 +1097,11 @@ public class ESD4D extends GLOneScript {
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
+            GLTexture alterTarget = alterSlot == 0 ? inputAlter : inputAlterAlt;
+            waitAlterUploadFence(alterSlot);
             long stageT = System.currentTimeMillis();
-            inputAlter.loadRawHalf(frame.buffer);
+            alterTarget.loadRawHalf(frame.buffer);
+            Log.d("ESD4D", "Stage[merge:upload] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             GLTexture flowTex = null;
             if(Objects.equals(alignerSelect, "flownet")) {
@@ -1067,13 +1118,18 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("exposure", 1.f/images.get(0).pair.layerMpy);
             glProg.setVar("createDiff", 0);
             glProg.setVar("cfaShift", cfaShift);
-            glProg.setTexture("inTexture", inputAlter);
+            glProg.setTexture("inTexture", alterTarget);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
+            // merge00 is this ring slot's only reader: signal the GPU point
+            // after which the slot may be overwritten, without draining the
+            // queue. The next two frames use the other slot in between.
+            markAlterUploadFence(alterSlot);
+            alterSlot ^= 1;
 
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
-            glProg.setDefine("TILE_AL", mergeTile);
+            glProg.setDefine("TILE_AL", parameters.tile);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
@@ -1193,6 +1249,8 @@ public class ESD4D extends GLOneScript {
         baseDiff.close(); baseDiff = null;
         alter.close(); alter = null;
         inputAlter.close(); inputAlter = null;
+        if (inputAlterAlt != null) { inputAlterAlt.close(); inputAlterAlt = null; }
+        deleteAlterUploadFences();
         inputBase.close(); inputBase = null;
 
         glProg.setLayout(tile,tile,1);
@@ -1297,6 +1355,8 @@ public class ESD4D extends GLOneScript {
         // released post-loop (nulled there); guard so a stale close can
         // never delete a recycled texture ID.
         if (inputAlter != null) inputAlter.close();
+        if (inputAlterAlt != null) inputAlterAlt.close();
+        deleteAlterUploadFences();
         if (alter != null) alter.close();
         if (inputBase != null) inputBase.close();
         if (baseDiff != null) baseDiff.close();
