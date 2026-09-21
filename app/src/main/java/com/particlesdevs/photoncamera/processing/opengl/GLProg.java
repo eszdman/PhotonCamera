@@ -263,6 +263,7 @@ public class GLProg implements AutoCloseable {
             int program = tryLoadBinary(binaryKey(shader, compute));
             if (program == 0) {
                 int nShader;
+                boolean linked = true;
                 if(!compute) {
                     nShader = compileShader(GL_FRAGMENT_SHADER, shader);
                     program = createProgram(vertexShader, nShader);
@@ -273,8 +274,21 @@ public class GLProg implements AutoCloseable {
                     GLES30.glProgramParameteri(program,
                             GLES30.GL_PROGRAM_BINARY_RETRIEVABLE_HINT, GLES30.GL_TRUE);
                     glLinkProgram(program);
+                    // The fragment path checks link status inside createProgram;
+                    // the compute path must do it explicitly or a link failure
+                    // would silently dispatch into a dead program.
+                    int[] linkStatus = new int[1];
+                    glGetProgramiv(program, GLES30.GL_LINK_STATUS, linkStatus, 0);
+                    if (linkStatus[0] == 0) {
+                        linked = false;
+                        Log.e(TAG, "Error linking compute program: "
+                                + glGetProgramInfoLog(program));
+                    }
                 }
-                storeBinary(binaryKey(shader, compute), program);
+                if (linked) {
+                    // Never cache a broken binary for later shots.
+                    storeBinary(binaryKey(shader, compute), program);
+                }
                 currentShader = nShader;
             }
             glGetError();
