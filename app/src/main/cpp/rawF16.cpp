@@ -23,6 +23,42 @@ static inline uint16_t normalizeSample(uint16_t v, float bl, float invScale) {
     return f32ToF16(f);
 }
 
+// Normalizes `count` samples of one row starting at column `colStart`,
+// mirroring RawF16::normalize's per-row math exactly: the NEON 8-px lane
+// pattern where available, scalar tail otherwise. `blEven`/`invEven` belong
+// to the row's even columns and `blOdd`/`invOdd` to its odd columns (i.e.
+// blackLevel[siteRow] / blackLevel[siteRow+1]).
+static void normalizeRun(const uint16_t *src, uint16_t *dst, int count, int colStart,
+                         float blEven, float blOdd, float invEven, float invOdd) {
+    const int p = colStart & 1;
+    // Lane x covers column colStart + x; even columns use the "even" pair.
+    const float b0 = p ? blOdd : blEven;
+    const float b1 = p ? blEven : blOdd;
+    const float i0 = p ? invOdd : invEven;
+    const float i1 = p ? invEven : invOdd;
+    int x = 0;
+#if PHOTON_F16_NEON
+    const float blPat[4] = {b0, b1, b0, b1};
+    const float invPat[4] = {i0, i1, i0, i1};
+    const float32x4_t blV = vld1q_f32(blPat);
+    const float32x4_t invV = vld1q_f32(invPat);
+    const float32x4_t zeroV = vdupq_n_f32(0.0f);
+    const float32x4_t oneV = vdupq_n_f32(1.0f);
+    for (; x + 8 <= count; x += 8) {
+        uint16x8_t v = vld1q_u16(src + x);
+        float32x4_t lo = vcvtq_f32_u32(vmovl_u16(vget_low_u16(v)));
+        float32x4_t hi = vcvtq_f32_u32(vmovl_u16(vget_high_u16(v)));
+        lo = vminq_f32(vmaxq_f32(vmulq_f32(vsubq_f32(lo, blV), invV), zeroV), oneV);
+        hi = vminq_f32(vmaxq_f32(vmulq_f32(vsubq_f32(hi, blV), invV), zeroV), oneV);
+        vst1_u16(dst + x, vreinterpret_u16_f16(vcvt_f16_f32(lo)));
+        vst1_u16(dst + x + 4, vreinterpret_u16_f16(vcvt_f16_f32(hi)));
+    }
+#endif
+    for (; x < count; x++) {
+        dst[x] = normalizeSample(src[x], (x & 1) ? b1 : b0, (x & 1) ? i1 : i0);
+    }
+}
+
 uint16_t *RawF16::normalize(const uint16_t *src, int width, int height,
                             float whiteLevel, const float blackLevel[4]) {
     if (src == nullptr || width <= 0 || height <= 0) return nullptr;
@@ -281,7 +317,9 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unpackNormalizeF16TenBit(
 
     // Chunk size is a multiple of 4 so every chunk starts on a 5-byte group
     // boundary (chunk byte offset = index * 5 / 4) and unpackFast10's scalar
-    // tail only ever runs on the final chunk.
+    // tail only ever runs on the final chunk. The unpacked chunk is then
+    // normalized in row runs (NEON 8-px lanes + scalar tail), so the math is
+    // identical to the old unpack16 + RawF16::normalize sequence.
     const int CHUNK = 8192;
     uint16_t scratch[CHUNK];
     int64_t i = 0;
@@ -289,10 +327,17 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unpackNormalizeF16TenBit(
     while (i < pixels) {
         int n = (int) ((pixels - i) < CHUNK ? (pixels - i) : CHUNK);
         unpackFast10(packed + (i / 4) * 5, scratch, n);
-        for (int k = 0; k < n; k++) {
-            int site = (row & 1) * 2 + (col & 1);
-            dst[i + k] = normalizeSample(scratch[k], bl[site], invScale[site]);
-            if (++col == width) {
+        int k = 0;
+        while (k < n) {
+            int run = width - col;
+            if (run > n - k) run = n - k;
+            int siteRow = (row & 1) * 2;
+            normalizeRun(scratch + k, dst + i + k, run, col,
+                         bl[siteRow], bl[siteRow + 1],
+                         invScale[siteRow], invScale[siteRow + 1]);
+            k += run;
+            col += run;
+            if (col >= width) {
                 col = 0;
                 row++;
             }
