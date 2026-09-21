@@ -200,12 +200,14 @@
         <item>Off</item>
         <item>HUD</item>
         <item>HUD + Histogram</item>
+        <item>HUD + Waveform</item>
         <item>Full Debug</item>
     </string-array>
     <string-array name="afdata_entryValues">
         <item>0</item>
         <item>1</item>
         <item>2</item>
+        <item>4</item>
         <item>3</item>
     </string-array>
     <string-array name="viewfinder_background_entries">

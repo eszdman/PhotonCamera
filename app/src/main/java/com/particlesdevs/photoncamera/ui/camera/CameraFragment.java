@@ -1094,8 +1094,8 @@ public class CameraFragment extends Fragment {
             if (mViewfinderHudView != null) {
                 mViewfinderHudView.setHudMode(afDataMode);
             }
-            if (afDataMode == 1 || afDataMode == 2) {
-                // Mode 1: HUD, Mode 2: HUD + Histogram
+            if (afDataMode == 1 || afDataMode == 2 || afDataMode == 4) {
+                // Mode 1: HUD, Mode 2: HUD + Histogram, Mode 4: HUD + Waveform
                 updateViewfinderHud(result, afDataMode);
             } else if (afDataMode == 3) {
                 // Mode 3: Full Raw Debug Mode
@@ -1378,9 +1378,9 @@ public class CameraFragment extends Fragment {
             mViewfinderHudView.setHudData(exposureStr, isoStr, lensStr, focusStr, wbStr, isTripod, oisSupported, oisActive);
         }
 
-        // Trigger live histogram sampling if mode 2 (HUD + Histogram) is active
-        if (afDataMode == 2) {
-            requestLiveHistogram();
+        // Trigger live scope sampling if mode 2 (histogram) or 4 (waveform) is active
+        if (afDataMode == 2 || afDataMode == 4) {
+            requestLiveScope(afDataMode);
         }
     }
 
@@ -1486,19 +1486,41 @@ public class CameraFragment extends Fragment {
 
     private long lastHistTime = 0;
     private static final long HIST_INTERVAL_MS = 120; // 8.3 Hz sampling rate for zero CPU load
+    private static final float SCOPE_WIDTH_DP = 72f;
+    private static final float SCOPE_HEIGHT_DP = 36f;
+    private final Object mWaveLock = new Object();
+    private int[][] mWaveCounts;
+    private int[][] mWavePixelBuffers;
+    private int mWavePixelBufferIndex = 0;
 
-    private void requestLiveHistogram() {
+    private void requestLiveScope(int afDataMode) {
         if (textureView == null || surfaceView == null) return;
         long now = android.os.SystemClock.uptimeMillis();
         if (now - lastHistTime < HIST_INTERVAL_MS) {
             return;
         }
         lastHistTime = now;
-        textureView.requestAnalysisFrame(this::onAnalysisFrame);
+        int waveColumns = 0;
+        int waveBins = 0;
+        if (afDataMode == 4) {
+            float density = getResources().getDisplayMetrics().density;
+            waveColumns = Math.max(16, Math.round(SCOPE_WIDTH_DP * density));
+            waveBins = Math.max(8, Math.round(SCOPE_HEIGHT_DP * density));
+        }
+        final int columns = waveColumns;
+        final int bins = waveBins;
+        textureView.requestAnalysisFrame((rgba, width, height) ->
+                processExecutorService.execute(() ->
+                        processScopeData(rgba, width, height, afDataMode, columns, bins)));
     }
 
-    private void onAnalysisFrame(byte[] rgba, int width, int height) {
-        processExecutorService.execute(() -> processHistogramData(rgba, width, height));
+    private void processScopeData(byte[] rgba, int width, int height,
+                                  int afDataMode, int waveColumns, int waveBins) {
+        if (afDataMode == 4) {
+            processWaveformData(rgba, width, height, waveColumns, waveBins);
+        } else {
+            processHistogramData(rgba, width, height);
+        }
     }
 
     private void processHistogramData(byte[] rgba, int width, int height) {
@@ -1511,6 +1533,28 @@ public class CameraFragment extends Fragment {
         if (mViewfinderHudView != null) {
             mViewfinderHudView.post(() ->
                     mViewfinderHudView.setHistogramData(bins, calculatedMaxY, size));
+        }
+    }
+
+    private void processWaveformData(byte[] rgba, int width, int height,
+                                     int columns, int bins) {
+        int[] pixels;
+        synchronized (mWaveLock) {
+            if (mWaveCounts == null || mWaveCounts[0].length != columns * bins) {
+                mWaveCounts = new int[3][columns * bins];
+                mWavePixelBuffers = new int[][]{
+                        new int[columns * bins], new int[columns * bins]};
+                mWavePixelBufferIndex = 0;
+            }
+            int max = PreviewScopeAnalyzer.fillWaveform(rgba, width, height, mWaveCounts, columns, bins);
+            float normalizer = PreviewScopeAnalyzer.percentileNormalizer(mWaveCounts, max, 0.99f);
+            pixels = mWavePixelBuffers[mWavePixelBufferIndex];
+            mWavePixelBufferIndex ^= 1;
+            PreviewScopeAnalyzer.renderWaveformBitmap(mWaveCounts, normalizer, pixels, columns, bins);
+        }
+        if (mViewfinderHudView != null) {
+            mViewfinderHudView.post(() ->
+                    mViewfinderHudView.setWaveformPixels(pixels, columns, bins));
         }
     }
 

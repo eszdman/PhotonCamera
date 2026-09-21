@@ -2,12 +2,14 @@ package com.particlesdevs.photoncamera.ui.camera.views.viewfinder;
 
 import android.animation.ValueAnimator;
 import android.content.Context;
+import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.text.TextPaint;
 import android.util.AttributeSet;
@@ -28,8 +30,13 @@ public class ViewfinderHudView extends View {
     private final Paint histBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint histBorderPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint histChannelPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint wavePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint waveBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint waveGridPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path histPath = new Path();
     private final PorterDuffXfermode histXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
+    private final RectF scopeDst = new RectF();
+    private final float[] scopeBox = new float[8];
 
     private float mDensity = 1.0f;
     private float screenRatio = 1.0f;
@@ -47,8 +54,9 @@ public class ViewfinderHudView extends View {
     private int[][] mHistColorsMap = null;
     private int mHistMaxY = 1;
     private int mHistSize = 64;
+    private Bitmap mWaveBitmap = null;
 
-    private int mHudMode = 0; // 0 = Off, 1 = HUD, 2 = HUD + Histogram
+    private int mHudMode = 0; // 0 = Off, 1 = HUD, 2 = HUD + Histogram, 4 = HUD + Waveform
     private float mAnimatedOrientation = 0f;
     private int mTargetOrientation = 0;
     private ValueAnimator mRotationAnimator = null;
@@ -94,6 +102,15 @@ public class ViewfinderHudView extends View {
         histBorderPaint.setColor(Color.argb(90, 255, 255, 255));
         histBorderPaint.setStyle(Paint.Style.STROKE);
         histBorderPaint.setStrokeWidth(1.0f * mDensity);
+
+        wavePaint.setFilterBitmap(true);
+
+        waveBgPaint.setColor(Color.BLACK);
+        waveBgPaint.setStyle(Paint.Style.FILL);
+
+        waveGridPaint.setColor(Color.argb(70, 255, 255, 255));
+        waveGridPaint.setStyle(Paint.Style.STROKE);
+        waveGridPaint.setStrokeWidth(1.0f * mDensity);
     }
 
     public void setHudMode(int mode) {
@@ -153,6 +170,22 @@ public class ViewfinderHudView extends View {
         }
     }
 
+    /**
+     * Handed a completed waveform bitmap's pixels on the UI thread; copied into
+     * a view-owned bitmap so the producer can reuse its buffer next tick.
+     */
+    public void setWaveformPixels(int[] pixels, int width, int height) {
+        if (pixels == null || width <= 0 || height <= 0) return;
+        if (mWaveBitmap == null || mWaveBitmap.getWidth() != width
+                || mWaveBitmap.getHeight() != height) {
+            mWaveBitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        }
+        mWaveBitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+        if (mHudMode == 4) {
+            invalidate();
+        }
+    }
+
     public void clear() {
         if (mRotationAnimator != null) {
             mRotationAnimator.cancel();
@@ -174,6 +207,9 @@ public class ViewfinderHudView extends View {
         } else if (mHudMode == 2) {
             drawHUD(canvas);
             drawHistogram(canvas);
+        } else if (mHudMode == 4) {
+            drawHUD(canvas);
+            drawWaveform(canvas);
         }
     }
 
@@ -247,20 +283,15 @@ public class ViewfinderHudView extends View {
     private void drawHistogram(Canvas canvas) {
         if (mHistColorsMap == null || mHistColorsMap.length < 3) return;
 
-        float marginSide = 14f * mDensity;
-        float marginTop = 12f * mDensity;
-        float w = 72f * mDensity;
-        float h = 36f * mDensity;
-
-        boolean isLandscape = (mTargetOrientation == 90 || mTargetOrientation == 270);
-
-        float pivotX = canvas.getWidth() - marginSide - (isLandscape ? (h / 2f) : (w / 2f));
-        float pivotY = marginTop + (isLandscape ? (w / 2f) : (h / 2f));
-
-        float left = pivotX - (w / 2f);
-        float top = pivotY - (h / 2f);
-        float right = left + w;
-        float bottom = top + h;
+        computeScopeBox(canvas);
+        float w = scopeBox[6];
+        float h = scopeBox[7];
+        float left = scopeBox[0];
+        float top = scopeBox[1];
+        float right = scopeBox[2];
+        float bottom = scopeBox[3];
+        float pivotX = scopeBox[4];
+        float pivotY = scopeBox[5];
 
         canvas.save();
         if (mAnimatedOrientation != 0f) {
@@ -303,6 +334,60 @@ public class ViewfinderHudView extends View {
         histChannelPaint.setXfermode(null);
 
         canvas.restore();
+    }
+
+    /**
+     * Overlaid additive RGB waveform in the same top-right slot as the
+     * histogram. Traces are drawn from a pre-rendered bitmap (square-root
+     * intensity, high values at the top) over a graticule.
+     */
+    private void drawWaveform(Canvas canvas) {
+        if (mWaveBitmap == null) return;
+
+        computeScopeBox(canvas);
+        float w = scopeBox[6];
+        float h = scopeBox[7];
+        float left = scopeBox[0];
+        float top = scopeBox[1];
+        float right = scopeBox[2];
+        float bottom = scopeBox[3];
+        float pivotX = scopeBox[4];
+        float pivotY = scopeBox[5];
+
+        canvas.save();
+        if (mAnimatedOrientation != 0f) {
+            canvas.rotate(mAnimatedOrientation, pivotX, pivotY);
+        }
+
+        float bleedPad = 2.5f * mDensity;
+        canvas.drawRect(left - bleedPad, top - bleedPad, right + bleedPad, bottom + bleedPad, waveBgPaint);
+        canvas.drawRect(left, top, right, bottom, waveGridPaint);
+        canvas.drawLine(left, top + (h * 0.25f), right, top + (h * 0.25f), waveGridPaint);
+        canvas.drawLine(left, top + (h * 0.50f), right, top + (h * 0.50f), waveGridPaint);
+        canvas.drawLine(left, top + (h * 0.75f), right, top + (h * 0.75f), waveGridPaint);
+
+        scopeDst.set(left, top, right, bottom);
+        canvas.drawBitmap(mWaveBitmap, null, scopeDst, wavePaint);
+
+        canvas.restore();
+    }
+
+    private void computeScopeBox(Canvas canvas) {
+        float marginSide = 14f * mDensity;
+        float marginTop = 12f * mDensity;
+        float w = 72f * mDensity;
+        float h = 36f * mDensity;
+        boolean isLandscape = (mTargetOrientation == 90 || mTargetOrientation == 270);
+        float pivotX = canvas.getWidth() - marginSide - (isLandscape ? (h / 2f) : (w / 2f));
+        float pivotY = marginTop + (isLandscape ? (w / 2f) : (h / 2f));
+        scopeBox[0] = pivotX - (w / 2f);
+        scopeBox[1] = pivotY - (h / 2f);
+        scopeBox[2] = scopeBox[0] + w;
+        scopeBox[3] = scopeBox[1] + h;
+        scopeBox[4] = pivotX;
+        scopeBox[5] = pivotY;
+        scopeBox[6] = w;
+        scopeBox[7] = h;
     }
 
     @Override

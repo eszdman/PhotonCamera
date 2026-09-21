@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.ui.camera.views.viewfinder;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -101,5 +102,127 @@ public class PreviewScopeAnalyzerTest {
         PreviewScopeAnalyzer.fillHistogram(null, 2, 2, bins, 256);
         PreviewScopeAnalyzer.fillHistogram(new byte[0], 0, 0, bins, 256);
         assertEquals(0, bins[0][0]);
+    }
+
+    @Test
+    public void waveformMapsColumnsAndValues() {
+        byte[] data = rgba(rgb(255, 0, 0), rgb(0, 0, 255));
+        int[][] counts = new int[3][2 * 256];
+        int max = PreviewScopeAnalyzer.fillWaveform(data, 2, 1, counts, 2, 256);
+
+        assertEquals(1, max);
+        assertEquals(1, counts[0][255 * 2 + 0]);
+        assertEquals(1, counts[0][0 * 2 + 1]);
+        assertEquals(1, counts[1][0 * 2 + 0]);
+        assertEquals(1, counts[1][0 * 2 + 1]);
+        assertEquals(1, counts[2][0 * 2 + 0]);
+        assertEquals(1, counts[2][255 * 2 + 1]);
+    }
+
+    @Test
+    public void waveformAggregatesPixelsPerColumn() {
+        byte[] data = rgba(rgb(255, 255, 255), rgb(255, 255, 255),
+                rgb(255, 255, 255), rgb(255, 255, 255));
+        int[][] counts = new int[3][2 * 256];
+        int max = PreviewScopeAnalyzer.fillWaveform(data, 4, 1, counts, 2, 256);
+
+        assertEquals(2, max);
+        assertEquals(2, counts[0][255 * 2 + 0]);
+        assertEquals(2, counts[0][255 * 2 + 1]);
+    }
+
+    @Test
+    public void waveformScalesToFewerBins() {
+        byte[] data = rgba(rgb(255, 0, 0));
+        int[][] counts = new int[3][1 * 64];
+        PreviewScopeAnalyzer.fillWaveform(data, 1, 1, counts, 1, 64);
+        assertEquals(1, counts[0][63]);
+        assertEquals(1, counts[1][0]);
+        assertEquals(1, counts[2][0]);
+    }
+
+    @Test
+    public void waveformBitmapIsAdditiveAndFlipped() {
+        int[][] counts = new int[3][8 * 4];
+        counts[0][1 * 8 + 1] = 1;
+        counts[1][1 * 8 + 1] = 1;
+        counts[2][0 * 8 + 6] = 1;
+        int[] pixels = new int[8 * 4];
+        PreviewScopeAnalyzer.renderWaveformBitmap(counts, 1f, pixels, 8, 4);
+
+        assertEquals(0xFFFFFF00, pixels[2 * 8 + 1]);
+        assertEquals(0xFF0000FF, pixels[3 * 8 + 6]);
+        assertEquals(0, pixels[7]);
+    }
+
+    @Test
+    public void waveformBitmapGlowSurroundsCoreWithoutFakingZeros() {
+        int[][] counts = new int[3][8 * 4];
+        counts[0][1 * 8 + 3] = 1;
+        int[] pixels = new int[8 * 4];
+        PreviewScopeAnalyzer.renderWaveformBitmap(counts, 1f, pixels, 8, 4);
+
+        int core = pixels[2 * 8 + 3];
+        assertEquals(255, (core >> 16) & 0xFF);
+        int glow = pixels[2 * 8 + 5];
+        assertTrue(glow != 0 && ((glow >> 16) & 0xFF) < 255);
+        assertEquals(0, pixels[0]);
+    }
+
+    @Test
+    public void waveformBitmapAppliesPercentileNormalizer() {
+        int[][] counts = new int[3][1 * 1];
+        counts[0][0] = 1;
+        int[] pixels = new int[1];
+        PreviewScopeAnalyzer.renderWaveformBitmap(counts, 4f, pixels, 1, 1);
+        assertEquals(128, (pixels[0] >> 16) & 0xFF);
+
+        counts[0][0] = 100;
+        PreviewScopeAnalyzer.renderWaveformBitmap(counts, 4f, pixels, 1, 1);
+        assertEquals(255, (pixels[0] >> 16) & 0xFF);
+    }
+
+    @Test
+    public void waveformBitmapClampsChannelSums() {
+        int[][] counts = new int[3][1 * 1];
+        counts[0][0] = 1;
+        counts[1][0] = 1;
+        counts[2][0] = 1;
+        int[] pixels = new int[1];
+        PreviewScopeAnalyzer.renderWaveformBitmap(counts, 1f, pixels, 1, 1);
+        assertEquals(0xFFFFFFFF, pixels[0]);
+    }
+
+    @Test
+    public void percentileNormalizerPicksRequestedPercentile() {
+        int[][] counts = new int[3][100];
+        for (int i = 0; i < 90; i++) {
+            counts[0][i] = 1;
+        }
+        for (int i = 90; i < 100; i++) {
+            counts[1][i] = 10;
+        }
+        assertEquals(10f, PreviewScopeAnalyzer.percentileNormalizer(counts, 10, 0.99f), 0.001f);
+        assertEquals(1f, PreviewScopeAnalyzer.percentileNormalizer(counts, 10, 0.50f), 0.001f);
+    }
+
+    @Test
+    public void percentileNormalizerGuardsDegenerateSkew() {
+        int[][] counts = new int[3][100];
+        for (int i = 0; i < 99; i++) {
+            counts[0][i] = 1;
+        }
+        counts[1][0] = 100;
+        float normalizer = PreviewScopeAnalyzer.percentileNormalizer(counts, 100, 0.99f);
+        assertTrue(normalizer >= 3f && normalizer < 4f);
+    }
+
+    @Test
+    public void waveformEmptyCountsStayTransparent() {
+        int[] pixels = new int[4];
+        PreviewScopeAnalyzer.renderWaveformBitmap(new int[3][4], 1f, pixels, 2, 2);
+        for (int pixel : pixels) {
+            assertEquals(0, pixel);
+        }
     }
 }
