@@ -320,6 +320,8 @@ public class ESD4D extends GLOneScript {
     GLTexture inputAlterAlt;
     /** GLsync handles for the two upload-ring slots (0 = none). */
     private final long[] alterUploadFences = new long[2];
+    /** GLsync handles for the noise-blend raw upload ring (two slots). */
+    private final long[] noiseBlendUploadFences = new long[2];
     GLTexture alter;
     GLTexture alignmentTex;
     /** Halide aligner running on a worker thread (null before launch/after join). */
@@ -467,16 +469,27 @@ public class ESD4D extends GLOneScript {
         // the ESD4D lifecycle - never closed here (see guards below).
         GLTexture blendAcc = baseDiff;
         GLTexture tempFloat = alter;
-        GLTexture tempRaw = frameCnt > 1
+        // Two raw staging textures ping-ponged with the same GLsync scheme as
+        // the merge loop: the upload for frame k+1 must not wait on merge00 of
+        // frame k still reading the single staging texture.
+        GLTexture tempRawA = frameCnt > 1
                 ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
                 : null;
+        GLTexture tempRawB = frameCnt > 1
+                ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
+                : null;
+        int rawSlot = 0;
         GLTexture blendCurrent = baseAlter;
         GLTexture blendNext = blendAcc;
         for (int k = 0; k < frameCnt; k++) {
             int idx = frameCnt == 1 ? 0
                     : (int) Math.round((double) k * (images.size() - 1) / (frameCnt - 1));
+            GLTexture tempRaw = rawSlot == 0 ? tempRawA : tempRawB;
             GLTexture rawSrc = (idx == 0) ? inputBase : tempRaw;
-            if (idx > 0) tempRaw.loadRawHalf(images.get(idx).buffer);
+            if (idx > 0) {
+                waitUploadFence(noiseBlendUploadFences, rawSlot);
+                tempRaw.loadRawHalf(images.get(idx).buffer);
+            }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 quad)
             glProg.setLayout(tile, tile, 1);
@@ -487,6 +500,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", rawSrc);
             glProg.setTextureCompute("outTexture", tempFloat, true);
             glProg.computeAuto(packedSize, 1);
+            if (idx > 0) markUploadFence(noiseBlendUploadFences, rawSlot);
+            rawSlot ^= 1;
 
             // Progressive temporal blend accumulate at this frame's grid slot
             glProg.setLayout(tile, tile, 1);
@@ -504,7 +519,9 @@ public class ESD4D extends GLOneScript {
             blendNext = swap;
         }
         // Borrowed baseDiff must survive (see above); nothing to free here.
-        if (tempRaw != null) tempRaw.close();
+        if (tempRawA != null) tempRawA.close();
+        if (tempRawB != null) tempRawB.close();
+        deleteUploadFences(noiseBlendUploadFences);
         Log.d(Name, "Noise blend: " + frameCnt + " frame(s), sum(w^2)="
                 + String.format(java.util.Locale.ROOT, "%.4f", java.util.stream.DoubleStream.of(weights).map(w -> w * w).sum()));
         return blendCurrent;
@@ -528,10 +545,10 @@ public class ESD4D extends GLOneScript {
      * write-after-read stall. A timeout is non-fatal: driver command ordering
      * still guarantees correctness, we only lose the overlap.
      */
-    private void waitAlterUploadFence(int slot) {
-        long fence = alterUploadFences[slot];
+    private void waitUploadFence(long[] fences, int slot) {
+        long fence = fences[slot];
         if (fence == 0) return;
-        alterUploadFences[slot] = 0;
+        fences[slot] = 0;
         android.opengl.GLES30.glClientWaitSync(fence,
                 android.opengl.GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 100_000_000L);
         android.opengl.GLES30.glDeleteSync(fence);
@@ -562,20 +579,20 @@ public class ESD4D extends GLOneScript {
         }
     }
 
-    /** Records the completion point of the given slot's last reader (merge00). */
-    private void markAlterUploadFence(int slot) {
-        if (alterUploadFences[slot] != 0) {
-            android.opengl.GLES30.glDeleteSync(alterUploadFences[slot]);
+    /** Records the completion point of the given slot's last reader. */
+    private void markUploadFence(long[] fences, int slot) {
+        if (fences[slot] != 0) {
+            android.opengl.GLES30.glDeleteSync(fences[slot]);
         }
-        alterUploadFences[slot] = android.opengl.GLES30.glFenceSync(
+        fences[slot] = android.opengl.GLES30.glFenceSync(
                 android.opengl.GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
     }
 
-    private void deleteAlterUploadFences() {
-        for (int i = 0; i < alterUploadFences.length; i++) {
-            if (alterUploadFences[i] != 0) {
-                android.opengl.GLES30.glDeleteSync(alterUploadFences[i]);
-                alterUploadFences[i] = 0;
+    private void deleteUploadFences(long[] fences) {
+        for (int i = 0; i < fences.length; i++) {
+            if (fences[i] != 0) {
+                android.opengl.GLES30.glDeleteSync(fences[i]);
+                fences[i] = 0;
             }
         }
     }
@@ -1213,7 +1230,7 @@ public class ESD4D extends GLOneScript {
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
             GLTexture alterTarget = alterSlot == 0 ? inputAlter : inputAlterAlt;
-            waitAlterUploadFence(alterSlot);
+            waitUploadFence(alterUploadFences, alterSlot);
             long stageT = System.currentTimeMillis();
             alterTarget.loadRawHalf(frame.buffer);
             Log.d("ESD4D", "Stage[merge:upload] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
@@ -1239,7 +1256,7 @@ public class ESD4D extends GLOneScript {
             // merge00 is this ring slot's only reader: signal the GPU point
             // after which the slot may be overwritten, without draining the
             // queue. The next two frames use the other slot in between.
-            markAlterUploadFence(alterSlot);
+            markUploadFence(alterUploadFences, alterSlot);
             alterSlot ^= 1;
 
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
@@ -1365,7 +1382,7 @@ public class ESD4D extends GLOneScript {
         alter.close(); alter = null;
         inputAlter.close(); inputAlter = null;
         if (inputAlterAlt != null) { inputAlterAlt.close(); inputAlterAlt = null; }
-        deleteAlterUploadFences();
+        deleteUploadFences(alterUploadFences);
         inputBase.close(); inputBase = null;
 
         glProg.setLayout(tile,tile,1);
@@ -1470,6 +1487,8 @@ public class ESD4D extends GLOneScript {
         } catch (Throwable t) {
             Log.e("ESD4D", "Halide alignment worker failed during close", t);
         }
+        deleteUploadFences(alterUploadFences);
+        deleteUploadFences(noiseBlendUploadFences);
         super.close();
     }
 
@@ -1485,7 +1504,7 @@ public class ESD4D extends GLOneScript {
         // never delete a recycled texture ID.
         if (inputAlter != null) inputAlter.close();
         if (inputAlterAlt != null) inputAlterAlt.close();
-        deleteAlterUploadFences();
+        deleteUploadFences(alterUploadFences);
         if (alter != null) alter.close();
         if (inputBase != null) inputBase.close();
         if (baseDiff != null) baseDiff.close();
