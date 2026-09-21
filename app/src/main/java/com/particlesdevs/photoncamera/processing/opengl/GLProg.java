@@ -195,6 +195,12 @@ public class GLProg implements AutoCloseable {
         Defines.add(new String[]{DefineName,DefineVal});
         changedDef = true;
     }
+    /** Drops any pending define list (e.g. after a failed program pre-warm). */
+    public void clearDefines() {
+        Defines.clear();
+        changedDef = false;
+    }
+
     public void useAssetProgram(String name){
         useAssetProgram(name,false);
     }

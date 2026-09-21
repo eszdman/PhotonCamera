@@ -638,6 +638,8 @@ public class ESD4D extends GLOneScript {
         } catch (Throwable t) {
             Log.w("ESD4D", "merge program pre-warm failed (non-fatal)", t);
         } finally {
+            // Never leave a half-consumed define list for the aligner programs.
+            glProg.clearDefines();
             if (scratch != null) scratch.close();
             if (dummyKernels != null) dummyKernels.close();
             if (dummyAlign != null) dummyAlign.close();
