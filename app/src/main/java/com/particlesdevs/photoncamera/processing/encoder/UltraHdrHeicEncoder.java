@@ -113,9 +113,65 @@ public final class UltraHdrHeicEncoder {
     }
 
     /**
+     * Gain-map encode running on a worker. Owns its temp file; {@link #abort()}
+     * joins (if needed) and deletes it.
+     */
+    private static final class GainEncodeJob {
+        private final File tmp;
+        private final Bitmap bmp;
+        private final Thread thread;
+        private volatile Throwable error;
+
+        GainEncodeJob(File tmp, Bitmap bmp) {
+            this.tmp = tmp;
+            this.bmp = bmp;
+            this.thread = new Thread(this::run, "UhdrGainEncode");
+            this.thread.start();
+        }
+
+        private void run() {
+            try {
+                // Gain: full size, same depth as the base, so the declared
+                // tmap pixi matches the stream.
+                StillHeicEncoder.encodeToFile(tmp.toPath(), bmp,
+                        bmp.getWidth(), bmp.getHeight(), null, false);
+            } catch (Throwable t) {
+                error = t;
+            }
+        }
+
+        /** Waits for the encode; throws if it failed. */
+        void join() throws Exception {
+            boolean interrupted = false;
+            while (thread.isAlive()) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+            if (interrupted) Thread.currentThread().interrupt();
+            if (error != null) {
+                throw new Exception("gain HEIC encode failed", error);
+            }
+        }
+
+        /** Joins if still running (discarding the result) and deletes the file. */
+        void abort() {
+            try {
+                join();
+            } catch (Exception ignored) {
+            }
+            // noinspection ResultOfMethodCallIgnored
+            tmp.delete();
+        }
+    }
+
+    /**
      * Mux variant that consumes a base encode already in flight (started via
-     * {@link #startBaseEncode} while the caller prepared the gain map). Encodes
-     * the gain map, joins the base, then assembles the container.
+     * {@link #startBaseEncode} while the caller prepared the gain map). Runs
+     * the gain encode on its own worker so both HEIC encodes overlap, joins
+     * both, then assembles the container.
      */
     public static void encodeWithBase(Path dest, Bitmap sdr,
             GainMapComputer.Result gain, ParseExif.ExifData exif,
@@ -131,14 +187,29 @@ public final class UltraHdrHeicEncoder {
         File gainTmp = File.createTempFile("uhdr_heic_gain_", ".heic");
         boolean success = false;
         try {
-            // Join the base first so any failure surfaces before the gain
-            // encode; the two encodes then never hold codec sessions at once.
-            File baseTmp = base.join();
-
-            // Gain: full size, same depth as the base, so the declared tmap
-            // pixi matches the stream.
-            StillHeicEncoder.encodeToFile(gainTmp.toPath(), gain.gainMap,
-                    gain.gainMap.getWidth(), gain.gainMap.getHeight(), null, false);
+            // Gain encode on a worker: it reads the gain bitmap and writes its
+            // own temp file, so it can run alongside the already-started base
+            // encode instead of waiting for it.
+            GainEncodeJob gainJob = new GainEncodeJob(gainTmp, gain.gainMap);
+            File baseTmp;
+            try {
+                baseTmp = base.join();
+            } catch (Exception e) {
+                gainJob.abort();
+                throw e;
+            }
+            try {
+                gainJob.join();
+            } catch (Exception concurrentFailure) {
+                // Some SoCs allow only one hardware still-image encoder
+                // session; retry serially now that the base session is
+                // released. Transient session failures are not added to the
+                // permanent unsupported set, so the retry is real.
+                Log.w(TAG, "concurrent gain encode failed, retrying serially",
+                        concurrentFailure);
+                StillHeicEncoder.encodeToFile(gainTmp.toPath(), gain.gainMap,
+                        gain.gainMap.getWidth(), gain.gainMap.getHeight(), null, false);
+            }
 
             // Gain pixels are on disk now and only its metadata (captured
             // above as ints) is needed downstream: release the ~244 MB
