@@ -23,7 +23,7 @@ import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 import com.particlesdevs.photoncamera.ui.widget.RecordButtonDrawable;
 import com.particlesdevs.photoncamera.util.Utilities;
 
-import java.util.Arrays;
+import java.util.List;
 
 import static androidx.constraintlayout.widget.ConstraintSet.GONE;
 
@@ -58,6 +58,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private LayoutBottombuttonsBinding bottombuttons;
     private CameraUIEventsListener uiEventsListener;
     private CameraModeState currentState;
+    private List<CameraMode> mVisibleModes;
 
     CameraUIViewImpl(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -106,10 +107,50 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     private void initModeSwitcher() {
-        this.mModePicker.setValues(Arrays.stream(CameraMode.nameIds()).map(cameraFragment.activity::getString).toArray(String[]::new));
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        CameraMode current = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
+        if (!mVisibleModes.contains(current)) {
+            current = PreferenceKeys.getFallbackMode(current);
+            PreferenceKeys.setCameraModeOrdinal(current.ordinal());
+        }
+        updateModePickerValues();
         this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
-        this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
+        this.mModePicker.setOnItemSelectedListener(index -> {
+            if (index < 0 || index >= mVisibleModes.size()) {
+                return;
+            }
+            switchToMode(mVisibleModes.get(index));
+        });
+        this.mModePicker.setSelectedItem(mVisibleModes.indexOf(current));
+    }
+
+    /**
+     * Rebuilds the picker labels from the currently visible modes. Called on
+     * init and on {@link #refresh(boolean)} so changes made in Settings apply
+     * without restarting the camera.
+     */
+    private void updateModePickerValues() {
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        Integer[] allNameIds = CameraMode.nameIds();
+        String[] names = new String[mVisibleModes.size()];
+        for (int i = 0; i < mVisibleModes.size(); i++) {
+            names[i] = cameraFragment.activity.getString(allNameIds[mVisibleModes.get(i).ordinal()]);
+        }
+        this.mModePicker.setValues(names);
+    }
+
+    /**
+     * Ensures the persisted mode is visible, falling back to the next visible
+     * mode when the selected one was hidden. Returns the effective mode.
+     */
+    private CameraMode resolveVisibleMode() {
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        CameraMode current = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
+        if (!mVisibleModes.contains(current)) {
+            current = PreferenceKeys.getFallbackMode(current);
+            PreferenceKeys.setCameraModeOrdinal(current.ordinal());
+        }
+        return current;
     }
 
     @Override
@@ -254,7 +295,10 @@ public class CameraUIViewImpl implements CameraUIView {
         }
         this.topbar.setQuadVisible(enableQuadRes);
         cameraFragment.cameraFragmentBinding.invalidateAll();
-        currentState.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
+        CameraMode current = resolveVisibleMode();
+        updateModePickerValues();
+        this.mModePicker.setSelectedItem(mVisibleModes.indexOf(current));
+        currentState.reConfigureModeViews(current);
         this.resetCaptureProgressBar();
         if (!processing) {
             this.activateShutterButton(true);

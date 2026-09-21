@@ -57,6 +57,16 @@
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
                 />
+        <MultiSelectListPreference
+                android:key="@string/pref_hide_modes_key"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/hide_modes"
+                android:summary=""
+                android:dialogTitle="@string/hide_modes"
+                android:entries="@array/hide_modes_entries"
+                android:entryValues="@array/hide_modes_entryValues"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
         <ListPreference
                 android:key="@string/pref_lens_bar_position_key"
                 android:defaultValue="@string/pref_lens_bar_position_default"

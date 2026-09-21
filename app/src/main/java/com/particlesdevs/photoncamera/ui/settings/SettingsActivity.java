@@ -261,6 +261,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             applyVideoUi();
             showHideHdrxSettings();
             setFramesSummary();
+            updateHideModesSummary();
             setVersionDetails();
             setHdrxTitle();
             viewfinderBackgroundBefore = PreferenceKeys.getViewfinderBackground();
@@ -808,6 +809,54 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     Log.e("SettingsFragment", "Error toggling gallery icon: " + e.getMessage());
                     e.printStackTrace();
                 }
+            }
+            if (key.equals(PreferenceKeys.Key.KEY_HIDE_MODES.mValue)) {
+                enforceAtLeastOneVisibleMode();
+                updateHideModesSummary();
+            }
+        }
+
+        /**
+         * Summary for "Hide modes": "All modes shown" when empty, otherwise
+         * "N hidden".
+         */
+        private void updateHideModesSummary() {
+            try {
+                androidx.preference.MultiSelectListPreference pref = findPreference(
+                        mContext.getString(R.string.pref_hide_modes_key));
+                if (pref == null) {
+                    return;
+                }
+                int hiddenCount = PreferenceKeys.getHiddenModes().size();
+                if (hiddenCount == 0) {
+                    pref.setSummary(mContext.getString(R.string.hide_modes_summary_none));
+                } else {
+                    pref.setSummary(mContext.getString(R.string.hide_modes_summary, hiddenCount));
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "updateHideModesSummary failed", e);
+            }
+        }
+
+        /**
+         * Prevents hiding all modes: at least one mode must stay visible. If
+         * the user checked every box, PHOTO is forced back to visible and a
+         * toast explains why.
+         */
+        private void enforceAtLeastOneVisibleMode() {
+            try {
+                java.util.Set<String> hidden = PreferenceKeys.getHiddenModes();
+                if (hidden.size() >= CameraMode.values().length) {
+                    hidden.remove(String.valueOf(CameraMode.PHOTO.ordinal()));
+                    PreferenceKeys.setHiddenModes(hidden);
+                    if (activity != null) {
+                        activity.runOnUiThread(() -> Toast.makeText(mContext,
+                                mContext.getString(R.string.hide_modes_cannot_hide_all),
+                                Toast.LENGTH_SHORT).show());
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "enforceAtLeastOneVisibleMode failed", e);
             }
         }
 

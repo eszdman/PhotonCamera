@@ -14,9 +14,11 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -74,6 +76,8 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_STEREO.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_SOURCE.mValue);
+        // Hidden camera modes are global like the selected camera mode.
+        COMMON_KEYS.add(Key.KEY_HIDE_MODES.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -622,6 +626,82 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.CAMERA_MODE, value);
     }
 
+    /**
+     * Ordinals (as strings) of camera modes the user chose to hide from the
+     * mode selector. Checked = hidden. Empty by default (all modes shown).
+     */
+    public static Set<String> getHiddenModes() {
+        try {
+            Set<String> raw = getStringSet(Key.KEY_HIDE_MODES);
+            if (raw == null) {
+                return new HashSet<>(0);
+            }
+            Set<String> cleaned = new HashSet<>();
+            int modeCount = CameraMode.values().length;
+            for (String value : raw) {
+                try {
+                    int ordinal = Integer.parseInt(value);
+                    if (ordinal >= 0 && ordinal < modeCount) {
+                        cleaned.add(String.valueOf(ordinal));
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Drop corrupt entries.
+                }
+            }
+            return cleaned;
+        } catch (Exception e) {
+            return new HashSet<>(0);
+        }
+    }
+
+    public static void setHiddenModes(Set<String> hidden) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HIDE_MODES,
+                hidden != null ? new HashSet<>(hidden) : new HashSet<>(0));
+    }
+
+    public static boolean isModeHidden(CameraMode mode) {
+        return mode != null && getHiddenModes().contains(String.valueOf(mode.ordinal()));
+    }
+
+    /**
+     * Modes in enum order minus hidden ones. Never empty: if everything is
+     * hidden (e.g. via a restored backup), all modes are returned so the
+     * selector never ends up with zero items.
+     */
+    public static List<CameraMode> getVisibleModes() {
+        Set<String> hidden = getHiddenModes();
+        List<CameraMode> visible = new ArrayList<>();
+        for (CameraMode mode : CameraMode.values()) {
+            if (!hidden.contains(String.valueOf(mode.ordinal()))) {
+                visible.add(mode);
+            }
+        }
+        if (visible.isEmpty()) {
+            visible.addAll(Arrays.asList(CameraMode.values()));
+        }
+        return visible;
+    }
+
+    /**
+     * Next visible mode after {@code current} in enum order, wrapping around.
+     * Used when the currently selected mode becomes hidden.
+     */
+    public static CameraMode getFallbackMode(CameraMode current) {
+        List<CameraMode> visible = getVisibleModes();
+        if (current != null && visible.contains(current)) {
+            return current;
+        }
+        CameraMode[] all = CameraMode.values();
+        int start = current != null ? current.ordinal() : CameraMode.PHOTO.ordinal();
+        for (int i = 1; i <= all.length; i++) {
+            CameraMode candidate = all[(start + i) % all.length];
+            if (visible.contains(candidate)) {
+                return candidate;
+            }
+        }
+        return CameraMode.PHOTO;
+    }
+
     public static String getToneMap() {
         return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.TONEMAP);
     }
@@ -846,6 +926,7 @@ public class PreferenceKeys {
         KEY_THEME_ACCENT(R.string.pref_theme_accent_key),
         KEY_VIEWFINDER_BACKGROUND(R.string.pref_viewfinder_background_key),
         KEY_HIDE_GALLERY_ICON(R.string.pref_hide_gallery_icon_key),
+        KEY_HIDE_MODES(R.string.pref_hide_modes_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_AE_METERING_STD(R.string.pref_ae_metering_std_key),

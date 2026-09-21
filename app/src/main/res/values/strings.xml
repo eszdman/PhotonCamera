@@ -92,6 +92,10 @@
     <string name="stop_recording_desc">Stop recording</string>
     <string name="energy_saving">Battery Saver</string>
     <string name="hide_gallery_icon">Hide Gallery Icon</string>
+    <string name="hide_modes">Hide modes</string>
+    <string name="hide_modes_summary_none">All modes shown</string>
+    <string name="hide_modes_summary">%1$d hidden</string>
+    <string name="hide_modes_cannot_hide_all">At least one mode must stay visible</string>
     <string name="theme">Theme</string>
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
