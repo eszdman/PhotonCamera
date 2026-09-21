@@ -296,6 +296,24 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     )
     public float exposureBalanceShutterLimit = -1.0f;
 
+    @SensorConfig(
+            title = "Capture session FPS",
+            description = "Cap the capture frame rate when Quad Bayer is off, or when the Quad Bayer cap is unset; preview keeps the frame rate selected in the camera UI",
+            entries = {"Off", "24fps", "30fps", "60fps"},
+            entryValues = {"0", "24", "30", "60"},
+            defaultValue = 0
+    )
+    public int captureSessionFps = 0;
+
+    @SensorConfig(
+            title = "Capture session FPS (Quad Bayer)",
+            description = "Cap the capture frame rate when Quad Bayer is on; preview keeps the frame rate selected in the camera UI",
+            entries = {"Off", "24fps", "30fps", "60fps"},
+            entryValues = {"0", "24", "30", "60"},
+            defaultValue = 0
+    )
+    public int captureSessionFpsQuadBayer = 0;
+
     private static int mTargetFormat = RAW_FORMAT;
     private ManualModeConsole manualModeConsole;
     private final ParamController paramController;
@@ -421,6 +439,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private final Object mZslBufferLock = new Object();
     private volatile boolean mZslCapturing = false;
 
+    /**
+     * On-demand ZSL burst state (used when the continuous ring buffer is
+     * disabled because the preview rate exceeds this sensor's capture cap):
+     * raw frames are captured on press at the capped rate instead.
+     */
+    private volatile boolean mZslOnDemandBurst = false;
+    private volatile int mZslOnDemandTarget = 0;
+    private volatile int mZslOnDemandResultCount = 0;
+    private volatile int mZslOnDemandBurstId = 0;
+    private CaptureResult mZslLastBurstResult;
+    private CaptureRequest mZslLastBurstRequest;
+
     public interface RawFrameCallback {
         void onRawFrameAvailable(@NonNull Image image, CaptureResult result);
     }
@@ -461,6 +491,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (isZslMode()) {
                 Image img = reader.acquireNextImage();
                 if (img == null) return;
+                if (isZslOnDemand()) {
+                    // Continuous buffering is off (the preview runs above this
+                    // sensor's cap): collect the frames of the on-press burst.
+                    if (!mZslOnDemandBurst) {
+                        img.close();
+                        return;
+                    }
+                    synchronized (mZslBufferLock) {
+                        mZslRingBuffer.addLast(img);
+                    }
+                    maybeFinishZslOnDemandBurst();
+                    return;
+                }
                 if (mZslCapturing) {
                     img.close();
                     return;
@@ -1271,6 +1314,43 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             case 3: return new Range<>(60, 60);
             default: return FpsRangeAuto != null ? FpsRangeAuto : new Range<>(14, 30);
         }
+    }
+
+    /**
+     * True when the per-sensor "Capture session FPS" cap applies to the current
+     * mode. Photo modes only: video and RAW video keep their own frame-rate
+     * setting and their recording paths must not be clamped.
+     */
+    private boolean isCaptureSessionFpsCapActive() {
+        if (getActiveCaptureSessionFps() <= 0) {
+            return false;
+        }
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        return mode == CameraMode.PHOTO || mode == CameraMode.MOTION || mode == CameraMode.NIGHT;
+    }
+
+    /**
+     * Effective per-sensor cap: the Quad Bayer value when Quad Bayer is on and
+     * that cap is set, otherwise the general value (which also covers Quad
+     * Bayer on with the Quad Bayer cap unset).
+     */
+    private int getActiveCaptureSessionFps() {
+        if (PhotonCamera.getSettings().QuadBayer && captureSessionFpsQuadBayer > 0) {
+            return captureSessionFpsQuadBayer;
+        }
+        return captureSessionFps;
+    }
+
+    /**
+     * The selected frame rate limited to this sensor's capture cap, e.g.
+     * [60,60] with cap 30 becomes [30,30] and auto [14,30] with cap 24
+     * becomes [14,24].
+     */
+    private Range<Integer> getCappedFpsRange() {
+        Range<Integer> selected = getSelectedFpsRange();
+        int[] clamped = CaptureFpsCap.clamp(selected.getLower(), selected.getUpper(),
+                getActiveCaptureSessionFps());
+        return new Range<>(clamped[0], clamped[1]);
     }
 
     /**
@@ -3592,7 +3672,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 while ((stale = mImageReaderRaw.acquireNextImage()) != null) stale.close();
             } catch (Exception ignored) {}
         }
-        if (isZslMode()) {
+        if (isZslStreamingEnabled()) {
             mPreviewRequestBuilder.addTarget(mImageReaderRaw.getSurface());
         }
         mInitialMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
@@ -3823,6 +3903,22 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * True when continuous ZSL buffering must be replaced by an on-press burst:
+     * the preview is selected above this sensor's capture cap, and the raw
+     * stream cannot be fed at the preview rate without breaking captures.
+     */
+    private boolean isZslOnDemand() {
+        return isZslMode()
+                && isCaptureSessionFpsCapActive()
+                && getSelectedFpsRange().getUpper() > getActiveCaptureSessionFps();
+    }
+
+    /** True when the raw stream feeds the continuous ZSL ring buffer. */
+    private boolean isZslStreamingEnabled() {
+        return isZslMode() && !isZslOnDemand();
+    }
+
+    /**
      * Round 3 (ZSL): pack a shutter-copied burst frame immediately, so the
      * copy loop's native peak drops from 8x24 MB to ~8x15.7 MB and ApplyHdrX
      * finds nothing left to pack. Fail-safe: HdrxProcessor's loop still
@@ -3849,11 +3945,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
         mZslCapturing = true;
         burst = false;
-
-        int frameCount = FrameNumberSelector.getFrames();
         cameraRotation = PhotonCamera.getGravity().getCameraRotation(mSensorOrientation);
         BurstShakiness = new ArrayList<>();
         mExposures = new HashMap<>();
+
+        if (isZslOnDemand()) {
+            startZslOnDemandBurst();
+            return;
+        }
 
         // Drain raw Image objects from the ring buffer (no copy yet)
         List<Image> rawImages;
@@ -3861,20 +3960,237 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             rawImages = new ArrayList<>(mZslRingBuffer);
             mZslRingBuffer.clear();
         }
+        processZslFrames(rawImages, mPreviewCaptureResult, mPreviewCaptureRequest, true);
+    }
 
-        int take = Math.min(rawImages.size(), frameCount);
-        int skip = rawImages.size() - take;
-        for (int i = 0; i < skip; i++) {
-            rawImages.get(i).close();
+    /**
+     * On-demand ZSL: the raw stream is not part of the repeating preview
+     * request (the preview runs above this sensor's capture cap), so the
+     * frames are captured on press at the capped rate instead. Hardware AE
+     * runs on the capture requests; each frame's exposure and the last result
+     * are recorded to feed the ZSL pipeline.
+     */
+    private void startZslOnDemandBurst() {
+        if (mCameraDevice == null || mCaptureSession == null || mImageReaderRaw == null) {
+            Log.w(TAG, "on-demand ZSL: camera not ready");
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        int frameCount = FrameNumberSelector.getFrames();
+        if (frameCount <= 0) {
+            frameCount = 1;
+        }
+        mZslOnDemandTarget = frameCount;
+        mZslOnDemandResultCount = 0;
+        mZslLastBurstResult = null;
+        mZslLastBurstRequest = null;
+        final int burstId = ++mZslOnDemandBurstId;
+        synchronized (mZslBufferLock) {
+            for (Image img : mZslRingBuffer) {
+                if (img != null) img.close();
+            }
+            mZslRingBuffer.clear();
+        }
+        final Range<Integer> fpsRange = getCappedFpsRange();
+        final List<CaptureRequest> requests = new ArrayList<>(frameCount);
+        try {
+            for (int i = 0; i < frameCount; i++) {
+                requests.add(buildZslOnDemandRequest(fpsRange));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "on-demand ZSL: request build failed", e);
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        mZslOnDemandBurst = true;
+        burst = true;
+        Log.d(TAG, "on-demand ZSL burst: " + frameCount + " frames at " + fpsRange);
+        try {
+            mCaptureSession.captureBurst(requests, mZslOnDemandCallback, mBackgroundHandler);
+        } catch (Exception e) {
+            Log.e(TAG, "on-demand ZSL burst failed", e);
+            mZslOnDemandBurst = false;
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        // Watchdog: if no callbacks arrive at all, release the capture lock.
+        Handler handler = mBackgroundHandler;
+        if (handler != null) {
+            handler.postDelayed(() -> forceFinishZslOnDemandBurst(burstId),
+                    2000L + frameCount * 200L);
+        }
+    }
+
+    /**
+     * Raw burst request for the on-demand ZSL path: inherits the live AF/AE
+     * state, OIS, zoom and ISZ from the preview builder (like
+     * {@link #captureSingleRawForMetering}) and pins the capped frame rate.
+     * Uses the still-capture template because HALs honor a per-request AE
+     * range there (the same template the working photo-mode still path uses),
+     * while preview-template requests can keep the sensor at the preview rate.
+     */
+    private CaptureRequest buildZslOnDemandRequest(Range<Integer> fpsRange) throws CameraAccessException {
+        CaptureRequest.Builder builder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        builder.addTarget(mImageReaderRaw.getSurface());
+        if (mPreviewRequestBuilder != null) {
+            Integer afMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_MODE);
+            if (afMode != null) builder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
+            MeteringRectangle[] afRegions = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_REGIONS);
+            if (afRegions != null) builder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
+            MeteringRectangle[] aeRegions = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_REGIONS);
+            if (aeRegions != null) builder.set(CaptureRequest.CONTROL_AE_REGIONS, aeRegions);
+            Integer aeMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_MODE);
+            if (aeMode != null) builder.set(CaptureRequest.CONTROL_AE_MODE, aeMode);
+        }
+        if (fpsRange != null) {
+            builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
+        }
+        applyOisMode(builder, false);
+        applyZoom(builder);
+        applyIszIfActive(builder, physicalID);
+        return builder.build();
+    }
+
+    private final CameraCaptureSession.CaptureCallback mZslOnDemandCallback =
+            new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                       @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+            onZslOnDemandResult(request, result);
         }
 
-        // Populate exposures map from preview capture result — all ZSL frames share preview exposure
+        @Override
+        public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session,
+                                               int sequenceId, long frameNumber) {
+            // Safety net: finish with whatever arrived if the HAL dropped
+            // frames or results (the normal path finishes earlier).
+            Handler handler = mBackgroundHandler;
+            if (handler != null) {
+                int burstId = mZslOnDemandBurstId;
+                handler.postDelayed(() -> forceFinishZslOnDemandBurst(burstId), 200);
+            }
+        }
+    };
+
+    private void onZslOnDemandResult(CaptureRequest request, CaptureResult result) {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
+        Long exposureNs = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+        if (timestamp != null && exposureNs != null && iso != null) {
+            mExposures.put(timestamp, (exposureNs / 1_000_000_000.0) * iso);
+        }
+        mZslLastBurstResult = result;
+        mZslLastBurstRequest = request;
+        mZslOnDemandResultCount++;
+        maybeFinishZslOnDemandBurst();
+    }
+
+    /**
+     * Runs on the background handler: finishes the on-demand burst once all
+     * requested results and images have been collected.
+     */
+    private void maybeFinishZslOnDemandBurst() {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        if (mZslOnDemandResultCount < mZslOnDemandTarget) {
+            return;
+        }
+        int buffered;
+        synchronized (mZslBufferLock) {
+            buffered = mZslRingBuffer.size();
+        }
+        if (buffered < mZslOnDemandTarget) {
+            return;
+        }
+        finishZslOnDemandBurst();
+    }
+
+    /** Safety net after the burst sequence completes: process what arrived. */
+    private void forceFinishZslOnDemandBurst(int burstId) {
+        if (!mZslOnDemandBurst || burstId != mZslOnDemandBurstId) {
+            return;
+        }
+        if (mZslOnDemandResultCount <= 0) {
+            Log.w(TAG, "on-demand ZSL: no capture results, aborting");
+            mZslOnDemandBurst = false;
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        finishZslOnDemandBurst();
+    }
+
+    private void finishZslOnDemandBurst() {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        mZslOnDemandBurst = false;
+        burst = false;
+        List<Image> frames;
+        synchronized (mZslBufferLock) {
+            frames = new ArrayList<>(mZslRingBuffer);
+            mZslRingBuffer.clear();
+        }
+        // Every processed frame needs an exposure entry (HdrxProcessor looks it
+        // up by timestamp): fall back to the last AE value for dropped results.
+        double fallback = 1.0;
+        if (mZslLastBurstResult != null) {
+            Long exposureNs = mZslLastBurstResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Integer iso = mZslLastBurstResult.get(CaptureResult.SENSOR_SENSITIVITY);
+            if (exposureNs != null && iso != null) {
+                fallback = (exposureNs / 1_000_000_000.0) * iso;
+            }
+        }
+        for (Image img : frames) {
+            if (!mExposures.containsKey(img.getTimestamp())) {
+                mExposures.put(img.getTimestamp(), fallback);
+            }
+        }
+        Log.d(TAG, "on-demand ZSL burst finished: " + frames.size() + "/"
+                + mZslOnDemandTarget + " frames, " + mZslOnDemandResultCount + " results");
+        final CaptureResult burstResult = mZslLastBurstResult != null
+                ? mZslLastBurstResult : mPreviewCaptureResult;
+        final CaptureRequest burstRequest = mZslLastBurstRequest != null
+                ? mZslLastBurstRequest : mPreviewCaptureRequest;
+        // Frame copying and UI events run on the main thread, matching the
+        // continuous ZSL path (the callbacks deliver on the background handler).
+        mMainHandler.post(() -> processZslFrames(frames, burstResult, burstRequest, false));
+    }
+
+    /**
+     * Copies raw ZSL frames into ImageFrames and runs them through the RAW
+     * saver. Continuous ZSL passes frames drained from the ring buffer with
+     * exposures taken from the preview result; the on-demand burst passes
+     * frames captured on press with per-frame AE exposures already recorded.
+     */
+    private void processZslFrames(List<Image> rawImages, CaptureResult captureResult,
+                                  CaptureRequest captureRequest, boolean exposuresFromPreview) {
+        int frameCount = FrameNumberSelector.getFrames();
+        if (exposuresFromPreview && frameCount > 0 && rawImages.size() > frameCount) {
+            int skip = rawImages.size() - frameCount;
+            for (int i = 0; i < skip; i++) {
+                rawImages.get(i).close();
+            }
+            rawImages = rawImages.subList(skip, rawImages.size());
+        }
+        int take = rawImages.size();
+
+        // Exposure metadata: continuous ZSL frames share the preview exposure;
+        // on-demand frames carry their own AE exposure per timestamp.
         double previewExpTime = 1.0;
         double previewISO = 100.0;
         long exposureTimeNs = 0;
-        if (mPreviewCaptureResult != null) {
-            Long expTimeNs = mPreviewCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-            Integer isoVal = mPreviewCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        if (captureResult != null) {
+            Long expTimeNs = captureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Integer isoVal = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
             if (expTimeNs != null) {
                 exposureTimeNs = expTimeNs;
                 previewExpTime = expTimeNs / 1_000_000_000.0;
@@ -3885,8 +4201,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         boolean doZoomCrop = zoomController.isZoomed();
         // Copy selected Images to ImageFrames only now (on shutter press)
         List<ImageFrame> selected = new ArrayList<>();
-        for (int i = skip; i < rawImages.size(); i++) {
-            Image img = rawImages.get(i);
+        for (Image img : rawImages) {
             int rowStride = img.getPlanes()[0].getRowStride();
             int pixelStride = img.getPlanes()[0].getPixelStride();
             int width = (img.getFormat() == ImageFormat.RAW10)
@@ -3909,7 +4224,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 if (frame == null) { img.close(); continue; }
                 frame.timestamp = img.getTimestamp();
                 img.close();
-                mExposures.put(frame.timestamp, exposureVal);
+                if (exposuresFromPreview) mExposures.put(frame.timestamp, exposureVal);
                 if (take > 1) packZslBurstFrame(frame);
                 selected.add(frame);
                 continue;
@@ -3935,7 +4250,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 frame.height/= 2;
             }
             img.close();
-            mExposures.put(frame.timestamp, exposureVal);
+            if (exposuresFromPreview) mExposures.put(frame.timestamp, exposureVal);
             if (take > 1) packZslBurstFrame(frame);
             selected.add(frame);
         }
@@ -3957,7 +4272,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         SaverImplementation.IMAGE_BUFFER.clear();
         SaverImplementation.IMAGE_BUFFER.addAll(selected);
 
-        mCaptureResult = mPreviewCaptureResult;
+        mCaptureResult = captureResult;
         mMeasuredFrameCnt = actualCount;
 
         cameraEventsListener.onFrameCountSet(actualCount);
@@ -3995,7 +4310,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 }
                 mImageSaver.implementation.bufferLock = false;
                 mImageSaver.updateFrameCount(capturedCount);
-                mImageSaver.runRaw(mCameraCharacteristics, mPreviewCaptureResult, mPreviewCaptureRequest,
+                mImageSaver.runRaw(mCameraCharacteristics, captureResult, captureRequest,
                         new ArrayList<>(BurstShakiness), cameraRotation, mExposures);
             } catch (Exception e) {
                 Log.e(TAG, "ZSL runRaw: " + Log.getStackTraceString(e));
@@ -4023,6 +4338,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getSelectedFpsRange());
             } else {
                 captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            }
+            if (isCaptureSessionFpsCapActive()) {
+                // Per-sensor capture cap: preview stays at the selected rate,
+                // stills are explicitly limited to the cap.
+                try {
+                    captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getCappedFpsRange());
+                } catch (Exception e) {
+                    Log.w(TAG, "still capture fps cap rejected", e);
+                }
             }
             float focus = mFocus;
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
@@ -5392,8 +5716,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             return;
         }
 
-        // 2. In ZSL mode, RAW frames stream continuously: intercept the next streaming frame with 0ms freeze
-        if (isZslMode()) {
+        // 2. In streaming ZSL mode, RAW frames stream continuously: intercept
+        // the next streaming frame with 0ms freeze. On-demand ZSL has no
+        // continuous stream, so it falls through to the single-shot path.
+        if (isZslStreamingEnabled()) {
             mPendingRawMeteringCallback = callback;
             return;
         }
