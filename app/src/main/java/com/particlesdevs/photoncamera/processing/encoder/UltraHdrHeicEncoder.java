@@ -29,32 +29,111 @@ public final class UltraHdrHeicEncoder {
     private UltraHdrHeicEncoder() {}
 
     /**
-     * Encodes and writes {@code dest} (must end in {@code .heic}).
-     * Both bitmaps are recycled <b>only on success</b> — on failure they are
-     * left alive so {@link StillEncoder} fallbacks can still use them.
+     * SDR base encode running on a worker thread. Independent of the gain map,
+     * so callers with gain-map work to do (normalization passes) can start it
+     * first and join it at the mux. Owns its temp file; {@link #abort()}
+     * always deletes it.
      */
-    public static void encodeToFile(Path dest, Bitmap sdr,
-            GainMapComputer.Result gain, ParseExif.ExifData exif) throws Exception {
+    public static final class BaseEncodeJob {
+        private final Bitmap sdr;
+        private final File baseTmp;
+        private final Thread thread;
+        private volatile Throwable error;
+
+        private BaseEncodeJob(Bitmap sdr) throws java.io.IOException {
+            this.sdr = sdr;
+            this.baseTmp = File.createTempFile("uhdr_heic_base_", ".heic");
+            this.thread = new Thread(this::run, "UhdrBaseEncode");
+            this.thread.start();
+        }
+
+        private void run() {
+            try {
+                // Base: Exif is injected by the merge.
+                StillHeicEncoder.encodeToFile(baseTmp.toPath(), sdr,
+                        sdr.getWidth(), sdr.getHeight(), null, false);
+            } catch (Throwable t) {
+                error = t;
+            }
+        }
+
+        private File join() throws Exception {
+            boolean interrupted = false;
+            while (thread.isAlive()) {
+                try {
+                    thread.join();
+                } catch (InterruptedException e) {
+                    interrupted = true;
+                }
+            }
+            if (interrupted) Thread.currentThread().interrupt();
+            if (error != null) {
+                throw new Exception("base HEIC encode failed", error);
+            }
+            return baseTmp;
+        }
+
+        /** Joins (if still running) and deletes the temp file. Idempotent. */
+        public void abort() {
+            try {
+                join();
+            } catch (Exception ignored) {
+            }
+            // noinspection ResultOfMethodCallIgnored
+            baseTmp.delete();
+        }
+    }
+
+    /**
+     * Validates the environment and starts the SDR base encode on a worker.
+     * Throws (caller falls back) when HEIC Ultra HDR is unavailable.
+     */
+    public static BaseEncodeJob startBaseEncode(Bitmap sdr) throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
             throw new UnsupportedOperationException("HEIC Ultra HDR needs API 34+");
         }
         if (!HeicSupport.isUltraHdrHeicSupported()) {
             throw new UnsupportedOperationException("HEIC Ultra HDR not supported on this device");
         }
+        if (sdr == null || sdr.isRecycled()) {
+            throw new IllegalArgumentException("Null/recycled SDR bitmap");
+        }
+        return new BaseEncodeJob(sdr);
+    }
+
+    /**
+     * Encodes and writes {@code dest} (must end in {@code .heic}).
+     * Both bitmaps are recycled <b>only on success</b> — on failure they are
+     * left alive so {@link StillEncoder} fallbacks can still use them.
+     */
+    public static void encodeToFile(Path dest, Bitmap sdr,
+            GainMapComputer.Result gain, ParseExif.ExifData exif) throws Exception {
+        BaseEncodeJob base = startBaseEncode(sdr);
+        encodeWithBase(dest, sdr, gain, exif, base);
+    }
+
+    /**
+     * Mux variant that consumes a base encode already in flight (started via
+     * {@link #startBaseEncode} while the caller prepared the gain map). Encodes
+     * the gain map, joins the base, then assembles the container.
+     */
+    public static void encodeWithBase(Path dest, Bitmap sdr,
+            GainMapComputer.Result gain, ParseExif.ExifData exif,
+            BaseEncodeJob base) throws Exception {
         if (sdr == null || sdr.isRecycled() || gain == null || gain.gainMap == null) {
+            if (base != null) base.abort();
             throw new IllegalArgumentException("Null/recycled SDR or gain map");
         }
         if (exif != null) {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
             exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
-        File baseTmp = File.createTempFile("uhdr_heic_base_", ".heic");
         File gainTmp = File.createTempFile("uhdr_heic_gain_", ".heic");
         boolean success = false;
         try {
-            // Base: Exif is injected by the merge.
-            StillHeicEncoder.encodeToFile(baseTmp.toPath(), sdr,
-                    sdr.getWidth(), sdr.getHeight(), null, false);
+            // Join the base first so any failure surfaces before the gain
+            // encode; the two encodes then never hold codec sessions at once.
+            File baseTmp = base.join();
 
             // Gain: full size, same depth as the base, so the declared tmap
             // pixi matches the stream.
@@ -115,8 +194,7 @@ public final class UltraHdrHeicEncoder {
             }
             success = true;
         } finally {
-            // noinspection ResultOfMethodCallIgnored
-            baseTmp.delete();
+            if (base != null) base.abort();
             // noinspection ResultOfMethodCallIgnored
             gainTmp.delete();
             if (success) {
