@@ -48,6 +48,10 @@
                 android:textAppearance="@style/ManualOptionText"
                 android:textColor="@color/manual_text_color"
                 android:textSize="15sp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="15sp"
+                android:maxLines="1"
                 tools:text="NULL" />
         </FrameLayout>
 
@@ -74,6 +78,10 @@
                 android:textAppearance="@style/ManualOptionText"
                 android:textColor="@color/manual_text_color"
                 android:textSize="15sp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="15sp"
+                android:maxLines="1"
                 tools:text="NULL" />
         </FrameLayout>
 
@@ -101,6 +109,10 @@
                 android:textAppearance="@style/ManualOptionText"
                 android:textColor="@color/manual_text_color"
                 android:textSize="15sp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="15sp"
+                android:maxLines="1"
                 tools:text="NULL" />
         </FrameLayout>
 
@@ -128,6 +140,10 @@
                 android:textAppearance="@style/ManualOptionText"
                 android:textColor="@color/manual_text_color"
                 android:textSize="15sp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="15sp"
+                android:maxLines="1"
                 tools:text="NULL" />
         </FrameLayout>
 
@@ -154,6 +170,10 @@
                 android:textAppearance="@style/ManualOptionText"
                 android:textColor="@color/manual_text_color"
                 android:textSize="15sp"
+                android:autoSizeTextType="uniform"
+                android:autoSizeMinTextSize="11sp"
+                android:autoSizeMaxTextSize="15sp"
+                android:maxLines="1"
                 tools:text="NULL" />
         </FrameLayout>
     </LinearLayout>

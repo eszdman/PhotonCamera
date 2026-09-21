@@ -26,6 +26,9 @@
 -keep class com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel{
     public *;
 }
+-keep class com.particlesdevs.photoncamera.circularbarlib.camera.** {
+    *;
+}
 # The app module references these implementation classes directly (back-press
 # observer, shared M3 motion tokens), so they must survive release shrinking
 # with their original names.

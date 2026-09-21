@@ -96,6 +96,7 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         addObserver();
         addKnobs(activity, cameraCharacteristics);
         setupOnClickListeners();
+        clearAutoValues();
         setAutoText();
     }
 
@@ -276,6 +277,18 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     @Override
     public void setPreserveManualWb(boolean preserve) {
         this.preserveManualWb = preserve;
+    }
+
+    @Override
+    public void setAutoValues(String focus, String exposure, String iso, String wb) {
+        manualModeModel.setFocusAutoText(focus);
+        manualModeModel.setExposureAutoText(exposure);
+        manualModeModel.setIsoAutoText(iso);
+        manualModeModel.setWbAutoText(wb);
+    }
+
+    private void clearAutoValues() {
+        setAutoValues(null, null, null, null);
     }
 
     @Override

@@ -34,6 +34,7 @@ public class ViewObserver implements Observer {
     private final List<TextView> textViews;
     private final OrientationEventListener orientationEventListener;
     private final LinearLayout buttonsContainer;
+    private final String autoLabel;
     private int rotation = 0;
 
 
@@ -48,6 +49,7 @@ public class ViewObserver implements Observer {
         focusOption = findViewById(R.id.focus_option_tv);
         wbOption = findViewById(R.id.wb_option_tv);
         textViews = Arrays.asList(isoOption, evOption, expOption, focusOption, wbOption);
+        autoLabel = activity.getString(R.string.manual_mode_auto);
         orientationEventListener = new OrientationEventListener(activity.getBaseContext()) {
             private static final int ROT_DUR = 350;
             private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
@@ -148,16 +150,28 @@ public class ViewObserver implements Observer {
                         evOption.setText(manualModeModel.getEvText());
                         break;
                     case EXP_TEXT:
-                        expOption.setText(manualModeModel.getExposureText());
+                    case EXP_AUTO_TEXT:
+                        expOption.setText(AutoValueComposer.compose(
+                                manualModeModel.getExposureText(),
+                                manualModeModel.getExposureAutoText(), autoLabel));
                         break;
                     case ISO_TEXT:
-                        isoOption.setText(manualModeModel.getIsoText());
+                    case ISO_AUTO_TEXT:
+                        isoOption.setText(AutoValueComposer.compose(
+                                manualModeModel.getIsoText(),
+                                manualModeModel.getIsoAutoText(), autoLabel));
                         break;
                     case FOCUS_TEXT:
-                        focusOption.setText(manualModeModel.getFocusText());
+                    case FOCUS_AUTO_TEXT:
+                        focusOption.setText(AutoValueComposer.compose(
+                                manualModeModel.getFocusText(),
+                                manualModeModel.getFocusAutoText(), autoLabel));
                         break;
                     case WB_TEXT:
-                        wbOption.setText(manualModeModel.getWbText());
+                    case WB_AUTO_TEXT:
+                        wbOption.setText(AutoValueComposer.compose(
+                                manualModeModel.getWbText(),
+                                manualModeModel.getWbAutoText(), autoLabel));
                         break;
                     case EV_LISTENER:
                         evOption.setOnClickListener(manualModeModel.getEvTextClicked());

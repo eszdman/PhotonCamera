@@ -45,7 +45,9 @@ import android.util.DisplayMetrics;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView;
 import com.particlesdevs.photoncamera.util.Log;
+import com.particlesdevs.photoncamera.manual.ManualAutoValues;
 import com.particlesdevs.photoncamera.manual.ParamController;
+import android.util.Rational;
 import android.util.Size;
 import android.util.SizeF;
 import android.view.LayoutInflater;
@@ -1172,7 +1174,50 @@ public class CameraFragment extends Fragment {
                     mViewfinderHudView.clear();
                 }
             }
+            updateManualBarAutoValues(result);
         });
+    }
+
+    private long lastManualBarUpdateTime = 0;
+    private static final long MANUAL_BAR_UPDATE_INTERVAL_MS = 150;
+
+    /**
+     * Pushes the live preview values of the auto-mode controls into the manual
+     * panel labels (e.g. "A 800"); no work while the panel is closed. Runs on
+     * the UI thread inside {@link #updateScreenLog(CaptureResult)}'s post.
+     */
+    private void updateManualBarAutoValues(CaptureResult result) {
+        if (manualModeConsole == null || !manualModeConsole.isPanelVisible()) return;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (now - lastManualBarUpdateTime < MANUAL_BAR_UPDATE_INTERVAL_MS) return;
+        lastManualBarUpdateTime = now;
+
+        Long expNs = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+        Float focusD = result.get(CaptureResult.LENS_FOCUS_DISTANCE);
+        if (captureController != null) {
+            if (expNs == null) expNs = captureController.mPreviewExposureTime;
+            if (iso == null) iso = captureController.mPreviewIso;
+            if (focusD == null) focusD = captureController.mFocus;
+        }
+
+        Integer kelvin = null;
+        try {
+            Rational[] neutralPoint = result.get(CaptureResult.SENSOR_NEUTRAL_COLOR_POINT);
+            if ((neutralPoint == null || neutralPoint.length < 3) && captureController != null) {
+                neutralPoint = captureController.mPreviewTemp;
+            }
+            if (neutralPoint != null && neutralPoint.length >= 3) {
+                kelvin = ColorTemperatureConverter.neutralPointToKelvin(neutralPoint);
+            }
+        } catch (Exception ignored) {
+        }
+
+        manualModeConsole.setAutoValues(
+                ManualAutoValues.formatFocus(focusD),
+                ManualAutoValues.formatExposure(expNs),
+                ManualAutoValues.formatIso(iso),
+                ManualAutoValues.formatWb(kelvin));
     }
 
     private long lastHudUpdateTime = 0;

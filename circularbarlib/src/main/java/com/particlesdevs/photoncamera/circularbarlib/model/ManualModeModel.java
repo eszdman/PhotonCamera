@@ -4,6 +4,7 @@ import android.view.View;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
 
+import java.util.Objects;
 import java.util.Observable;
 
 /**
@@ -20,6 +21,10 @@ public class ManualModeModel extends Observable {
     private String isoText;
     private String evText;
     private String wbText;
+    private String focusAutoText;
+    private String exposureAutoText;
+    private String isoAutoText;
+    private String wbAutoText;
     private View.OnClickListener focusTextClicked;
     private View.OnClickListener exposureTextClicked;
     private View.OnClickListener evTextClicked;
@@ -152,6 +157,46 @@ public class ManualModeModel extends Observable {
         notifyObservers(ManualModelFields.WB_TEXT);
     }
 
+    public String getFocusAutoText() {
+        return focusAutoText;
+    }
+
+    public void setFocusAutoText(String focusAutoText) {
+        if (Objects.equals(this.focusAutoText, focusAutoText)) return;
+        this.focusAutoText = focusAutoText;
+        notifyObservers(ManualModelFields.FOCUS_AUTO_TEXT);
+    }
+
+    public String getExposureAutoText() {
+        return exposureAutoText;
+    }
+
+    public void setExposureAutoText(String exposureAutoText) {
+        if (Objects.equals(this.exposureAutoText, exposureAutoText)) return;
+        this.exposureAutoText = exposureAutoText;
+        notifyObservers(ManualModelFields.EXP_AUTO_TEXT);
+    }
+
+    public String getIsoAutoText() {
+        return isoAutoText;
+    }
+
+    public void setIsoAutoText(String isoAutoText) {
+        if (Objects.equals(this.isoAutoText, isoAutoText)) return;
+        this.isoAutoText = isoAutoText;
+        notifyObservers(ManualModelFields.ISO_AUTO_TEXT);
+    }
+
+    public String getWbAutoText() {
+        return wbAutoText;
+    }
+
+    public void setWbAutoText(String wbAutoText) {
+        if (Objects.equals(this.wbAutoText, wbAutoText)) return;
+        this.wbAutoText = wbAutoText;
+        notifyObservers(ManualModelFields.WB_AUTO_TEXT);
+    }
+
     @Override
     public void notifyObservers(Object arg) {
         setChanged();
@@ -159,6 +204,6 @@ public class ManualModeModel extends Observable {
     }
 
     public enum ManualModelFields {
-        FOCUS_TEXT, EXP_TEXT, ISO_TEXT, EV_TEXT, WB_TEXT, PANEL_VISIBILITY, SELECTED_TV, FOCUS_LISTENER, EXP_LISTENER, EV_LISTENER, ISO_LISTENER, WB_LISTENER
+        FOCUS_TEXT, EXP_TEXT, ISO_TEXT, EV_TEXT, WB_TEXT, PANEL_VISIBILITY, SELECTED_TV, FOCUS_LISTENER, EXP_LISTENER, EV_LISTENER, ISO_LISTENER, WB_LISTENER, FOCUS_AUTO_TEXT, EXP_AUTO_TEXT, ISO_AUTO_TEXT, WB_AUTO_TEXT
     }
 }
