@@ -597,6 +597,53 @@ public class ESD4D extends GLOneScript {
         }
     }
 
+    /**
+     * Builds the programs that the merge loop first uses (mergeAlign and
+     * mergeCombineWeight1) with a 1x1 scratch dispatch while the GPU is still
+     * busy with the noise passes. Adreno defers pipeline-state creation to the
+     * first draw, which showed up as a ~100 ms spike on the first combine; the
+     * dummy dispatch moves that setup off the critical first frame. The
+     * scratch/dummy textures are never read and the real passes re-issue every
+     * uniform/texture, so results are unchanged.
+     */
+    private void prewarmMergePrograms(int tile) {
+        if (Objects.equals(alignerSelect, "flownet")) return; // different mergeAlignFlow source
+        GLTexture scratch = null, dummyKernels = null, dummyAlign = null;
+        try {
+            scratch = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            dummyKernels = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            dummyAlign = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+
+            // Exact define order of the loop's mergeAlign pass so the compiled
+            // source (and thus the program-cache key) matches.
+            glProg.setDefine("TILE_AL", parameters.tile);
+            glProg.setLayout(tile, tile, 1);
+            glProg.useAssetProgram("merge/mergeAlign", true);
+            glProg.setTexture("inTexture", inputBase);
+            glProg.setTexture("alignmentTexture", dummyAlign);
+            glProg.setTextureCompute("baseTexture", base, false);
+            glProg.setTextureCompute("alterTexture", alter, false);
+            glProg.setTextureCompute("outTexture", scratch, true);
+            glProg.computeAuto(new Point(1, 1), 1);
+
+            // Combine pass: same define sequence (just LAYOUT).
+            glProg.setLayout(tile, tile, 1);
+            glProg.useAssetProgram("merge/mergeCombineWeight1", true);
+            glProg.setTexture("inTex", inputBase);
+            glProg.setTexture("kernelsMap", dummyKernels);
+            glProg.setTextureCompute("inTexture", base, false);
+            glProg.setTextureCompute("diffTexture", baseDiff, false);
+            glProg.setTextureCompute("outTexture", scratch, true);
+            glProg.computeAuto(new Point(1, 1), 1);
+        } catch (Throwable t) {
+            Log.w("ESD4D", "merge program pre-warm failed (non-fatal)", t);
+        } finally {
+            if (scratch != null) scratch.close();
+            if (dummyKernels != null) dummyKernels.close();
+            if (dummyAlign != null) dummyAlign.close();
+        }
+    }
+
     /** Upper bound on workers for the parallel raw->fp16 conversion: leaves
      * headroom for render/capture threads and bounds transient staging. */
     private static final int F16_CONVERT_MAX_WORKERS = 4;
@@ -1146,6 +1193,9 @@ public class ESD4D extends GLOneScript {
         // Second ring slot: see the merge loop. Sharing with FlowNet/Pyramid
         // stays on the first slot (alignment completes before the loop).
         inputAlterAlt = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        // Pay the merge programs' first-use setup now, while the GPU is still
+        // draining the noise passes and the CPU is otherwise waiting.
+        prewarmMergePrograms(tile);
         // Aligner selector: 0 = GL pyramid (disables FlowNet), 1 = FlowNet,
         // 2 = Halide CPU. FlowNet keeps its init fallback to the pyramid.
         if (Objects.equals(alignerSelect, "flownet")) {
