@@ -25,6 +25,11 @@ import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
  * Renders on standard hardware-accelerated Android View pipeline with zero CPU overhead.
  */
 public class ViewfinderHudView extends View {
+    public static final float WAVEFORM_WIDTH_DP = 144f;
+    public static final float WAVEFORM_HEIGHT_DP = 72f;
+    private static final float HISTOGRAM_WIDTH_DP = 72f;
+    private static final float HISTOGRAM_HEIGHT_DP = 36f;
+
     private final TextPaint hudPaint = new TextPaint(TextPaint.ANTI_ALIAS_FLAG);
     private final Paint strikePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint histBgPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -283,7 +288,7 @@ public class ViewfinderHudView extends View {
     private void drawHistogram(Canvas canvas) {
         if (mHistColorsMap == null || mHistColorsMap.length < 3) return;
 
-        computeScopeBox(canvas);
+        computeScopeBox(canvas, HISTOGRAM_WIDTH_DP, HISTOGRAM_HEIGHT_DP);
         float w = scopeBox[6];
         float h = scopeBox[7];
         float left = scopeBox[0];
@@ -344,7 +349,7 @@ public class ViewfinderHudView extends View {
     private void drawWaveform(Canvas canvas) {
         if (mWaveBitmap == null) return;
 
-        computeScopeBox(canvas);
+        computeScopeBox(canvas, WAVEFORM_WIDTH_DP, WAVEFORM_HEIGHT_DP);
         float w = scopeBox[6];
         float h = scopeBox[7];
         float left = scopeBox[0];
@@ -372,11 +377,11 @@ public class ViewfinderHudView extends View {
         canvas.restore();
     }
 
-    private void computeScopeBox(Canvas canvas) {
+    private void computeScopeBox(Canvas canvas, float widthDp, float heightDp) {
         float marginSide = 14f * mDensity;
         float marginTop = 12f * mDensity;
-        float w = 72f * mDensity;
-        float h = 36f * mDensity;
+        float w = widthDp * mDensity;
+        float h = heightDp * mDensity;
         boolean isLandscape = (mTargetOrientation == 90 || mTargetOrientation == 270);
         float pivotX = canvas.getWidth() - marginSide - (isLandscape ? (h / 2f) : (w / 2f));
         float pivotY = marginTop + (isLandscape ? (w / 2f) : (h / 2f));

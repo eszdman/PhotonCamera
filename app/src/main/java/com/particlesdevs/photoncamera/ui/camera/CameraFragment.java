@@ -1486,8 +1486,6 @@ public class CameraFragment extends Fragment {
 
     private long lastHistTime = 0;
     private static final long HIST_INTERVAL_MS = 120; // 8.3 Hz sampling rate for zero CPU load
-    private static final float SCOPE_WIDTH_DP = 72f;
-    private static final float SCOPE_HEIGHT_DP = 36f;
     private final Object mWaveLock = new Object();
     private int[][] mWaveCounts;
     private int[][] mWavePixelBuffers;
@@ -1504,8 +1502,10 @@ public class CameraFragment extends Fragment {
         int waveBins = 0;
         if (afDataMode == 4) {
             float density = getResources().getDisplayMetrics().density;
-            waveColumns = Math.max(16, Math.round(SCOPE_WIDTH_DP * density));
-            waveBins = Math.max(8, Math.round(SCOPE_HEIGHT_DP * density));
+            waveColumns = Math.max(16, Math.round(
+                    ViewfinderHudView.WAVEFORM_WIDTH_DP * density));
+            waveBins = Math.max(8, Math.round(
+                    ViewfinderHudView.WAVEFORM_HEIGHT_DP * density));
         }
         final int columns = waveColumns;
         final int bins = waveBins;
