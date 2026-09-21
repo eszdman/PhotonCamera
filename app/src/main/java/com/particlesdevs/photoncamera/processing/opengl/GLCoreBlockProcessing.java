@@ -181,6 +181,35 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
 
     /**
+     * Async variant of {@link #drawBlocksToOutput()}: issues every block's
+     * draw + readback into the PBO ring and returns immediately, leaving the
+     * transfers in flight. {@link #finishBlocksToOutputAsync()} must be called
+     * before {@link #mOutBuffer} is consumed. Same geometry, same bytes and
+     * the same block order; only the transfer is asynchronous.
+     */
+    public void beginBlocksToOutputAsync() {
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLProg program = super.mProgram;
+        GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
+        int[] row = new int[2];
+        int stride = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        while (divider.nextBlock(row)) {
+            int y = row[0];
+            int height = row[1];
+            program.setVar("yOffset", y);
+            streamBandAsync(y, height, mOutBuffer, stride);
+        }
+    }
+
+    /** Waits out and copies all pending async output blocks (see above). */
+    public void finishBlocksToOutputAsync() {
+        finishStreamedBands();
+        mOutBuffer.position(0);
+        if (mOut != null) mOut.byteBuffer = mOutBuffer;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    /**
      * Streams the rendered tiles directly into {@code sink}'s pixel memory
      * (a software ARGB_8888 bitmap wrapped via {@link Allocator#wrapBitmap}),
      * skipping every intermediate full-frame buffer. The per-tile program
@@ -300,8 +329,11 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         super.mProgram.draw();
         checkEglError("program");
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, streamPbo[slot]);
+        // readbackType: FLOAT_16 outputs must request GL_HALF_FLOAT (same rule
+        // as drawBlocksToOutput); only reached with FLOAT_16 for the ESD4D
+        // merge output, RGBA8 sinks are unaffected.
         glReadPixels(0, 0, mOutWidth, rows, mglFormat.getGLFormatExternal(),
-                mglFormat.getGLType(), 0);
+                readbackType(mglFormat), 0);
         checkEglError("glReadPixels");
         streamFence[slot] = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
         GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);

@@ -1463,16 +1463,19 @@ public class ESD4D extends GLOneScript {
         glProg.setTexture("inTexture",mergeAcc);
         glProg.setTexture("alignmentTexture", alignmentTex);
         result.BufferLoad();
-        glOne.glProcessing.drawBlocksToOutput();
-        Output = glOne.glProcessing.mOutBuffer;
-        // The tiled glReadPixels inside drawBlocksToOutput drains every
-        // compute dispatch the merge loop queued asynchronously, so this
-        // stage carries the loop's real GPU execution time on top of the
-        // readback transfer itself.
-        Log.d("ESD4D", "Stage[merge2o+readback] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
+        // Issue every block's draw + readback into the PBO ring, then tear
+        // down CPU-side resources (AfterRun) while the transfers are in
+        // flight, and only then collect. The first block's readback still
+        // waits for the merge loop's queued GPU work (that drain is this
+        // stage's true cost), but the transfer and teardown now overlap.
+        glOne.glProcessing.beginBlocksToOutputAsync();
+        Log.d("ESD4D", "Stage[merge2o+submit] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
         long teardownT = System.currentTimeMillis();
         AfterRun();
         Log.d("ESD4D", "Stage[afterrun] elapsed:" + (System.currentTimeMillis() - teardownT) + " ms");
+        glOne.glProcessing.finishBlocksToOutputAsync();
+        Output = glOne.glProcessing.mOutBuffer;
+        Log.d("ESD4D", "Stage[merge2o+readback] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
         com.particlesdevs.photoncamera.util.Allocator.logStage("ESD4D", "post-merge");
     }
 
