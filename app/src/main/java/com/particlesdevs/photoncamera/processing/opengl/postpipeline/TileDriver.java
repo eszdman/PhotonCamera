@@ -1051,11 +1051,19 @@ public final class TileDriver {
                 rot.glProg.setVar("yOffset", yOff);
                 logProgramState(tag, "rot-band" + b0, rot.glProg,
                         "InputBuffer", rot.tileProgram);
-                glproc.streamBand(b0, b1 - b0, wrapped, outW * 4);
+                // Async PBO readback: the band DMA overlaps the next band's
+                // render instead of draining the queue here. Copied into the
+                // wrapped sink at the end of the loop (still under its lock).
+                glproc.streamBandAsync(b0, b1 - b0, wrapped, outW * 4);
                 bandCount++;
             } catch (Throwable t) {
+                // Copy out whatever is in flight before the sink lock drops.
+                try {
+                    glproc.finishStreamedBands();
+                } catch (Throwable ignored) {
+                }
                 throw new IllegalStateException(
-                        "tail produce band [" + b0 + "," + b1 + ") failed", t);
+                        "tail produce band [" + b0 + "," + (b1 - b0) + ") failed", t);
             } finally {
                 closeQuietly(capInTile);
                 closeQuietly(capTile);
@@ -1063,6 +1071,8 @@ public final class TileDriver {
                 closeQuietly(sharpTile);
             }
         }
+        // Collect the trailing band transfers while the sink is still locked.
+        glproc.finishStreamedBands();
         // Restore nodes to valid placeholders (same post-state convention as
         // runTailTiled; true output lives in the sink bitmap now).
         cap.WorkingTexture = entry;
