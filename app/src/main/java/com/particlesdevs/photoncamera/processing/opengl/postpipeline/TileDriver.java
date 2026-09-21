@@ -997,36 +997,29 @@ public final class TileDriver {
                 throw new IllegalStateException("tail produce window mismatch off=" + off
                         + " take=" + take + " in=" + (we[1] - we[0]));
             }
-            GLTexture capInTile = null, capTile = null;
-            GLTexture sharpInTile = null, sharpTile = null;
+            // No window-copy blits: both shaders are origin-aware, so the
+            // capture reads the full-size entry directly and the sharpen pass
+            // reads the capture tile directly (its window is a superset of the
+            // sharpen window by construction). Same fetches in image
+            // coordinates, minus ~200 MB of copies and two textures per band.
+            GLTexture capTile = null;
+            GLTexture sharpTile = null;
             try {
                 cap.glProg.rebindProgram(cap.tileProgram);
-                capInTile = columns ? newTile(we[1] - we[0], imgH, float4)
-                        : newTile(imgW, we[1] - we[0], float4);
-                if (columns) {
-                    blitColumn(entry, capInTile, we[0], we[1] - we[0]);
-                } else {
-                    blitBand(entry, capInTile, we[0], we[1] - we[0]);
-                }
                 capTile = columns ? newTile(we[1] - we[0], imgH, float4)
                         : newTile(imgW, we[1] - we[0], float4);
-                cap.renderTile(capInTile, capTile);
+                cap.renderTile(entry, capTile,
+                        columns ? we[0] : 0, columns ? 0 : we[0]);
                 logProgramState(tag, "cap-band" + b0, cap.glProg,
                         "InputBuffer", cap.tileProgram);
                 shp.glProg.rebindProgram(shp.tileProgram);
-                sharpInTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
-                        : newTile(imgW, ws[1] - ws[0], float4);
-                if (columns) {
-                    blitColumn(capTile, sharpInTile, off, take);
-                } else {
-                    blitBand(capTile, sharpInTile, off, take);
-                }
                 sharpTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
                         : newTile(imgW, ws[1] - ws[0], float4);
                 if (b0 == 0) {
                     GLTexture.logLive(tag, "tail-produce-peak");
                 }
-                shp.renderTile(sharpInTile, sharpTile);
+                shp.renderTile(capTile, sharpTile,
+                        columns ? off : 0, columns ? 0 : off);
                 logProgramState(tag, "shp-band" + b0, shp.glProg,
                         "InputBuffer", shp.tileProgram);
                 // Rotate band straight to the sink (same yOffset sampling the
@@ -1065,9 +1058,7 @@ public final class TileDriver {
                 throw new IllegalStateException(
                         "tail produce band [" + b0 + "," + (b1 - b0) + ") failed", t);
             } finally {
-                closeQuietly(capInTile);
                 closeQuietly(capTile);
-                closeQuietly(sharpInTile);
                 closeQuietly(sharpTile);
             }
         }
