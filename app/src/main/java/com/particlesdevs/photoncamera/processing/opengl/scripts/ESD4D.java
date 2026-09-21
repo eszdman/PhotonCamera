@@ -32,6 +32,11 @@ import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -545,6 +550,76 @@ public class ESD4D extends GLOneScript {
         }
     }
 
+    /** Upper bound on workers for the parallel raw->fp16 conversion: leaves
+     * headroom for render/capture threads and bounds transient staging. */
+    private static final int F16_CONVERT_MAX_WORKERS = 4;
+
+    private void convertFramesToF16() {
+        int pending = 0;
+        for (int i = 0; i < images.size(); i++) {
+            ImageFrame frame = images.get(i);
+            if (!frame.fp16 && frame.buffer != null) pending++;
+        }
+        if (pending == 0) return;
+        int workers = Math.min(Math.min(F16_CONVERT_MAX_WORKERS, pending),
+                Math.max(1, Runtime.getRuntime().availableProcessors() - 2));
+        if (workers <= 1) {
+            for (int i = 0; i < images.size(); i++) convertFrameToF16(images.get(i), i);
+            return;
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(workers, r -> new Thread(r, "F16Convert"));
+        try {
+            ArrayList<Callable<Void>> tasks = new ArrayList<>(pending);
+            for (int i = 0; i < images.size(); i++) {
+                final int idx = i;
+                final ImageFrame frame = images.get(i);
+                if (frame.fp16 || frame.buffer == null) continue;
+                tasks.add(() -> { convertFrameToF16(frame, idx); return null; });
+            }
+            for (Future<Void> f : pool.invokeAll(tasks)) f.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("f16-convert interrupted", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException("f16-convert failed", cause);
+        } finally {
+            pool.shutdown();
+        }
+    }
+
+    /**
+     * Converts one frame's buffer to normalized fp16 in place. Safe to call
+     * from any thread: {@link ImageFrame#upload()}'s staging cache is
+     * synchronized (concurrent callers each get an owned buffer) and the
+     * native converters keep no global state.
+     */
+    private void convertFrameToF16(ImageFrame frame, int index) {
+        if (frame.fp16 || frame.buffer == null) return;
+        ByteBuffer normalized;
+        if (frame.packedBits > 0) {
+            // Frame arrived as a packed bitstream (burst-memory saving):
+            // unpack to uint16 first — createF16 reads raw sample counts.
+            try (ImageFrame.Upload up = frame.upload()) {
+                normalized = Allocator.createF16(up.buffer,
+                        parameters.rawSize.x, parameters.rawSize.y,
+                        parameters.whiteLevel, parameters.blackLevel);
+            }
+        } else {
+            normalized = Allocator.createF16(frame.buffer,
+                    parameters.rawSize.x, parameters.rawSize.y,
+                    parameters.whiteLevel, parameters.blackLevel);
+        }
+        if (normalized == null) {
+            throw new IllegalStateException("createF16 failed for frame " + index);
+        }
+        Allocator.free(frame.buffer);
+        frame.buffer = normalized;
+        frame.fp16 = true;
+        frame.packedBits = 0;
+    }
+
     @Override
     public void Run() {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
@@ -559,33 +634,11 @@ public class ESD4D extends GLOneScript {
         // original raw is freed, and every later upload (merge00 / alignment
         // normalize / flowRGB inputs) feeds FLOAT_16 textures directly - the
         // shaders receive already-normalized floats and skip the
-        // whitelevel/blackLevel math.
+        // whitelevel/blackLevel math. Frames are independent and the native
+        // converters keep no global state, so the burst is converted on a
+        // small worker pool (bounded to keep transient staging memory tame).
         long f16T = System.currentTimeMillis();
-        for (int i = 0; i < images.size(); i++) {
-            ImageFrame frame = images.get(i);
-            if (frame.fp16 || frame.buffer == null) continue;
-            ByteBuffer normalized;
-            if (frame.packedBits > 0) {
-                // Frame arrived as a packed bitstream (burst-memory saving):
-                // unpack to uint16 first — createF16 reads raw sample counts.
-                try (ImageFrame.Upload up = frame.upload()) {
-                    normalized = Allocator.createF16(up.buffer,
-                            parameters.rawSize.x, parameters.rawSize.y,
-                            parameters.whiteLevel, parameters.blackLevel);
-                }
-            } else {
-                normalized = Allocator.createF16(frame.buffer,
-                        parameters.rawSize.x, parameters.rawSize.y,
-                        parameters.whiteLevel, parameters.blackLevel);
-            }
-            if (normalized == null) {
-                throw new IllegalStateException("createF16 failed for frame " + i);
-            }
-            Allocator.free(frame.buffer);
-            frame.buffer = normalized;
-            frame.fp16 = true;
-            frame.packedBits = 0;
-        }
+        convertFramesToF16();
         Log.d("ESD4D", "Stage[f16-convert] elapsed:" + (System.currentTimeMillis() - f16T) + " ms");
 
         float minExp = 1.f;
