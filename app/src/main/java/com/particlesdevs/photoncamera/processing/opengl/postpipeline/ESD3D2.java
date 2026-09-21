@@ -139,7 +139,9 @@ public class ESD3D2 extends Node {
                 basePipeline.main4 = glUtils.gaussdown(previousNode.WorkingTexture, scale);
                 // Denoise runs at low resolution, so the intermediate has to match main4's size
                 basePipeline.main5 = new GLTexture(basePipeline.main4.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
-                gradLow = new GLTexture(basePipeline.main4.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+                // Gradients are (gx, gy) only: RG16F halves the footprint and
+                // bandwidth of this full-resolution intermediate.
+                gradLow = new GLTexture(basePipeline.main4.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, 2));
                 glUtils.ConvDiff(basePipeline.main4, gradLow, 0.f);
                 ESD3DRun(basePipeline.main4, basePipeline.main5, gradLow, 0.0f, scaleF * 0.75f);
                 WorkingTexture = basePipeline.getMain();
@@ -147,7 +149,7 @@ public class ESD3D2 extends Node {
                 guidedUpsample(basePipeline.main5, basePipeline.main4, previousNode.WorkingTexture, outp, scale);
             } else {
                 WorkingTexture = basePipeline.getMain();
-                grad = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+                grad = new GLTexture(previousNode.WorkingTexture.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, 2));
                 glUtils.ConvDiff(previousNode.WorkingTexture, grad, 0.f);
                 ESD3DRun(previousNode.WorkingTexture, WorkingTexture, grad, 0.0f, 1.0f);
                 outp = basePipeline.getMain();
@@ -156,7 +158,7 @@ public class ESD3D2 extends Node {
         }
         WorkingTexture = basePipeline.getMain();
         if (grad == null) {
-            grad = new GLTexture(outp.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim));
+            grad = new GLTexture(outp.mSize, new GLFormat(GLFormat.DataType.FLOAT_16, 2));
         }
         glUtils.ConvDiff(outp, grad, 0.f);
         ESD3DRun(outp, WorkingTexture, grad, moire, 1.0f);
