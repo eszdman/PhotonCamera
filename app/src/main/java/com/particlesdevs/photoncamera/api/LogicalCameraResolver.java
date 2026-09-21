@@ -1,10 +1,13 @@
 package com.particlesdevs.photoncamera.api;
 
 import android.content.Context;
+import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
 import android.util.Range;
+import android.util.Size;
+import android.util.SizeF;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -12,6 +15,7 @@ import androidx.annotation.Nullable;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.util.FocalEquivalence;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.util.ArrayList;
@@ -215,6 +219,7 @@ public final class LogicalCameraResolver {
         }
         if (!manual.isEmpty()) {
             int facing = CameraCharacteristics.LENS_FACING_BACK;
+            float reference35 = 24f;
             try {
                 CameraManager manager =
                         (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
@@ -223,6 +228,12 @@ public final class LogicalCameraResolver {
                     if (chars != null) {
                         Integer f = chars.get(CameraCharacteristics.LENS_FACING);
                         if (f != null) facing = f;
+                        float[] focals =
+                                chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                        if (focals != null && focals.length > 0) {
+                            float live = equivalent35mm(chars, focals[0]);
+                            if (live > 0f) reference35 = live;
+                        }
                     }
                 }
             } catch (Exception ignored) {
@@ -230,12 +241,38 @@ public final class LogicalCameraResolver {
             List<Member> out = new ArrayList<>();
             int i = 0;
             for (Float zf : manual) {
-                out.add(new Member(id, "m" + (i++), zf, 0f, zf * 24f, zf, 4f, facing, true));
+                out.add(new Member(id, "m" + (i++), zf, 0f, zf * reference35, zf, 4f, facing, true));
             }
             Log.d(TAG, "logical " + id + " manual members=" + out);
             return out;
         }
         return resolveMembers(context, id);
+    }
+
+    /**
+     * Canonical 35mm-equivalent focal length for a physical camera, using the
+     * sensor diagonal and the active-array subset of the full physical size.
+     */
+    static float equivalent35mm(@Nullable CameraCharacteristics characteristics, float focalMm) {
+        if (characteristics == null || focalMm <= 0f) {
+            return 0f;
+        }
+        try {
+            SizeF sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            if (sensorSize == null) {
+                return 0f;
+            }
+            Rect activeArray = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            Size pixelArray = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
+            return FocalEquivalence.equivalent35mm(focalMm,
+                    sensorSize.getWidth(), sensorSize.getHeight(),
+                    activeArray != null ? activeArray.width() : 0,
+                    activeArray != null ? activeArray.height() : 0,
+                    pixelArray != null ? pixelArray.getWidth() : 0,
+                    pixelArray != null ? pixelArray.getHeight() : 0);
+        } catch (Exception e) {
+            return 0f;
+        }
     }
 
     /**
@@ -335,8 +372,7 @@ public final class LogicalCameraResolver {
                     }
                     float focal = focals[0];
                     float aperture = (apertures != null && apertures.length > 0) ? apertures[0] : 0f;
-                    // Same 35mm formula as CameraManager2.createNewCameraLensData.
-                    float focal35 = 36.0f / sensorSize.getWidth() * focal;
+                    float focal35 = equivalent35mm(chars, focal);
                     Float maxZoom = chars.get(CameraCharacteristics.SCALER_AVAILABLE_MAX_DIGITAL_ZOOM);
                     float maxDigitalZoom = maxZoom != null && maxZoom > 1f ? maxZoom : 4f;
                     found.add(new Member(logicalId, pid, focal, aperture, focal35,

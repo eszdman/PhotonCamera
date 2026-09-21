@@ -41,6 +41,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_THEME.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_GRID.mValue);
         COMMON_KEYS.add(Key.KEY_LENS_BAR_POSITION.mValue);
+        COMMON_KEYS.add(Key.KEY_LENS_MM_EQUIVALENT.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Key.KEY_CAMERA_SOUNDS.mValue);
@@ -122,6 +123,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, resources.getString(R.string.audio_source_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, resources.getString(R.string.pref_lens_bar_position_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_MM_EQUIVALENT, resources.getBoolean(R.bool.pref_lens_mm_equivalent_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
@@ -408,6 +410,14 @@ public class PreferenceKeys {
      */
     public static String getLensBarPosition() {
         return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, "right");
+    }
+
+    /**
+     * True when the lens pill should label lenses with their 35mm-equivalent
+     * focal length instead of the relative zoom factor.
+     */
+    public static boolean isLensMmEquivalentOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_LENS_MM_EQUIVALENT, false);
     }
 
     public static boolean isCameraSoundsOn() {
@@ -811,6 +821,7 @@ public class PreferenceKeys {
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
         KEY_LENS_BAR_POSITION(R.string.pref_lens_bar_position_key),
+        KEY_LENS_MM_EQUIVALENT(R.string.pref_lens_mm_equivalent_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
         KEY_HAPTICS(R.string.pref_haptics_key),
         KEY_CHROMA_NR_SEEKBAR(R.string.pref_chroma_nr_seekbar_key),

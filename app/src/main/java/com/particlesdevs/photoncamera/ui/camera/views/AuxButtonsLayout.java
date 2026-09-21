@@ -22,23 +22,26 @@ package com.particlesdevs.photoncamera.ui.camera.views;
 
 import android.content.Context;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
 import androidx.annotation.Nullable;
+import androidx.core.widget.TextViewCompat;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
+import com.particlesdevs.photoncamera.ui.camera.data.LensLabelFormatter;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 
 /**
  * Container for multi-camera buttons.
@@ -78,10 +81,6 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
             setListenerAndSelected("0");
             updateVisibility();
         }
-    }
-
-    private static String getAuxButtonName(float zoomFactor) {
-        return String.format(Locale.US, "%.1fx", zoomFactor).replace(".0", "");
     }
 
     public void setAuxButtonsModel(AuxButtonsModel auxButtonsModel) {
@@ -128,11 +127,23 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
             ordered = new ArrayList<>(cameraLensDataList);
             Collections.reverse(ordered);
         }
+        boolean mmEquivalent = PreferenceKeys.isLensMmEquivalentOn();
         for (CameraLensData cameraLensData : ordered) {
-            addNewButton(cameraLensData.getCameraId(), getAuxButtonName(cameraLensData.getZoomFactor()));
+            addNewButton(cameraLensData.getCameraId(),
+                    LensLabelFormatter.format(cameraLensData, mmEquivalent));
         }
         setListenerAndSelected(activeId);
         updateVisibility();
+    }
+
+    /**
+     * Rebuilds the buttons with the current label mode. Called when the camera
+     * resumes so a Lens Labels settings change applies without reopening the camera.
+     */
+    public void refresh() {
+        if (activeCameraId != null) {
+            refresh(activeCameraId);
+        }
     }
 
     private void setListenerAndSelected(String activeId) {
@@ -180,6 +191,8 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         b.setLayoutParams(buttonParams);
         b.setText(buttonText);
         b.setTextAppearance(R.style.AuxButtonText);
+        TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(b, 9, 13, 1,
+                TypedValue.COMPLEX_UNIT_SP);
         b.setBackgroundResource(R.drawable.aux_button_background);
         b.setStateListAnimator(null);
         b.setTransformationMethod(null);

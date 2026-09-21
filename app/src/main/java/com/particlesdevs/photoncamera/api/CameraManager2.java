@@ -1,9 +1,13 @@
 package com.particlesdevs.photoncamera.api;
 
+import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraManager;
 import android.os.Build;
+import android.util.Size;
+import android.util.SizeF;
 
+import com.particlesdevs.photoncamera.util.FocalEquivalence;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.google.gson.Gson;
@@ -119,6 +123,7 @@ public final class CameraManager2 {
         //Deserialize JSON and store CameraLensData objects into mCameraLensDataMap
         mCameraLensDataJSONSet.forEach(jsonString -> {
             CameraLensData cameraLensData = GSON.fromJson(jsonString, CameraLensData.class);
+            refreshOptics(cameraManager, cameraLensData);
             mCameraLensDataMap.put(cameraLensData.getCameraId(), cameraLensData);
         });
         if(ids != null && mCameraLensDataJSONSet.size() < ids.length){
@@ -211,9 +216,62 @@ public final class CameraManager2 {
         cameraLensData.setFacing(characteristics.get(CameraCharacteristics.LENS_FACING));
         cameraLensData.setCameraFocalLength(characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS)[0]);
         cameraLensData.setCameraAperture(characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_APERTURES)[0]);
-        cameraLensData.setCamera35mmFocalLength((36.0f / characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth() * cameraLensData.getCameraFocalLength()));
+        cameraLensData.setCamera35mmFocalLength(equivalent35mm(characteristics));
         cameraLensData.setFlashSupported(characteristics.get(CameraCharacteristics.FLASH_INFO_AVAILABLE));
         return cameraLensData;
+    }
+
+    /**
+     * Canonical 35mm-equivalent focal length from live characteristics, using the
+     * sensor diagonal and the active-array subset of the full physical size.
+     */
+    private static float equivalent35mm(CameraCharacteristics characteristics) {
+        try {
+            float[] focalLengths = characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+            SizeF sensorSize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            if (focalLengths == null || focalLengths.length == 0 || sensorSize == null) {
+                return 0f;
+            }
+            Rect activeArray = characteristics.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
+            Size pixelArray = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
+            return FocalEquivalence.equivalent35mm(focalLengths[0],
+                    sensorSize.getWidth(), sensorSize.getHeight(),
+                    activeArray != null ? activeArray.width() : 0,
+                    activeArray != null ? activeArray.height() : 0,
+                    pixelArray != null ? pixelArray.getWidth() : 0,
+                    pixelArray != null ? pixelArray.getHeight() : 0);
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    /**
+     * Re-derives optics for a lens loaded from SharedPreferences. Saved entries can
+     * carry values from older formulas, so focal length and the 35mm equivalent are
+     * always refreshed from the live camera characteristics when available.
+     */
+    private void refreshOptics(CameraManager cameraManager, CameraLensData lens) {
+        if (cameraManager == null || lens == null) {
+            return;
+        }
+        try {
+            int physicalId = IszLensUtil.physicalIdFrom(lens.getCameraId());
+            if (physicalId < 0) {
+                return;
+            }
+            CameraCharacteristics characteristics =
+                    cameraManager.getCameraCharacteristics(String.valueOf(physicalId));
+            float equivalent = equivalent35mm(characteristics);
+            if (equivalent > 0f) {
+                lens.setCamera35mmFocalLength(equivalent);
+                float[] focalLengths =
+                        characteristics.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+                if (focalLengths != null && focalLengths.length > 0) {
+                    lens.setCameraFocalLength(focalLengths[0]);
+                }
+            }
+        } catch (Exception ignored) {
+        }
     }
 
     /**
@@ -333,9 +391,10 @@ public final class CameraManager2 {
 
                 CameraLensData virtual = new CameraLensData(virtualId);
                 virtual.setFacing(base.getFacing());
-                virtual.setCameraFocalLength(base.getCameraFocalLength());
+                virtual.setCameraFocalLength(base.getCameraFocalLength() * isz.iszZoomRatio);
                 virtual.setCameraAperture(base.getCameraAperture());
-                virtual.setCamera35mmFocalLength(base.getCamera35mmFocalLength());
+                virtual.setCamera35mmFocalLength(FocalEquivalence.iszEquivalent35mm(
+                        base.getCamera35mmFocalLength(), isz.iszZoomRatio));
                 virtual.setZoomFactor(base.getZoomFactor() * isz.iszZoomRatio);
                 virtual.setFlashSupported(base.getFlashSupported());
                 mCameraLensDataMap.put(virtualId, virtual);
