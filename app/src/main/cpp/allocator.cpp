@@ -494,7 +494,8 @@ static inline uint32_t maxSampleForBits(int bits) {
 // Bitstream decode helpers (defined below, used by packBits' verify block).
 static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
                          int start, int pixels, int bits, uint32_t mask);
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
+// Non-static: also used by RawF16's fused unpack+normalize (rawF16.cpp).
+void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
 
 extern "C"
 JNIEXPORT jobject JNICALL
@@ -628,8 +629,10 @@ static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out
 }
 
 // 10-bit fast path: straight-line 5-byte/4-sample groups, then scalar tail.
-// Pure integer regrouping of unpackScalar — bit-identical output.
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
+// Pure integer regrouping of unpackScalar — bit-identical output. Non-static:
+// RawF16's fused unpack+normalize reuses it per chunk (chunk starts are
+// multiples of 4 samples, so the 5-byte grouping stays aligned).
+void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
     int n4 = pixels & ~3;
     for (int i = 0, j = 0; i < n4; i += 4, j += 5) {
         uint32_t w;

@@ -238,3 +238,68 @@ Java_com_particlesdevs_photoncamera_util_Allocator_createU16FromF16(JNIEnv *env,
          width, rows, whiteLevel, (memoryCount / 1024) / 1024);
     return buffer;
 }
+
+// Defined in allocator.cpp (same library); the 10-bit fast regrouping.
+extern void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
+
+// Fused Allocator.unpack16 + Allocator.createF16 for 10-bit packed frames.
+// Decodes the bitstream in cache-resident chunks straight into normalized
+// fp16, so the 2-byte-per-pixel staging buffer (write + read + JNI handoff)
+// disappears. Uses the same unpackFast10 grouping and the same
+// normalizeSample math as the two-step path, hence bit-identical output.
+extern "C"
+JNIEXPORT jboolean JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_unpackNormalizeF16TenBit(
+        JNIEnv *env, jclass clazz, jobject dstBuffer, jobject packedBuffer,
+        jint width, jint height, jfloat whiteLevel, jfloatArray blackLevel) {
+    if (dstBuffer == nullptr || packedBuffer == nullptr || width <= 0 || height <= 0) {
+        return JNI_FALSE;
+    }
+    float bl[4] = {0.0f, 0.0f, 0.0f, 0.0f};
+    if (blackLevel == nullptr) return JNI_FALSE;
+    jsize len = env->GetArrayLength(blackLevel);
+    if (len < 4) return JNI_FALSE;
+    env->GetFloatArrayRegion(blackLevel, 0, 4, bl);
+
+    uint16_t *dst = static_cast<uint16_t *>(env->GetDirectBufferAddress(dstBuffer));
+    const uint8_t *packed = static_cast<const uint8_t *>(env->GetDirectBufferAddress(packedBuffer));
+    int64_t pixels = (int64_t) width * (int64_t) height;
+    int64_t needPacked = (pixels * 10 + 7) / 8;
+    jlong dstCap = env->GetDirectBufferCapacity(dstBuffer);
+    jlong packedCap = env->GetDirectBufferCapacity(packedBuffer);
+    if (dst == nullptr || packed == nullptr || dstCap < pixels * 2 || packedCap < needPacked) {
+        LOGD("unpackNormalizeF16TenBit: buffer too small dst=%lld packed=%lld need=%lld",
+             (long long) dstCap, (long long) packedCap, (long long) needPacked);
+        return JNI_FALSE;
+    }
+
+    float invScale[4];
+    for (int c = 0; c < 4; c++) {
+        float range = whiteLevel - bl[c];
+        invScale[c] = 1.0f / (range > 1.0f ? range : 1.0f);
+    }
+
+    // Chunk size is a multiple of 4 so every chunk starts on a 5-byte group
+    // boundary (chunk byte offset = index * 5 / 4) and unpackFast10's scalar
+    // tail only ever runs on the final chunk.
+    const int CHUNK = 8192;
+    uint16_t scratch[CHUNK];
+    int64_t i = 0;
+    int row = 0, col = 0;
+    while (i < pixels) {
+        int n = (int) ((pixels - i) < CHUNK ? (pixels - i) : CHUNK);
+        unpackFast10(packed + (i / 4) * 5, scratch, n);
+        for (int k = 0; k < n; k++) {
+            int site = (row & 1) * 2 + (col & 1);
+            dst[i + k] = normalizeSample(scratch[k], bl[site], invScale[site]);
+            if (++col == width) {
+                col = 0;
+                row++;
+            }
+        }
+        i += n;
+    }
+    LOGD("unpackNormalizeF16TenBit: %dx%d wl=%g bl=%.1f/%.1f/%.1f/%.1f",
+         width, height, whiteLevel, bl[0], bl[1], bl[2], bl[3]);
+    return JNI_TRUE;
+}

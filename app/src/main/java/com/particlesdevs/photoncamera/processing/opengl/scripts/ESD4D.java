@@ -646,12 +646,32 @@ public class ESD4D extends GLOneScript {
         if (frame.fp16 || frame.buffer == null) return;
         ByteBuffer normalized;
         if (frame.packedBits > 0) {
-            // Frame arrived as a packed bitstream (burst-memory saving):
-            // unpack to uint16 first — createF16 reads raw sample counts.
-            try (ImageFrame.Upload up = frame.upload()) {
-                normalized = Allocator.createF16(up.buffer,
-                        parameters.rawSize.x, parameters.rawSize.y,
-                        parameters.whiteLevel, parameters.blackLevel);
+            // Frame arrived as a packed bitstream (burst-memory saving).
+            // The common 10-bit depth decodes straight into normalized fp16,
+            // skipping the uint16 staging buffer and its memory round trip;
+            // other depths keep the unpack-then-normalize path.
+            if (frame.packedBits == 10) {
+                normalized = Allocator.allocate(parameters.rawSize.x * parameters.rawSize.y * 2);
+                if (normalized != null && !Allocator.unpackNormalizeF16TenBit(normalized,
+                        frame.buffer, parameters.rawSize.x, parameters.rawSize.y,
+                        parameters.whiteLevel, parameters.blackLevel)) {
+                    Allocator.free(normalized);
+                    normalized = null;
+                }
+                if (normalized == null) {
+                    try (ImageFrame.Upload up = frame.upload()) {
+                        normalized = Allocator.createF16(up.buffer,
+                                parameters.rawSize.x, parameters.rawSize.y,
+                                parameters.whiteLevel, parameters.blackLevel);
+                    }
+                }
+            } else {
+                // Unpack to uint16 first — createF16 reads raw sample counts.
+                try (ImageFrame.Upload up = frame.upload()) {
+                    normalized = Allocator.createF16(up.buffer,
+                            parameters.rawSize.x, parameters.rawSize.y,
+                            parameters.whiteLevel, parameters.blackLevel);
+                }
             }
         } else {
             normalized = Allocator.createF16(frame.buffer,
