@@ -116,6 +116,7 @@
     <string name="pref_hide_gallery_icon_key" translatable="false">pref_hide_gallery_icon_key</string>
     <string name="pref_hide_modes_key" translatable="false">pref_hide_modes_key</string>
     <string name="pref_mode_order_key" translatable="false">pref_mode_order_key</string>
+    <string name="pref_save_location_key" translatable="false">pref_save_location_key</string>
     <string name="pref_category_device_key" translatable="false">pref_category_device_key</string>
     <string name="pref_fetch_configurations_key" translatable="false">pref_fetch_configurations_key</string>
 </resources>

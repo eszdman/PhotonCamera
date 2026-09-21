@@ -85,6 +85,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.control.GyroBurst;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.debugclient.DebugSender;
 import com.particlesdevs.photoncamera.manual.ParamController;
@@ -4867,6 +4868,31 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
+    /**
+     * Tags the upcoming MP4 with the current fix when "Save location" is on.
+     * Must run before {@link MediaRecorder#prepare()}; silently skipped when
+     * disabled, unauthorized or no fresh fix exists.
+     */
+    private void applyVideoLocation() {
+        if (!PreferenceKeys.isSaveLocationOn()) {
+            return;
+        }
+        try {
+            Context context = PhotonCamera.getAppContext();
+            if (context == null || !LocationProvider.hasPermission(context)) {
+                return;
+            }
+            LocationProvider provider = PhotonCamera.getLocationProvider();
+            android.location.Location location = provider != null ? provider.getLastLocation() : null;
+            if (location != null) {
+                mMediaRecorder.setLocation(
+                        (float) location.getLatitude(), (float) location.getLongitude());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "video location tag failed", e);
+        }
+    }
+
     private void setUpMediaRecorder(boolean allowHdr) {
         mMediaRecorder.reset();
         int audioSource = mAudioSourceRetry >= 0 ? mAudioSourceRetry : resolveAudioSource();
@@ -5026,6 +5052,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.e(TAG, Log.getStackTraceString(e));
         }
         mMediaRecorder.setOutputFile(vid.getAbsolutePath());
+        applyVideoLocation();
         try {
             mMediaRecorder.prepare();
             Log.d(TAG, "video record start");

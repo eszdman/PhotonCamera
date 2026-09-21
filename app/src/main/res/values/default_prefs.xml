@@ -86,4 +86,5 @@
     <string name="pref_af_mode_default_value" translatable="false">4</string>
     <string name="pref_raw_mode_default_value" translatable="false">0</string>
     <bool name="pref_hide_gallery_icon_default">false</bool>
+    <bool name="pref_save_location_default">false</bool>
 </resources>

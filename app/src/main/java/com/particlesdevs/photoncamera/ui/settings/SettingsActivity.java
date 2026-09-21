@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.ui.settings;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.ComponentName;
@@ -40,12 +41,14 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.settings.TunablePreferenceGenerator;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.HideReorderModesPreference;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.util.Log;
@@ -195,6 +198,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private boolean sensorConfigPreferencesGenerated = false;
         private boolean videoTunablePreferencesGenerated = false;
         private ActivityResultLauncher<String[]> lutImportLauncher;
+        private ActivityResultLauncher<String[]> locationPermissionLauncher;
         /** Viewfinder background mode before the current settings change. */
         private String viewfinderBackgroundBefore;
 
@@ -230,6 +234,10 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     }
             );
             TunablePngPreference.setImportLauncher(lutImportLauncher);
+
+            locationPermissionLauncher = registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    this::onLocationPermissionResult);
             
             // Check if we're opening the tunable submenu specifically
             String rootKey = getArguments() != null ? getArguments().getString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT) : null;
@@ -263,6 +271,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             showHideHdrxSettings();
             setFramesSummary();
             updateHideModesSummary();
+            setupSaveLocationPreference();
             setVersionDetails();
             setHdrxTitle();
             viewfinderBackgroundBefore = PreferenceKeys.getViewfinderBackground();
@@ -636,6 +645,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onResume();
             // Update toolbar title when fragment resumes (e.g., after navigating back)
             setupToolbar();
+            // Re-sync in case the permission was revoked in system settings.
+            setupSaveLocationPreference();
         }
 
 
@@ -852,6 +863,74 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             } catch (Exception e) {
                 Log.e("SettingsFragment", "enforceAtLeastOneVisibleMode failed", e);
             }
+        }
+
+        /**
+         * Wires the "Save location" switch: enabling it requires the runtime
+         * location permission, disabling always succeeds. The checked state is
+         * re-synced on resume so a permission revoked in system settings turns
+         * the switch off again.
+         */
+        private void setupSaveLocationPreference() {
+            Preference pref = findPreference(mContext.getString(R.string.pref_save_location_key));
+            if (!(pref instanceof ManagedSwitchPreference)) {
+                return;
+            }
+            ManagedSwitchPreference switchPref = (ManagedSwitchPreference) pref;
+            // TwoStatePreference asks the change listener before toggling, so
+            // returning false keeps the switch off while the permission dialog
+            // is up; the grant callback turns it on programmatically.
+            switchPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (!Boolean.TRUE.equals(newValue)) {
+                    return true;
+                }
+                if (LocationProvider.hasPermission(mContext)) {
+                    return true;
+                }
+                locationPermissionLauncher.launch(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION});
+                return false;
+            });
+            if (PreferenceKeys.isSaveLocationOn() && !LocationProvider.hasPermission(mContext)) {
+                setSaveLocation(switchPref, false);
+            } else {
+                switchPref.setChecked(PreferenceKeys.isSaveLocationOn());
+            }
+        }
+
+        private void setSaveLocation(ManagedSwitchPreference pref, boolean value) {
+            pref.setChecked(value);
+            PreferenceKeys.setSaveLocation(value);
+        }
+
+        private void onLocationPermissionResult(java.util.Map<String, Boolean> result) {
+            Preference pref = findPreference(mContext.getString(R.string.pref_save_location_key));
+            if (!(pref instanceof ManagedSwitchPreference)) {
+                return;
+            }
+            ManagedSwitchPreference switchPref = (ManagedSwitchPreference) pref;
+            boolean granted = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION))
+                    || Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+            if (granted) {
+                setSaveLocation(switchPref, true);
+                return;
+            }
+            setSaveLocation(switchPref, false);
+            View root = mRootView != null ? mRootView
+                    : (activity != null ? activity.findViewById(android.R.id.content) : null);
+            if (root != null) {
+                Snackbar.make(root, mContext.getString(R.string.save_location_denied), Snackbar.LENGTH_LONG)
+                        .setAction(R.string.perm_open_settings, v -> openAppSettings())
+                        .show();
+            }
+        }
+
+        private void openAppSettings() {
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", mContext.getPackageName(), null));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
 
         private void setHdrxTitle() {

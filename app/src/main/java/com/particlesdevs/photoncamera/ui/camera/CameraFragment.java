@@ -24,6 +24,7 @@ import android.app.Activity;
 import android.app.Dialog;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
@@ -94,6 +95,7 @@ import com.particlesdevs.photoncamera.circularbarlib.ui.Binding;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualPaletteBackground;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.control.Swipe;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.control.Vibration;
@@ -535,6 +537,26 @@ public class CameraFragment extends Fragment {
         captureController.resumeCamera();
         initTouchFocus();
         manualModeConsole.onResume();
+        updateLocationProvider();
+    }
+
+    /**
+     * Runs the location provider only while the camera is open and "Save
+     * location" is enabled with the permission granted. Called from onResume so
+     * a permission granted/revoked in Settings applies when coming back.
+     */
+    private void updateLocationProvider() {
+        LocationProvider provider = PhotonCamera.getLocationProvider();
+        if (provider == null) {
+            return;
+        }
+        Context context = getContext();
+        if (context != null && PreferenceKeys.isSaveLocationOn()
+                && LocationProvider.hasPermission(context)) {
+            provider.start();
+        } else {
+            provider.stop();
+        }
     }
 
     private void initTouchFocus() {
@@ -551,6 +573,10 @@ public class CameraFragment extends Fragment {
 
     @Override
     public void onPause() {
+        LocationProvider locationProvider = PhotonCamera.getLocationProvider();
+        if (locationProvider != null) {
+            locationProvider.stop();
+        }
         PhotonCamera.getGravity().unregister();
         PhotonCamera.getGyro().unregister();
         PhotonCamera.getSettings().saveID();

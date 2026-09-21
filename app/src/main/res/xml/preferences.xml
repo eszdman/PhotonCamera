@@ -65,6 +65,14 @@
                 android:summary=""
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_save_location_key"
+                android:defaultValue="@bool/pref_save_location_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/save_location"
+                android:summary="@string/save_location_summary"
+                android:icon="@drawable/ic_location_on"
+                />
         <ListPreference
                 android:key="@string/pref_lens_bar_position_key"
                 android:defaultValue="@string/pref_lens_bar_position_default"

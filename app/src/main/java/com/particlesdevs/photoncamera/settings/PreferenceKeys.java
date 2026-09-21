@@ -78,6 +78,8 @@ public class PreferenceKeys {
         // Hidden camera modes and their order are global like the selected mode.
         COMMON_KEYS.add(Key.KEY_HIDE_MODES.mValue);
         COMMON_KEYS.add(Key.KEY_MODE_ORDER.mValue);
+        // Geotagging is a device-wide capture setting.
+        COMMON_KEYS.add(Key.KEY_SAVE_LOCATION.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -131,6 +133,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, resources.getBoolean(R.bool.pref_save_location_default));
         // Migrate the legacy "Write ZIP" switch into the container selector
         // (true -> zip, false -> dng) the first time the new key is seen.
         if (!settingsManager.getDefaultPreferences().contains(Key.KEY_RAWVIDEO_CONTAINER.mValue)) {
@@ -434,6 +437,15 @@ public class PreferenceKeys {
 
     public static void setHaptics(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HAPTICS, value);
+    }
+
+    /** True when saved photos/videos should be geotagged with the current fix. */
+    public static boolean isSaveLocationOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, false);
+    }
+
+    public static void setSaveLocation(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, value);
     }
 
     public static int getChromaNrValue() {
@@ -935,6 +947,7 @@ public class PreferenceKeys {
         KEY_HIDE_GALLERY_ICON(R.string.pref_hide_gallery_icon_key),
         KEY_HIDE_MODES(R.string.pref_hide_modes_key),
         KEY_MODE_ORDER(R.string.pref_mode_order_key),
+        KEY_SAVE_LOCATION(R.string.pref_save_location_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_AE_METERING_STD(R.string.pref_ae_metering_std_key),
