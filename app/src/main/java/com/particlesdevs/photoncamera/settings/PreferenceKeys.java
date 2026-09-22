@@ -73,6 +73,7 @@ public class PreferenceKeys {
         // Video settings are global: per-lens copies would resurrect another
         // lens's resolution/bitrate/codec when switching lenses.
         COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION_SELFIE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HEVC.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR.mValue);
@@ -130,6 +131,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, 0); // Default to disable bracketing
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_METERING_STD, -1); // Default to Off
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, resources.getString(R.string.pref_video_resolution_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, resources.getString(R.string.pref_video_resolution_selfie_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, resources.getString(R.string.video_bitrate_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
@@ -872,6 +874,16 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, value);
     }
 
+    /** Video resolution used when the front (selfie) camera records. */
+    public static String getSelfieVideoResolution() {
+        return preferenceKeys.settingsManager.getString(
+                SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, "1920x1080");
+    }
+
+    public static void setSelfieVideoResolution(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, value);
+    }
+
     public static int getVideoBitrateMbps() {
         try {
             return Integer.parseInt(preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, "30"));
@@ -1081,6 +1093,7 @@ public class PreferenceKeys {
          */
         KEY_PREVIEW_RESOLUTION(R.string.pref_preview_resolution_key),////TODO add preview resolution selector
         KEY_VIDEO_RESOLUTION(R.string.pref_video_resolution_key),
+        KEY_VIDEO_RESOLUTION_SELFIE(R.string.pref_video_resolution_selfie_key),
         KEY_VIDEO_BITRATE(R.string.pref_video_bitrate_key),
         KEY_VIDEO_HEVC(R.string.pref_video_hevc_key),
         KEY_VIDEO_HDR(R.string.pref_video_hdr_key),

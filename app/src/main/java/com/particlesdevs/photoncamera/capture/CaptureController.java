@@ -2517,8 +2517,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private Size matchVideoPreviewSize(Size[] allSizes, Size aspectRatio) {
         try {
             int idInt = parseVideoCameraId();
-            CamcorderProfile profile = resolveVideoProfile(idInt, PreferenceKeys.getVideoResolution());
-            android.util.Size videoSize = resolveVideoSize(PreferenceKeys.getVideoResolution(), profile, false);
+            String resolution = getActiveVideoResolution();
+            CamcorderProfile profile = resolveVideoProfile(idInt, resolution);
+            android.util.Size videoSize = resolveVideoSize(resolution, profile, false);
             long targetArea = (long) videoSize.getWidth() * (long) videoSize.getHeight();
             if (targetArea <= 0) return null;
             long cap = Math.min(VIDEO_PREVIEW_MAX_AREA,
@@ -4930,6 +4931,30 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         createCameraPreviewSession(false);
     }
 
+    /**
+     * True when the currently open camera is front-facing, so video uses the
+     * separate selfie resolution.
+     */
+    private boolean isActiveCameraFrontFacing() {
+        try {
+            CameraCharacteristics chars = mCameraCharacteristics;
+            if (chars == null && mCameraCharacteristicsMap != null) {
+                chars = mCameraCharacteristicsMap.get(physicalID);
+            }
+            Integer facing = chars != null ? chars.get(CameraCharacteristics.LENS_FACING) : null;
+            return facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Video resolution for the active camera: selfie has its own entry. */
+    private String getActiveVideoResolution() {
+        return isActiveCameraFrontFacing()
+                ? PreferenceKeys.getSelfieVideoResolution()
+                : PreferenceKeys.getVideoResolution();
+    }
+
     private CamcorderProfile resolveVideoProfile(int cameraId, String resolution) {
         int[] qualities;
         switch (resolution) {
@@ -5236,7 +5261,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         int cameraIdInt = parseVideoCameraId();
-        String resolution = PreferenceKeys.getVideoResolution();
+        String resolution = getActiveVideoResolution();
         CamcorderProfile profile = resolveVideoProfile(cameraIdInt, resolution);
         android.util.Size videoSize = resolveVideoSize(resolution, profile);
         Log.d(TAG, "video record " + resolution + " -> " + videoSize.getWidth()
