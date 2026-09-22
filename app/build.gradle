@@ -129,6 +129,9 @@ dependencies {
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     // Gallery modernization: ViewPager2 for bounded tiling/HDR (thumbnails via Glide - single loader to keep baseline low on 4GB)
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
+    // Gallery video playback (MP4 incl. HDR): Media3 ExoPlayer + UI
+    implementation 'androidx.media3:media3-exoplayer:1.5.1'
+    implementation 'androidx.media3:media3-ui:1.5.1'
     //Google Material
     implementation 'com.google.android.material:material:1.14.0'
     // M3E shape morphs and spring physics (declared explicitly; also provided by Material)

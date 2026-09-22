@@ -208,6 +208,12 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     private void onCompareFabClicked(View view) {
         List<GalleryItem> selectedItems = imageGridAdapter.getSelectedItems();
+        if (selectedItems.size() == 2
+                && (selectedItems.get(0).isVideo() || selectedItems.get(1).isVideo())) {
+            if (vibration != null) vibration.reject();
+            Toast.makeText(getContext(), "Compare is available for photos only", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (selectedItems.size() == 2) {
             if (vibration != null) vibration.confirm();
             NavController navController = Navigation.findNavController(view);
@@ -242,10 +248,12 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     private void onShareFabClicked(View view) {
         if (vibration != null) vibration.confirm();
         ArrayList<Uri> imageUris = (ArrayList<Uri>) imageGridAdapter.getSelectedItems().stream().map(galleryItem -> galleryItem.getFile().getFileUri()).collect(Collectors.toList());
+        boolean hasVideo = imageGridAdapter.getSelectedItems().stream().anyMatch(GalleryItem::isVideo);
+        boolean hasImage = imageGridAdapter.getSelectedItems().stream().anyMatch(item -> !item.isVideo());
         Intent shareIntent = new Intent();
         shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
         shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris);
-        shareIntent.setType("image/*");
+        shareIntent.setType(hasVideo && hasImage ? "*/*" : (hasVideo ? "video/*" : "image/*"));
         startActivity(Intent.createChooser(shareIntent, null));
     }
 

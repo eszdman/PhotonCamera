@@ -10,7 +10,15 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.util.LruCache;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.media3.common.MediaItem;
+import androidx.media3.common.PlaybackException;
+import androidx.media3.common.Player;
+import androidx.media3.exoplayer.ExoPlayer;
+import androidx.media3.ui.PlayerView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -53,8 +61,10 @@ import java.util.concurrent.Future;
  *   - HDR tiles preserve the gainmap via ImageDecoder ALLOCATOR_HARDWARE (API 31+).
  * This keeps baseline memory low on 4 GB devices and makes swipe seamless via ±1 tile warm-up.
  */
-public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
+public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> {
     private static final String TAG = "ImageAdapter";
+    public static final int VIEW_TYPE_IMAGE = 0;
+    public static final int VIEW_TYPE_VIDEO = 1;
     // C: single shared pool (2 threads) vs 2×2 pools before — saves ~2 thread stacks (~2 MB) baseline and caps concurrency.
     private static final ExecutorService GALLERY_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
         Thread t = new Thread(r, "GalleryBg");
@@ -72,6 +82,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     private final Map<Integer, Future<?>> pendingPreviewTasks = new ConcurrentHashMap<>();
     private final Map<Integer, CustomSSIV> activeViews = new ConcurrentHashMap<>();
     private final Map<Integer, Target<Bitmap>> dngTargets = new ConcurrentHashMap<>();
+    // Video playback (single shared ExoPlayer attached to the selected page).
+    private final Map<Integer, VideoHolder> activeVideoHolders = new ConcurrentHashMap<>();
+    private ExoPlayer videoPlayer;
+    private int currentVideoPosition = RecyclerView.NO_POSITION;
+    private long currentVideoMediaId = Long.MIN_VALUE;
     // Application context used to decode previews independent of view attach state (fixes first-bind).
     private Context appContext;
     // C: small preview + native dimensions per position – shown immediately under tiles so no black flash.
@@ -136,6 +151,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
 
     private void prefetchHdrHeaders(Context context, int centerPos) {
         if (!UltraHdrGalleryUtil.isDeviceHdrCapable(context)) return;
+        if (isVideoPosition(centerPos)) return;
         int start = Math.max(0, centerPos - 2);
         int end = Math.min(galleryItemList.size() - 1, centerPos + 2);
         for (int i = start; i <= end; i++) {
@@ -168,7 +184,12 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     public long getItemId(int position) {
         if (position < 0 || position >= galleryItemList.size()) return RecyclerView.NO_ID;
         GalleryItem item = galleryItemList.get(position);
-        if (item.getFile() != null) return item.getFile().getId();
+        // Image and video MediaStore id spaces can collide: fold the content
+        // URI (images vs videos table) into the stable id.
+        if (item.getFile() != null && item.getFile().getFileUri() != null) {
+            return (((long) item.getFile().getFileUri().hashCode()) << 32)
+                    | (item.getFile().getId() & 0xffffffffL);
+        }
         return position;
     }
 
@@ -181,18 +202,37 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
         return ViewGroup.generateViewId();
     }
 
+    public boolean isVideoPosition(int position) {
+        return inBounds(position) && galleryItemList.get(position).isVideo();
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return isVideoPosition(position) ? VIEW_TYPE_VIDEO : VIEW_TYPE_IMAGE;
+    }
+
     @NonNull
     @Override
-    public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+    public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == VIEW_TYPE_VIDEO) {
+            View view = LayoutInflater.from(parent.getContext())
+                    .inflate(com.particlesdevs.photoncamera.R.layout.item_gallery_video_page, parent, false);
+            return new VideoHolder(view);
+        }
         CustomSSIV ssiv = new CustomSSIV(parent.getContext());
         ssiv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return new Holder(ssiv);
     }
 
     @Override
-    public void onBindViewHolder(@NonNull Holder holder, int position) {
+    public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+        if (holder instanceof VideoHolder) {
+            bindVideoHolder((VideoHolder) holder, position);
+            return;
+        }
+        Holder imageHolder = (Holder) holder;
         GalleryItem item = galleryItemList.get(position);
-        CustomSSIV ssiv = holder.ssiv;
+        CustomSSIV ssiv = imageHolder.ssiv;
         String ext = "";
         try { ext = FileUtils.getExtension(item.getFile().getDisplayName()); } catch (Exception ignored) {}
         boolean isDng = "dng".equalsIgnoreCase(ext);
@@ -379,23 +419,49 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     }
 
     @Override
-    public void onViewAttachedToWindow(@NonNull Holder holder) {
+    public void onViewAttachedToWindow(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewAttachedToWindow(holder);
-        int pos = holder.getBindingAdapterPosition();
-        if (pos != RecyclerView.NO_POSITION) {
-            activeViews.put(pos, holder.ssiv);
-            prefetchHdrHeaders(holder.itemView.getContext(), pos);
+        if (holder instanceof VideoHolder) {
+            VideoHolder vh = (VideoHolder) holder;
+            int pos = vh.getBindingAdapterPosition();
+            if (pos == RecyclerView.NO_POSITION && vh.itemView.getTag() instanceof Integer) {
+                pos = (Integer) vh.itemView.getTag();
+            }
+            if (pos != RecyclerView.NO_POSITION) {
+                activeVideoHolders.put(pos, vh);
+                if (pos == currentVideoPosition) attachPlayerToHolder(vh);
+            }
+            return;
         }
-        Object tag = holder.ssiv.getTag();
-        if (tag instanceof Integer) activeViews.put((Integer) tag, holder.ssiv);
+        Holder imageHolder = (Holder) holder;
+        int pos = imageHolder.getBindingAdapterPosition();
+        if (pos != RecyclerView.NO_POSITION) {
+            activeViews.put(pos, imageHolder.ssiv);
+            prefetchHdrHeaders(imageHolder.itemView.getContext(), pos);
+        }
+        Object tag = imageHolder.ssiv.getTag();
+        if (tag instanceof Integer) activeViews.put((Integer) tag, imageHolder.ssiv);
     }
 
     @Override
-    public void onViewDetachedFromWindow(@NonNull Holder holder) {
+    public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewDetachedFromWindow(holder);
-        Object tag = holder.ssiv.getTag();
+        if (holder instanceof VideoHolder) {
+            VideoHolder vh = (VideoHolder) holder;
+            if (vh.playerView != null && vh.playerView.getPlayer() != null) {
+                vh.playerView.setPlayer(null);
+            }
+            activeVideoHolders.values().remove(vh);
+            Object tag = vh.itemView.getTag();
+            if (tag instanceof Integer) activeVideoHolders.remove((Integer) tag);
+            int pos = vh.getBindingAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION) activeVideoHolders.remove(pos);
+            return;
+        }
+        Holder imageHolder = (Holder) holder;
+        Object tag = imageHolder.ssiv.getTag();
         if (tag instanceof Integer) activeViews.remove((Integer) tag);
-        int pos = holder.getBindingAdapterPosition();
+        int pos = imageHolder.getBindingAdapterPosition();
         if (pos != RecyclerView.NO_POSITION) activeViews.remove(pos);
     }
 
@@ -538,6 +604,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     private void ensurePreview(int position) {
         if (position < 0 || position >= galleryItemList.size()) return;
         if (appContext == null) return;
+        if (isVideoPosition(position)) return;
         // DNG never uses tiling preview – avoid clobbering full-res cachedBitmap with 360px tile
         try {
             String ext = FileUtils.getExtension(galleryItemList.get(position).getFile().getDisplayName());
@@ -657,9 +724,20 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     }
 
     @Override
-    public void onViewRecycled(@NonNull Holder holder) {
+    public void onViewRecycled(@NonNull RecyclerView.ViewHolder holder) {
         super.onViewRecycled(holder);
-        CustomSSIV ssiv = holder.ssiv;
+        if (holder instanceof VideoHolder) {
+            VideoHolder vh = (VideoHolder) holder;
+            if (vh.playerView != null && vh.playerView.getPlayer() != null) {
+                vh.playerView.setPlayer(null);
+            }
+            activeVideoHolders.values().remove(vh);
+            Object tag = vh.itemView.getTag();
+            if (tag instanceof Integer) activeVideoHolders.remove((Integer) tag);
+            return;
+        }
+        Holder imageHolder = (Holder) holder;
+        CustomSSIV ssiv = imageHolder.ssiv;
         // Cancel Glide DNG load if in-flight – prevents late bitmap to recycled holder.
         try {
             Object tagTmp = ssiv.getTag();
@@ -703,7 +781,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
      * swap to the hardware (gainmap) decoder and set the window color mode. No full-page decode.
      */
     public void loadHdrForPosition(CustomSSIV scaleImageView, int position) {
-        if (scaleImageView == null || !inBounds(position)) return;
+        if (scaleImageView == null || !inBounds(position) || isVideoPosition(position)) return;
         if (hdrRequested[position] || hdrActive[position]) return;
         Context ctx = scaleImageView.getContext();
         if (!UltraHdrGalleryUtil.isDeviceHdrCapable(ctx)) return;
@@ -816,6 +894,138 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
         public final CustomSSIV ssiv;
         Holder(CustomSSIV ssiv) { super(ssiv); this.ssiv = ssiv; }
         public CustomSSIV getSsiv() { return ssiv; }
+    }
+
+    public static class VideoHolder extends RecyclerView.ViewHolder {
+        public final PlayerView playerView;
+        public final android.widget.ImageView thumbnail;
+        VideoHolder(View itemView) {
+            super(itemView);
+            this.playerView = itemView.findViewById(
+                    com.particlesdevs.photoncamera.R.id.video_player_view);
+            this.thumbnail = itemView.findViewById(
+                    com.particlesdevs.photoncamera.R.id.video_thumbnail);
+        }
+    }
+
+    /**
+     * Binds a video page: shows a Glide frame thumbnail under the player and
+     * attaches the shared player if this page is the selected one.
+     */
+    private void bindVideoHolder(VideoHolder holder, int position) {
+        holder.itemView.setTag(position);
+        if (holder.playerView != null) {
+            holder.playerView.setPlayer(null);
+            if (position == currentVideoPosition) attachPlayerToHolder(holder);
+        }
+        if (holder.thumbnail != null && inBounds(position)) {
+            GalleryItem item = galleryItemList.get(position);
+            if (item.getFile() != null && item.getFile().getFileUri() != null) {
+                try {
+                    Glide.with(holder.thumbnail)
+                            .asBitmap()
+                            .load(item.getFile().getFileUri())
+                            .apply(new RequestOptions()
+                                    .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                                    .signature(new ObjectKey(item.getFile().getDisplayName()
+                                            + item.getFile().getLastModified())))
+                            .into(holder.thumbnail);
+                } catch (Exception ignored) {}
+            }
+        }
+    }
+
+    private ExoPlayer ensureVideoPlayer(Context context) {
+        if (videoPlayer == null) {
+            videoPlayer = new ExoPlayer.Builder(context.getApplicationContext()).build();
+            videoPlayer.addListener(new Player.Listener() {
+                @Override
+                public void onPlayerError(PlaybackException error) {
+                    Log.w(TAG, "video playback error", error);
+                }
+            });
+        }
+        return videoPlayer;
+    }
+
+    private void attachPlayerToHolder(VideoHolder holder) {
+        if (holder == null || holder.playerView == null || videoPlayer == null) return;
+        if (holder.playerView.getPlayer() != videoPlayer) {
+            holder.playerView.setPlayer(videoPlayer);
+        }
+    }
+
+    /**
+     * Starts playback of the video at {@code position} (no-op for images).
+     * The shared player is re-pointed at the new media and attached to the
+     * holder when it is bound/attached.
+     */
+    public void playVideoAt(int position) {
+        if (!isVideoPosition(position)) return;
+        Context context = appContext;
+        if (context == null) {
+            for (VideoHolder vh : activeVideoHolders.values()) {
+                if (vh != null && vh.itemView.getContext() != null) {
+                    context = vh.itemView.getContext().getApplicationContext();
+                    break;
+                }
+            }
+        }
+        if (context == null) return;
+        GalleryItem item = galleryItemList.get(position);
+        if (item.getFile() == null || item.getFile().getFileUri() == null) return;
+        ExoPlayer player = ensureVideoPlayer(context);
+        long mediaId = item.getFile().getId();
+        if (currentVideoPosition != position || currentVideoMediaId != mediaId) {
+            player.setMediaItem(MediaItem.fromUri(item.getFile().getFileUri()));
+            player.prepare();
+            currentVideoPosition = position;
+            currentVideoMediaId = mediaId;
+        }
+        VideoHolder holder = activeVideoHolders.get(position);
+        if (holder != null) attachPlayerToHolder(holder);
+        player.setPlayWhenReady(true);
+        player.play();
+    }
+
+    /** Pauses video playback, keeping the player for the next selection. */
+    public void pauseVideo() {
+        if (videoPlayer != null) {
+            try {
+                videoPlayer.pause();
+            } catch (Exception ignored) {}
+        }
+    }
+
+    /** Detaches the player from any holder and stops playback on page change. */
+    public void stopVideo() {
+        currentVideoPosition = RecyclerView.NO_POSITION;
+        if (videoPlayer != null) {
+            try {
+                videoPlayer.stop();
+                videoPlayer.clearMediaItems();
+            } catch (Exception ignored) {}
+            currentVideoMediaId = Long.MIN_VALUE;
+        }
+        for (VideoHolder vh : activeVideoHolders.values()) {
+            if (vh != null && vh.playerView != null) vh.playerView.setPlayer(null);
+        }
+    }
+
+    /** Releases the shared video player. Call from fragment onDestroyView. */
+    public void releaseVideoPlayer() {
+        stopVideo();
+        if (videoPlayer != null) {
+            try {
+                videoPlayer.release();
+            } catch (Exception ignored) {}
+            videoPlayer = null;
+        }
+        activeVideoHolders.clear();
+    }
+
+    public boolean isVideoPlaying(int position) {
+        return videoPlayer != null && currentVideoPosition == position && videoPlayer.isPlaying();
     }
 
     public interface ImageViewClickListener { void onImageViewClicked(android.view.View v); }

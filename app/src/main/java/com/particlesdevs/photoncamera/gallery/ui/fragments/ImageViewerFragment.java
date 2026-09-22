@@ -167,6 +167,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         @Override public void onTouched(int id) {}
     };
     private int indexToDelete = -1;
+    /**
+     * Gallery chrome (top/bottom controls) state for photo pages. Video pages
+     * always hide it so only the player controls show; swiping back to a
+     * photo restores this value.
+     */
+    private boolean galleryChromeVisible;
     private GalleryViewModel viewModel;
     private Vibration vibration;
     private ViewPager2.OnPageChangeCallback pageCallback;
@@ -215,6 +221,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null) {
             viewPager.removeCallbacks(exifUpdateRunnable);
         }
+        if (adapter != null) adapter.releaseVideoPlayer();
         if (descriptionBlurClock != null) {
             ValueAnimator clock = descriptionBlurClock;
             descriptionBlurClock = null;
@@ -277,6 +284,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             viewPager.setAdapter(adapter);
             initLinearRecyclerAdapter(galleryItems);
             viewPager.setCurrentItem(seek_position, false);
+            viewPager.post(() -> updateChromeForPosition(seek_position));
             // Eagerly preload previews for the window so neighbor pages show a placeholder (no black).
             adapter.preloadPreviews(seek_position);
             linearRecyclerView.post(() -> linearRecyclerView.scrollToPosition(seek_position));
@@ -351,7 +359,15 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             @Override public void onPageSelected(int position) {
                 seek_position = position;
                 if (vibration != null) vibration.pageSnap();
-                updateScaleText();
+                updateChromeForPosition(position);
+                boolean isVideo = adapter != null && adapter.isVideoPosition(position);
+                if (isVideo) {
+                    resetScaleText();
+                    if (adapter != null) adapter.playVideoAt(position);
+                } else {
+                    if (adapter != null) adapter.stopVideo();
+                    updateScaleText();
+                }
                 linearRecyclerView.smoothScrollToPosition(position);
                 onPageHdrSelected(position);
                 viewPager.setUserInputEnabled(true);
@@ -378,8 +394,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     @Override public void onResume() {
         super.onResume();
-        if (fragmentGalleryImageViewerBinding != null)
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+        if (fragmentGalleryImageViewerBinding != null && viewPager != null)
+            updateChromeForPosition(viewPager.getCurrentItem());
+        if (adapter != null && viewPager != null
+                && isVideoPosition(viewPager.getCurrentItem())) {
+            adapter.playVideoAt(viewPager.getCurrentItem());
+        }
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
             seek_position = position;
@@ -399,6 +419,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     @Override public void onPause() {
         super.onPause();
         if (viewPager != null) seek_position = viewPager.getCurrentItem();
+        if (adapter != null) adapter.pauseVideo();
         UltraHdrGalleryUtil.setWindowHdr(getActivity(), false);
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
@@ -509,14 +530,23 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (getActivity() != null) getActivity().finish();
     }
 
+    private boolean isVideoPosition(int position) {
+        return galleryItems != null && position >= 0 && position < galleryItems.size()
+                && galleryItems.get(position).isVideo();
+    }
+
     private void onQuickCompare(View view) {
         if (galleryItems.size() >= 2) {
-            if (vibration != null) vibration.confirm();
-            NavController navController = Navigation.findNavController(view);
-            Bundle b = new Bundle(2);
             int image1pos = viewPager.getCurrentItem();
             int image2pos = image1pos + 1;
             if (image1pos == galleryItems.size() - 1) { image2pos = image1pos; image1pos -= 1; }
+            if (isVideoPosition(image1pos) || isVideoPosition(image2pos)) {
+                Toast.makeText(getContext(), "Compare is available for photos only", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (vibration != null) vibration.confirm();
+            NavController navController = Navigation.findNavController(view);
+            Bundle b = new Bundle(2);
             b.putInt(Constants.IMAGE1_KEY, image1pos);
             b.putInt(Constants.IMAGE2_KEY, image2pos);
             navController.navigate(R.id.action_imageViewerFragment_to_imageCompareFragment, b);
@@ -536,6 +566,10 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private void onEditButtonClick(View view) {
         if (vibration != null) vibration.confirm();
         int position = viewPager.getCurrentItem();
+        if (isVideoPosition(position)) {
+            Toast.makeText(getContext(), "Video editing is not supported", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (galleryItems != null && getContext() != null) {
             GalleryItem galleryItem = galleryItems.get(position);
             String fileName = galleryItem.getFile().getDisplayName();
@@ -686,6 +720,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!isExifVisible);
         } else {
             fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            galleryChromeVisible = fragmentGalleryImageViewerBinding.getButtonsVisible();
             int position = viewPager.getCurrentItem();
             updateHdrToggleUi(adapter != null && adapter.isHdrAvailable(position), adapter != null && adapter.isHdrActive(position));
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
@@ -693,6 +728,26 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
                 updateExif();
             }
+        }
+    }
+
+    /**
+     * Shows gallery chrome only on photo pages; video pages hide it entirely
+     * so just the player controls are visible. Photo pages restore the last
+     * chrome state the user left them in.
+     */
+    private void updateChromeForPosition(int position) {
+        if (fragmentGalleryImageViewerBinding == null) return;
+        if (isVideoPosition(position)) {
+            isExifVisible = false;
+            fragmentGalleryImageViewerBinding.setExifDialogVisible(false);
+            fragmentGalleryImageViewerBinding.setButtonsVisible(false);
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(false);
+            resetScaleText();
+            updateHdrToggleUi(false, false);
+        } else {
+            fragmentGalleryImageViewerBinding.setButtonsVisible(galleryChromeVisible);
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!galleryChromeVisible);
         }
     }
 
@@ -717,13 +772,82 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && !galleryItems.isEmpty() && position < galleryItems.size()) {
             GalleryItem galleryItem = galleryItems.get(position);
-            exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile());
-            if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-                exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
+            if (galleryItem.isVideo()) {
+                updateVideoModel(galleryItem);
+            } else {
+                exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile());
+                if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+                    exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
+                }
             }
         }
         syncDescriptionToggle();
         syncExifBlur();
+    }
+
+    /**
+     * EXIF panel content for videos (no EXIF tags to read): file identity,
+     * size and duration instead of exposure metadata.
+     */
+    private void updateVideoModel(GalleryItem galleryItem) {
+        if (exifDialogViewModel == null || galleryItem.getFile() == null) return;
+        com.particlesdevs.photoncamera.gallery.model.ExifDialogModel model =
+                exifDialogViewModel.getExifDataModel();
+        String duration = "";
+        try {
+            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
+            try {
+                retriever.setDataSource(requireContext(), galleryItem.getFile().getFileUri());
+                String ms = retriever.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
+                if (ms != null) {
+                    long totalSeconds = Long.parseLong(ms) / 1000;
+                    duration = String.format(java.util.Locale.US, "%02d:%02d",
+                            totalSeconds / 60, totalSeconds % 60);
+                }
+                String w = retriever.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
+                String h = retriever.extractMetadata(
+                        android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
+                if (w != null && h != null) {
+                    model.setRes(h + "x" + w);
+                    try {
+                        double mp = Double.parseDouble(w) * Double.parseDouble(h) / 1E6;
+                        model.setRes_mp(String.format(java.util.Locale.US, "%.1f MP", mp));
+                    } catch (Exception ignored) {
+                        model.setRes_mp("");
+                    }
+                } else {
+                    model.setRes("");
+                    model.setRes_mp("");
+                }
+            } finally {
+                try {
+                    retriever.release();
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {
+            model.setRes("");
+            model.setRes_mp("");
+        }
+        model.setTitle(galleryItem.getFile().getAbsolutePath());
+        model.setDevice("");
+        model.setDate("");
+        model.setExposure(duration);
+        model.setIso("");
+        model.setFnum("");
+        model.setFocal("");
+        try {
+            model.setFile_size(org.apache.commons.io.FileUtils.byteCountToDisplaySize(
+                    (int) galleryItem.getFile().getSize()));
+        } catch (Exception ignored) {
+            model.setFile_size("");
+        }
+        model.setDescription("");
+        String mini = galleryItem.getFile().getDisplayName() + "\nVideo"
+                + (duration.isEmpty() ? "" : " | " + duration);
+        model.setMiniText(mini);
+        model.notifyChange();
     }
 
     /**

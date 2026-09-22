@@ -101,6 +101,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
             ThumbnailSquareImageViewBinding thumbnailSquareImageViewBinding = (ThumbnailSquareImageViewBinding) holder.binding;
             thumbnailSquareImageViewBinding.selectionCircle.setVisibility(selectionHelper.isSelectionStarted() ? View.VISIBLE : View.GONE);
             thumbnailSquareImageViewBinding.setGalleryitem(galleryItem);
+            thumbnailSquareImageViewBinding.videoPlayOverlay.setVisibility(galleryItem.isVideo() ? View.VISIBLE : View.GONE);
             if(itemType==Constants.GALLERY_ITEM_TYPE_LINEAR_FOLDER)
             {
                 thumbnailSquareImageViewBinding.thumbCaptionText.setVisibility(View.VISIBLE);
@@ -175,7 +176,12 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     public long getItemId(int position) {
         if (galleryItemList != null && position >= 0 && position < galleryItemList.size()) {
             GalleryItem item = galleryItemList.get(position);
-            if (item != null && item.getFile() != null) return item.getFile().getId();
+            // Image and video MediaStore id spaces can collide: fold the
+            // content URI (images vs videos table) into the stable id.
+            if (item != null && item.getFile() != null && item.getFile().getFileUri() != null) {
+                return (((long) item.getFile().getFileUri().hashCode()) << 32)
+                        | (item.getFile().getId() & 0xffffffffL);
+            }
         }
         return position;
     }

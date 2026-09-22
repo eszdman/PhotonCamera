@@ -39,8 +39,28 @@ public class GalleryItem implements Checkable {
             return "RAW";
         } else if (ext.equalsIgnoreCase("jpg") || ext.equalsIgnoreCase("jpeg")) {
             return "";
+        } else if (isVideoExtension(ext)) {
+            return "MP4";
         }
         return ext.toUpperCase(Locale.ROOT);
+    }
+
+    public boolean isVideo() {
+        if (file == null) return false;
+        try {
+            return isVideoExtension(FileUtils.getExtension(file.getDisplayName()));
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static boolean isVideoExtension(String ext) {
+        return ext != null && (ext.equalsIgnoreCase("mp4")
+                || ext.equalsIgnoreCase("3gp")
+                || ext.equalsIgnoreCase("mkv")
+                || ext.equalsIgnoreCase("webm")
+                || ext.equalsIgnoreCase("mov")
+                || ext.equalsIgnoreCase("m4v"));
     }
 
     public MediaFile getFile() {
