@@ -194,7 +194,29 @@ public class Vibration {
         if (!isPhysicalEvent(event) && !systemFeedbackEnabled()) {
             return false;
         }
+        // While a video recording runs, silence everything except the record
+        // start/stop confirmations (zoom detents, viewfinder taps, mode
+        // changes, etc. must not vibrate mid-recording).
+        if (isVideoRecording()
+                && event != HapticEvent.RECORD_START
+                && event != HapticEvent.RECORD_STOP) {
+            return false;
+        }
         return true;
+    }
+
+    /**
+     * True while MediaRecorder video capture is active. Null-safe by design:
+     * gallery, settings and unit-test contexts have no capture controller.
+     */
+    private boolean isVideoRecording() {
+        try {
+            com.particlesdevs.photoncamera.capture.CaptureController controller =
+                    com.particlesdevs.photoncamera.app.PhotonCamera.getCaptureController();
+            return controller != null && controller.mIsRecordingVideo;
+        } catch (Throwable ignored) {
+            return false;
+        }
     }
 
     private boolean appHapticsEnabled() {
