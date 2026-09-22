@@ -41,6 +41,19 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private volatile boolean mMirrorPreview;
 
     /**
+     * Transform queued by {@link #setOrientation(int)}/{@link #setMirror(boolean)}
+     * and applied on the GL thread only once the frame it belongs to has been
+     * latched. Applying it earlier would re-draw the previous camera's frozen
+     * frame with the new camera's rotation/mirror (the 180 degree flash on a
+     * facing flip) and would write {@link #mTexRotateMatrix} while the GL
+     * thread is reading it.
+     */
+    private volatile int mPendingOrientation;
+    private volatile boolean mOrientationPending;
+    private volatile boolean mPendingMirror;
+    private volatile boolean mMirrorPending;
+
+    /**
      * Live frosted-glass region (quick settings bar, lens/zoom pills, manual
      * bar, knob wheel). Set from the UI thread; read on the GL thread every
      * frame. {@code null} or an empty list means "no panel blur".
@@ -311,6 +324,12 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             if (mUpdateST) {
                 mSTexture.updateTexImage();
                 mUpdateST = false;
+                // A fresh frame is on the texture, so it is safe to apply a
+                // transform queued for the camera that produced it. Renders
+                // before this keep the previous frame's transform, which is
+                // what stops the frozen viewfinder frame from flashing 180
+                // degrees (and mirrored) while a facing flip opens.
+                applyPendingTransform();
             }
         }
 
@@ -857,7 +876,13 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 // the frozen pre-switch frame stays on screen.
                 mView.queueEvent(() -> {
                     try {
-                        if (mSettleTracking) st.updateTexImage();
+                        if (mSettleTracking) {
+                            st.updateTexImage();
+                            // The latched frame belongs to the incoming
+                            // camera; a render during the freeze must use its
+                            // transform, not the frozen one's.
+                            applyPendingTransform();
+                        }
                     } catch (Exception ignored) {
                         // Surface gone mid-transition (e.g. paused): drop it.
                     }
@@ -948,7 +973,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     }
 
     public void setMirror(boolean mirrorPreview) {
-        mMirrorPreview = mirrorPreview;
+        mPendingMirror = mirrorPreview;
+        mMirrorPending = true;
     }
 
     private int getPeakEnabled() {
@@ -969,7 +995,26 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     }
 
     public void setOrientation(int or) {
-        android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0, or, 0f, 0f, 1f);
+        mPendingOrientation = or;
+        mOrientationPending = true;
+    }
+
+    /**
+     * Applies a transform queued by {@link #setOrientation(int)} or
+     * {@link #setMirror(boolean)}. Must run on the GL thread and only once the
+     * texture has just been updated with a frame from the camera that transform
+     * belongs to.
+     */
+    private void applyPendingTransform() {
+        if (mOrientationPending) {
+            android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0,
+                    mPendingOrientation, 0f, 0f, 1f);
+            mOrientationPending = false;
+        }
+        if (mMirrorPending) {
+            mMirrorPreview = mPendingMirror;
+            mMirrorPending = false;
+        }
     }
 
     public void setTransform(@NonNull android.graphics.Matrix matrix) {
