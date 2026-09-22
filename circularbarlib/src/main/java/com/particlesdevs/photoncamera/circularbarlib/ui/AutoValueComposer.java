@@ -6,8 +6,9 @@ public final class AutoValueComposer {
     }
 
     /**
-     * Shows a live value next to the auto label (e.g. "A 800"); manual or
-     * unsupported labels (e.g. "Fixed") are returned untouched.
+     * Shows a live value next to the auto label separated by a middle dot
+     * (e.g. "A \u00b7 800"); manual or unsupported labels (e.g. "Fixed") are
+     * returned untouched.
      */
     public static String compose(String baseText, String autoValue, String autoLabel) {
         if (baseText == null) {
@@ -19,6 +20,6 @@ public final class AutoValueComposer {
         if (autoLabel == null || !baseText.equals(autoLabel)) {
             return baseText;
         }
-        return baseText + " " + autoValue;
+        return baseText + " \u00b7 " + autoValue;
     }
 }

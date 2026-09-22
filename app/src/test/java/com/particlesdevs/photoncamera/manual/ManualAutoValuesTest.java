@@ -8,9 +8,9 @@ import org.junit.Test;
 public class ManualAutoValuesTest {
 
     @Test
-    public void exposureUsesShutterKnobFormatting() {
-        assertEquals("1/125", ManualAutoValues.formatExposure(8_000_000L));
-        assertEquals("1.0", ManualAutoValues.formatExposure(1_000_000_000L));
+    public void exposureUsesShutterKnobFormattingWithSecondsSuffix() {
+        assertEquals("1/125s", ManualAutoValues.formatExposure(8_000_000L));
+        assertEquals("1.0s", ManualAutoValues.formatExposure(1_000_000_000L));
         assertNull(ManualAutoValues.formatExposure(null));
         assertNull(ManualAutoValues.formatExposure(0L));
     }

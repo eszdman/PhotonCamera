@@ -9,9 +9,9 @@ public class AutoValueComposerTest {
 
     @Test
     public void appendsValueToAutoLabel() {
-        assertEquals("A 800", AutoValueComposer.compose(AUTO, "800", AUTO));
-        assertEquals("A 1/125", AutoValueComposer.compose(AUTO, "1/125", AUTO));
-        assertEquals("A 4500K", AutoValueComposer.compose(AUTO, "4500K", AUTO));
+        assertEquals("A \u00b7 800", AutoValueComposer.compose(AUTO, "800", AUTO));
+        assertEquals("A \u00b7 1/125", AutoValueComposer.compose(AUTO, "1/125", AUTO));
+        assertEquals("A \u00b7 4500K", AutoValueComposer.compose(AUTO, "4500K", AUTO));
     }
 
     @Test

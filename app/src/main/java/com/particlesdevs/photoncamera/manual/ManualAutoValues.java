@@ -20,11 +20,12 @@ public final class ManualAutoValues {
         return String.format(Locale.ROOT, "%.1fm", 1.0f / diopters);
     }
 
+    /** Live exposure result, suffixed with "s" to mark seconds (e.g. "1/125s"). */
     public static String formatExposure(Long exposureNs) {
         if (exposureNs == null || exposureNs <= 0L) {
             return null;
         }
-        return ExposureIndex.sec2string(ExposureIndex.time2sec(exposureNs));
+        return ExposureIndex.sec2string(ExposureIndex.time2sec(exposureNs)) + "s";
     }
 
     public static String formatIso(Integer iso) {
