@@ -270,6 +270,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             if (seek_position < 0) seek_position = 0;
             adapter = new ImageAdapter(this.galleryItems);
             adapter.setAppContext(requireContext().getApplicationContext());
+            adapter.setVideoPlaybackListener(ImageViewerFragment.this::onVideoPlayingChanged);
             adapter.setImageViewClickListener(ImageViewerFragment.this::onImageViewClicked);
             adapter.setHdrStateListener(this);
             if (ssivListener != null) adapter.setSsivListener(ssivListener);
@@ -363,7 +364,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 boolean isVideo = adapter != null && adapter.isVideoPosition(position);
                 if (isVideo) {
                     resetScaleText();
-                    if (adapter != null) adapter.playVideoAt(position);
+                    if (adapter != null) adapter.prepareVideoAt(position);
                 } else {
                     if (adapter != null) adapter.stopVideo();
                     updateScaleText();
@@ -398,7 +399,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             updateChromeForPosition(viewPager.getCurrentItem());
         if (adapter != null && viewPager != null
                 && isVideoPosition(viewPager.getCurrentItem())) {
-            adapter.playVideoAt(viewPager.getCurrentItem());
+            adapter.prepareVideoAt(viewPager.getCurrentItem());
         }
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
@@ -732,23 +733,59 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     /**
-     * Shows gallery chrome only on photo pages; video pages hide it entirely
-     * so just the player controls are visible. Photo pages restore the last
-     * chrome state the user left them in.
+     * Gallery chrome follows the last state the user left it in, on photo and
+     * video pages alike. Video pages additionally shift the player controller
+     * above the bottom controls while chrome is shown.
      */
     private void updateChromeForPosition(int position) {
         if (fragmentGalleryImageViewerBinding == null) return;
+        fragmentGalleryImageViewerBinding.setButtonsVisible(galleryChromeVisible);
+        fragmentGalleryImageViewerBinding.setMiniExifVisible(!galleryChromeVisible);
         if (isVideoPosition(position)) {
+            resetScaleText();
+            updateHdrToggleUi(false, false);
+            if (viewPager != null) viewPager.post(this::updateVideoControllerInsets);
+        }
+    }
+
+    /**
+     * Follows video playback: while playing, gallery chrome hides and the
+     * controller drops back to the bottom edge; on pause/end the chrome
+     * returns. The stored photo chrome state is left untouched so swiping
+     * back and forth never loses it. The controller's own tap show/hide is
+     * untouched.
+     */
+    private void onVideoPlayingChanged(int position, boolean playing) {
+        if (!isAdded() || fragmentGalleryImageViewerBinding == null || viewPager == null) return;
+        if (position != viewPager.getCurrentItem() || !isVideoPosition(position)) return;
+        if (playing) {
             isExifVisible = false;
             fragmentGalleryImageViewerBinding.setExifDialogVisible(false);
             fragmentGalleryImageViewerBinding.setButtonsVisible(false);
             fragmentGalleryImageViewerBinding.setMiniExifVisible(false);
             resetScaleText();
             updateHdrToggleUi(false, false);
+            updateVideoControllerInsets();
         } else {
-            fragmentGalleryImageViewerBinding.setButtonsVisible(galleryChromeVisible);
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(!galleryChromeVisible);
+            updateChromeForPosition(position);
         }
+    }
+
+    /**
+     * Moves the player controller above the gallery bottom controls while
+     * chrome is shown; back to the bottom edge once chrome is hidden.
+     */
+    private void updateVideoControllerInsets() {
+        if (adapter == null || viewPager == null || fragmentGalleryImageViewerBinding == null) return;
+        int position = viewPager.getCurrentItem();
+        if (!adapter.isVideoPosition(position)) return;
+        int bottomInset = 0;
+        if (fragmentGalleryImageViewerBinding.getButtonsVisible()
+                && fragmentGalleryImageViewerBinding.bottomControlsContainer != null) {
+            View bottomControls = fragmentGalleryImageViewerBinding.bottomControlsContainer.getRoot();
+            if (bottomControls != null) bottomInset = Math.max(0, bottomControls.getHeight());
+        }
+        adapter.setVideoControllerBottomInset(position, bottomInset);
     }
 
     private void onEmptyViewClicked(View view) {

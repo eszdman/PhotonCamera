@@ -87,6 +87,16 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private ExoPlayer videoPlayer;
     private int currentVideoPosition = RecyclerView.NO_POSITION;
     private long currentVideoMediaId = Long.MIN_VALUE;
+    private VideoPlaybackListener videoPlaybackListener;
+
+    /** Notified when video playback starts/stops so chrome can follow it. */
+    public interface VideoPlaybackListener {
+        void onVideoPlayingChanged(int position, boolean playing);
+    }
+
+    public void setVideoPlaybackListener(VideoPlaybackListener listener) {
+        this.videoPlaybackListener = listener;
+    }
     // Application context used to decode previews independent of view attach state (fixes first-bind).
     private Context appContext;
     // C: small preview + native dimensions per position – shown immediately under tiles so no black flash.
@@ -899,12 +909,15 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public static class VideoHolder extends RecyclerView.ViewHolder {
         public final PlayerView playerView;
         public final android.widget.ImageView thumbnail;
+        public final android.widget.ImageView playButton;
         VideoHolder(View itemView) {
             super(itemView);
             this.playerView = itemView.findViewById(
                     com.particlesdevs.photoncamera.R.id.video_player_view);
             this.thumbnail = itemView.findViewById(
                     com.particlesdevs.photoncamera.R.id.video_thumbnail);
+            this.playButton = itemView.findViewById(
+                    com.particlesdevs.photoncamera.R.id.video_play_button);
         }
     }
 
@@ -917,6 +930,10 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (holder.playerView != null) {
             holder.playerView.setPlayer(null);
             if (position == currentVideoPosition) attachPlayerToHolder(holder);
+        }
+        if (holder.playButton != null) {
+            holder.playButton.setVisibility(isVideoPlaying(position) ? View.GONE : View.VISIBLE);
+            holder.playButton.setOnClickListener(v -> toggleVideoPlayback(position));
         }
         if (holder.thumbnail != null && inBounds(position)) {
             GalleryItem item = galleryItemList.get(position);
@@ -943,9 +960,46 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 public void onPlayerError(PlaybackException error) {
                     Log.w(TAG, "video playback error", error);
                 }
+
+                @Override
+                public void onIsPlayingChanged(boolean isPlaying) {
+                    updatePlayOverlay(currentVideoPosition);
+                    if (videoPlaybackListener != null) {
+                        videoPlaybackListener.onVideoPlayingChanged(currentVideoPosition, isPlaying);
+                    }
+                }
+
+                @Override
+                public void onPlaybackStateChanged(int playbackState) {
+                    if (playbackState == Player.STATE_ENDED) {
+                        updatePlayOverlay(currentVideoPosition);
+                        if (videoPlaybackListener != null) {
+                            videoPlaybackListener.onVideoPlayingChanged(currentVideoPosition, false);
+                        }
+                    }
+                }
             });
         }
         return videoPlayer;
+    }
+
+    private void updatePlayOverlay(int position) {
+        VideoHolder holder = activeVideoHolders.get(position);
+        if (holder == null || holder.playButton == null) return;
+        holder.playButton.setVisibility(isVideoPlaying(position) ? View.GONE : View.VISIBLE);
+    }
+
+    /** Bottom inset for the player controller so it clears the gallery chrome. */
+    private int pendingControllerInset;
+    public void setVideoControllerBottomInset(int position, int bottomInsetPx) {
+        pendingControllerInset = bottomInsetPx;
+        VideoHolder holder = activeVideoHolders.get(position);
+        if (holder == null || holder.playerView == null) return;
+        View controller = holder.playerView.findViewById(androidx.media3.ui.R.id.exo_controller);
+        if (controller != null) {
+            controller.setPadding(controller.getPaddingLeft(), controller.getPaddingTop(),
+                    controller.getPaddingRight(), bottomInsetPx);
+        }
     }
 
     private void attachPlayerToHolder(VideoHolder holder) {
@@ -953,14 +1007,20 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (holder.playerView.getPlayer() != videoPlayer) {
             holder.playerView.setPlayer(videoPlayer);
         }
+        View controller = holder.playerView.findViewById(androidx.media3.ui.R.id.exo_controller);
+        if (controller != null) {
+            controller.setPadding(controller.getPaddingLeft(), controller.getPaddingTop(),
+                    controller.getPaddingRight(), pendingControllerInset);
+        }
     }
 
     /**
-     * Starts playback of the video at {@code position} (no-op for images).
-     * The shared player is re-pointed at the new media and attached to the
-     * holder when it is bound/attached.
+     * Prepares the video at {@code position} without playing (no-op for
+     * images). The shared player is re-pointed at the new media and attached
+     * to the holder when it is bound/attached; the user starts playback via
+     * the play overlay or the controller.
      */
-    public void playVideoAt(int position) {
+    public void prepareVideoAt(int position) {
         if (!isVideoPosition(position)) return;
         Context context = appContext;
         if (context == null) {
@@ -984,8 +1044,28 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
         VideoHolder holder = activeVideoHolders.get(position);
         if (holder != null) attachPlayerToHolder(holder);
-        player.setPlayWhenReady(true);
-        player.play();
+        player.setPlayWhenReady(false);
+        updatePlayOverlay(position);
+    }
+
+    /** Toggles playback of the video at {@code position} (play overlay/controller). */
+    public void toggleVideoPlayback(int position) {
+        if (!isVideoPosition(position)) return;
+        if (videoPlayer == null || currentVideoPosition != position) {
+            prepareVideoAt(position);
+        }
+        if (videoPlayer.isPlaying()) {
+            videoPlayer.pause();
+        } else {
+            if (videoPlayer.getPlaybackState() == Player.STATE_ENDED) {
+                videoPlayer.seekTo(0);
+            }
+            VideoHolder holder = activeVideoHolders.get(position);
+            if (holder != null) attachPlayerToHolder(holder);
+            videoPlayer.setPlayWhenReady(true);
+            videoPlayer.play();
+        }
+        updatePlayOverlay(position);
     }
 
     /** Pauses video playback, keeping the player for the next selection. */
@@ -1008,7 +1088,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             currentVideoMediaId = Long.MIN_VALUE;
         }
         for (VideoHolder vh : activeVideoHolders.values()) {
-            if (vh != null && vh.playerView != null) vh.playerView.setPlayer(null);
+            if (vh == null) continue;
+            if (vh.playerView != null) vh.playerView.setPlayer(null);
+            if (vh.playButton != null) vh.playButton.setVisibility(View.VISIBLE);
         }
     }
 

@@ -12,6 +12,14 @@
         android:scaleType="fitCenter"
         android:background="@android:color/black" />
 
+    <ImageView
+        android:id="@+id/video_play_button"
+        android:layout_width="72dp"
+        android:layout_height="72dp"
+        android:layout_gravity="center"
+        android:src="@drawable/ic_play_circle"
+        android:importantForAccessibility="no" />
+
     <androidx.media3.ui.PlayerView
         android:id="@+id/video_player_view"
         android:layout_width="match_parent"
