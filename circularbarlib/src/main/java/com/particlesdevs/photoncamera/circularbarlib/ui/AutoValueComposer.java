@@ -6,20 +6,27 @@ public final class AutoValueComposer {
     }
 
     /**
-     * Shows a live value next to the auto label separated by a middle dot
-     * (e.g. "A \u00b7 800"); manual or unsupported labels (e.g. "Fixed") are
-     * returned untouched.
+     * Composes a manual-bar cell. Untouched controls show only the live value
+     * (no auto label, no dot); touched controls show their plain manual text.
+     * The touched dot marker is rendered by the label view itself so it never
+     * shifts the centered value.
      */
     public static String compose(String baseText, String autoValue, String autoLabel) {
         if (baseText == null) {
             return "";
         }
-        if (autoValue == null || autoValue.isEmpty()) {
+        if (autoLabel == null) {
             return baseText;
         }
-        if (autoLabel == null || !baseText.equals(autoLabel)) {
-            return baseText;
+        if (baseText.equals(autoLabel)) {
+            // Untouched: live value only.
+            return autoValue == null ? "" : autoValue;
         }
-        return baseText + " \u00b7 " + autoValue;
+        return baseText;
+    }
+
+    /** True when the model text is a manual value rather than the auto sentinel. */
+    public static boolean isTouched(String baseText, String autoLabel) {
+        return baseText != null && autoLabel != null && !baseText.equals(autoLabel);
     }
 }

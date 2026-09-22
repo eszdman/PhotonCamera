@@ -12,6 +12,7 @@ import android.widget.TextView;
 import com.particlesdevs.photoncamera.circularbarlib.R;
 import com.particlesdevs.photoncamera.circularbarlib.model.KnobModel;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
 
 import java.util.Arrays;
@@ -23,6 +24,9 @@ import java.util.Observer;
  * Created by vibhorSrv
  */
 public class ViewObserver implements Observer {
+    /** Untouched EV compensation (no live readout exists for it). */
+    private static final String EV_UNTOUCHED_TEXT = "0";
+
     private final Activity activity;
     private final RelativeLayout manualMode;
     private final KnobView knobView;
@@ -103,6 +107,18 @@ public class ViewObserver implements Observer {
     }
 
     /**
+     * Applies the composed label text and the touched (manual) marker. The
+     * marker is drawn by {@link ManualOptionTextView}, never embedded in the
+     * string, so the centered value does not shift.
+     */
+    private void setAutoValue(TextView view, String baseText, String autoValue) {
+        view.setText(AutoValueComposer.compose(baseText, autoValue, autoLabel));
+        if (view instanceof ManualOptionTextView) {
+            ((ManualOptionTextView) view).setTouched(AutoValueComposer.isTouched(baseText, autoLabel));
+        }
+    }
+
+    /**
      * The selection pill is the background of the (unrotated) cell around the
      * label, so the cell mirrors the label's selected state.
      */
@@ -147,31 +163,29 @@ public class ViewObserver implements Observer {
                 ManualModeModel manualModeModel = (ManualModeModel) o;
                 switch ((ManualModeModel.ManualModelFields) arg) {
                     case EV_TEXT:
-                        evOption.setText(manualModeModel.getEvText());
+                        // EV has no live readout: untouched shows 0, a touched
+                        // value gets the dot marker.
+                        setAutoValue(evOption, manualModeModel.getEvText(), EV_UNTOUCHED_TEXT);
                         break;
                     case EXP_TEXT:
                     case EXP_AUTO_TEXT:
-                        expOption.setText(AutoValueComposer.compose(
-                                manualModeModel.getExposureText(),
-                                manualModeModel.getExposureAutoText(), autoLabel));
+                        setAutoValue(expOption, manualModeModel.getExposureText(),
+                                manualModeModel.getExposureAutoText());
                         break;
                     case ISO_TEXT:
                     case ISO_AUTO_TEXT:
-                        isoOption.setText(AutoValueComposer.compose(
-                                manualModeModel.getIsoText(),
-                                manualModeModel.getIsoAutoText(), autoLabel));
+                        setAutoValue(isoOption, manualModeModel.getIsoText(),
+                                manualModeModel.getIsoAutoText());
                         break;
                     case FOCUS_TEXT:
                     case FOCUS_AUTO_TEXT:
-                        focusOption.setText(AutoValueComposer.compose(
-                                manualModeModel.getFocusText(),
-                                manualModeModel.getFocusAutoText(), autoLabel));
+                        setAutoValue(focusOption, manualModeModel.getFocusText(),
+                                manualModeModel.getFocusAutoText());
                         break;
                     case WB_TEXT:
                     case WB_AUTO_TEXT:
-                        wbOption.setText(AutoValueComposer.compose(
-                                manualModeModel.getWbText(),
-                                manualModeModel.getWbAutoText(), autoLabel));
+                        setAutoValue(wbOption, manualModeModel.getWbText(),
+                                manualModeModel.getWbAutoText());
                         break;
                     case EV_LISTENER:
                         evOption.setOnClickListener(manualModeModel.getEvTextClicked());

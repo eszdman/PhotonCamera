@@ -35,7 +35,7 @@
             android:layout_weight="1"
             android:background="@drawable/manual_option_background">
 
-            <TextView
+            <com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView
                 android:id="@+id/focus_option_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -65,7 +65,7 @@
             android:layout_weight="1"
             android:background="@drawable/manual_option_background">
 
-            <TextView
+            <com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView
                 android:id="@+id/exposure_option_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -96,7 +96,7 @@
             android:layout_weight="1"
             android:background="@drawable/manual_option_background">
 
-            <TextView
+            <com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView
                 android:id="@+id/iso_option_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -127,7 +127,7 @@
             android:layout_weight="1"
             android:background="@drawable/manual_option_background">
 
-            <TextView
+            <com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView
                 android:id="@+id/ev_option_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -157,7 +157,7 @@
             android:layout_weight="1"
             android:background="@drawable/manual_option_background">
 
-            <TextView
+            <com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView
                 android:id="@+id/wb_option_tv"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
