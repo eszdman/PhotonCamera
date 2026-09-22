@@ -160,7 +160,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     private void prefetchHdrHeaders(Context context, int centerPos) {
-        if (!UltraHdrGalleryUtil.isDeviceHdrCapable(context)) return;
         if (isVideoPosition(centerPos)) return;
         int start = Math.max(0, centerPos - 2);
         int end = Math.min(galleryItemList.size() - 1, centerPos + 2);
@@ -182,6 +181,19 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     pendingHeaderTasks.remove(pos);
                     hdrChecked[pos] = true;
                     hdrAvailable[pos] = candidate;
+                    // A plain image bound optimistically to the tonemapped
+                    // decoder must switch to the regular Skia decoder now that
+                    // it is known to be SDR, instead of waiting for a rebind
+                    // (the upscaled ImageDecoder path is slower and more
+                    // likely to show tile artifacts).
+                    if (!candidate && pos < hdrActive.length && !hdrActive[pos]) {
+                        CustomSSIV bound = activeViews.get(pos);
+                        if (bound != null && bound.getTag() instanceof Integer
+                                && (Integer) bound.getTag() == pos) {
+                            applyDecoder(bound, pos);
+                            setImage(bound, galleryItemList.get(pos).getFile().getFileUri(), pos);
+                        }
+                    }
                 };
                 if (view != null) view.post(update);
                 else update.run();
@@ -411,18 +423,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
         // JPEG: restore EXIF orientation (DNG branch set ORIENTATION_0)
         ssiv.setOrientation(SubsamplingScaleImageView.ORIENTATION_USE_EXIF);
-        // Tiling (real gallery): HDR active -> HW gainmap tiles, HDR off but available -> SOFTWARE
-        // tonemapped tiles, else/Skia for plain SDR. All keep sWidth = native -> full pan, O(viewport).
-        if (hdrActive[position]) {
-            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(true));
-        } else if (hdrAvailable[position]) {
-            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
-        } else if (hdrChecked[position]) {
-            ssiv.setRegionDecoderClass(SkiaPooledImageRegionDecoder.class);
-        } else {
-            // Unknown yet – optimistic tonemapped to avoid clipped flash for HDR images.
-            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
-        }
+        applyDecoder(ssiv, position);
         setImage(ssiv, item.getFile().getFileUri(), position);
         // Prefetch headers for the neighbors so the next swipe knows HDR availability instantly.
         prefetchHdrHeaders(ssiv.getContext(), position);
@@ -498,6 +499,26 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /** Kicks off the background preview decode for a position if it is not cached yet. */
     public void requestPreview(int position) {
         ensurePreview(position);
+    }
+
+    /**
+     * Region decoder for a position: HDR active -> hardware gain-map tiles,
+     * HDR available -> software (tonemapped) tiles, known SDR -> the library's
+     * Skia decoder, unknown -> optimistic tonemapped to avoid a clipped flash
+     * on HDR images. All keep native dimensions for full pan / O(viewport)
+     * memory.
+     */
+    private void applyDecoder(CustomSSIV ssiv, int position) {
+        if (!inBounds(position)) return;
+        if (hdrActive[position]) {
+            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(true));
+        } else if (hdrAvailable[position]) {
+            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
+        } else if (hdrChecked[position]) {
+            ssiv.setRegionDecoderClass(SkiaPooledImageRegionDecoder.class);
+        } else {
+            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
+        }
     }
 
     /**

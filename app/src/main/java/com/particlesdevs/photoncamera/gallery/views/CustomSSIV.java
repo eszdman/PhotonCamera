@@ -5,6 +5,7 @@ import android.graphics.Bitmap;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.view.MotionEvent;
 import android.view.ViewParent;
 
@@ -16,6 +17,15 @@ import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.DOUBLE_TAP_ZOOM_DURATION_MS;
 
 public class CustomSSIV extends SubsamplingScaleImageView {
+
+    /**
+     * Ceiling for the tile DPI. SSIV upscales tile bitmaps whenever the
+     * effective scale (scaled by minimumTileDpi/displayDpi) is below the
+     * screen resolution, and upscaled tiles show their per-tile filtering
+     * seams. Capping at 320 keeps tiles near screen resolution on dense
+     * displays while bounding tile memory.
+     */
+    private static final int MAX_TILE_DPI = 320;
 
     private TouchCallBack touchCallBack;
 
@@ -35,8 +45,14 @@ public class CustomSSIV extends SubsamplingScaleImageView {
         setEagerLoadingEnabled(false);
         setDoubleTapZoomDuration(DOUBLE_TAP_ZOOM_DURATION_MS);
         setPreferredBitmapConfig(Bitmap.Config.ARGB_8888);
-        // Keep 160 dpi baseline (was 200) — smaller tiles => lower peak Graphics memory, always on to keep 4GB baseline low. Full-res on zoom still.
-        setMinimumTileDpi(160);
+        // Tile at screen resolution instead of the old fixed 160 dpi: SSIV
+        // scales the effective tile sample size by minimumTileDpi/displayDpi,
+        // so 160 on a ~400 dpi panel decoded tiles at ~40% resolution and
+        // upscaled them ~2.5x, which magnified the per-tile filter seams into
+        // visible lines. Capped so tile memory stays bounded on dense panels.
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int averageDpi = Math.round((metrics.xdpi + metrics.ydpi) / 2f);
+        setMinimumTileDpi(Math.min(MAX_TILE_DPI, Math.max(1, averageDpi)));
     }
 
     /**

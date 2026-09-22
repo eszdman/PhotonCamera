@@ -59,15 +59,21 @@ public class HdrTiledRegionDecoder implements ImageRegionDecoder {
 
     @Override
     public Bitmap decodeRegion(Rect sRect, int sampleSize) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
             try {
                 ImageDecoder.Source src = source != null ? source
                         : ImageDecoder.createSource(context.getContentResolver(), uri);
                 return ImageDecoder.decodeBitmap(src, (decoder, info, source2) -> {
+                    // setCrop is part of ImageDecoder since API 28, so every P+
+                    // device decodes only the requested region (the old 28/29
+                    // branch returned the whole downscaled image, which is not
+                    // a valid tile).
                     decoder.setCrop(sRect);
                     if (sampleSize > 1) {
-                        int tw = Math.max(1, sRect.width() / sampleSize);
-                        int th = Math.max(1, sRect.height() / sampleSize);
+                        // Ceil so tiles are never undersized, matching
+                        // BitmapRegionDecoder's rounding on the SDR path.
+                        int tw = Math.max(1, (sRect.width() + sampleSize - 1) / sampleSize);
+                        int th = Math.max(1, (sRect.height() + sampleSize - 1) / sampleSize);
                         decoder.setTargetSize(tw, th);
                     }
                     decoder.setAllocator(useHardware ? ImageDecoder.ALLOCATOR_HARDWARE : ImageDecoder.ALLOCATOR_SOFTWARE);
@@ -76,24 +82,8 @@ public class HdrTiledRegionDecoder implements ImageRegionDecoder {
             } catch (Exception e) {
                 return fallbackDecode(sRect, sampleSize);
             }
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            try {
-                ImageDecoder.Source src = source != null ? source
-                        : ImageDecoder.createSource(context.getContentResolver(), uri);
-                return ImageDecoder.decodeBitmap(src, (decoder, info, source2) -> {
-                    // Pre-S setCrop(Rect) not available: decode sampled then crop manually.
-                    if (sampleSize > 1) {
-                        decoder.setTargetSize(info.getSize().getWidth() / sampleSize, info.getSize().getHeight() / sampleSize);
-                    }
-                    decoder.setAllocator(useHardware ? ImageDecoder.ALLOCATOR_HARDWARE : ImageDecoder.ALLOCATOR_SOFTWARE);
-                    decoder.setUnpremultipliedRequired(false);
-                });
-            } catch (Exception e) {
-                return fallbackDecode(sRect, sampleSize);
-            }
-        } else {
-            return fallbackDecode(sRect, sampleSize);
         }
+        return fallbackDecode(sRect, sampleSize);
     }
 
     private Bitmap fallbackDecode(Rect sRect, int sampleSize) {

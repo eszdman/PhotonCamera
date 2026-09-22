@@ -492,7 +492,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     private void updateHdrToggleUi(boolean isUltraHdr, boolean isHdr) {
         if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.hdrToggleText == null) return;
-        if (!isUltraHdr || !fragmentGalleryImageViewerBinding.getButtonsVisible()) {
+        // The header check now runs on every device, so gate the toggle on the
+        // display actually supporting HDR (the action is a no-op otherwise).
+        boolean capable = getContext() != null
+                && com.particlesdevs.photoncamera.gallery.helper.UltraHdrGalleryUtil
+                        .isDeviceHdrCapable(getContext());
+        if (!isUltraHdr || !capable || !fragmentGalleryImageViewerBinding.getButtonsVisible()) {
             fragmentGalleryImageViewerBinding.hdrToggleText.setVisibility(View.GONE);
             return;
         }
