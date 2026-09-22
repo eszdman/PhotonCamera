@@ -103,6 +103,21 @@ public class MorphShapeDrawable extends Drawable {
         }
     }
 
+    /**
+     * M3E expressive "playful" spring: the fast spatial spring's stiffness with
+     * a lighter damping ratio, so motion overshoots slightly (~4%) before
+     * settling. The Material spring tokens only ship the standard (critically
+     * damped) set, so this is defined here. Used by the lens selection pill and
+     * the mode picker's snap.
+     */
+    @NonNull
+    public static SpringForce playfulSpring() {
+        SpringForce spring = new SpringForce(1f);
+        spring.setStiffness(1400f);
+        spring.setDampingRatio(0.7f);
+        return spring;
+    }
+
     @Override
     public boolean isStateful() {
         return true;

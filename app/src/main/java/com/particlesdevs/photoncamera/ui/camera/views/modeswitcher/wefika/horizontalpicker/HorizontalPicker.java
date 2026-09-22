@@ -29,7 +29,6 @@ import android.text.TextUtils;
 import android.util.AttributeSet;
 import android.view.*;
 import android.view.accessibility.AccessibilityEvent;
-import android.view.animation.AnimationUtils;
 import android.widget.EdgeEffect;
 import android.widget.OverScroller;
 
@@ -66,10 +65,6 @@ public class HorizontalPicker extends View {
      */
     private static final int SELECTOR_MAX_FLING_VELOCITY_ADJUSTMENT = 4;
 
-    /**
-     * The the duration for adjusting the selector wheel.
-     */
-    private static final int SELECTOR_ADJUSTMENT_DURATION_MILLIS = 800;
     private final int overscrollDistance;
     private final PickerTouchHelper touchHelper;
     private final Vibration vibration;
@@ -96,7 +91,14 @@ public class HorizontalPicker extends View {
     private RectF itemClipBoundsOffset;
     private float lastDownEventX;
     private final OverScroller flingScrollerX;
-    private final OverScroller adjustScrollerX;
+    /**
+     * M3E spring snap for the selector movement: tap/key moves and the final
+     * settle after a drag or fling. The playful spring glides slightly past
+     * the target before settling, unlike the fixed-duration OverScroller snap.
+     */
+    private final FloatValueHolder springScrollX = new FloatValueHolder(0f);
+    private final SpringAnimation springScroll;
+    private Runnable springScrollEndAction;
     private int previousScrollerX;
     private boolean scrollingX;
     private int pressedItem = -1;
@@ -195,8 +197,10 @@ public class HorizontalPicker extends View {
         setWillNotDraw(false);
 
         flingScrollerX = new OverScroller(context);
-        adjustScrollerX = new OverScroller(context,
-                AnimationUtils.loadInterpolator(context, R.interpolator.m3_emphasized_decelerate));
+        springScroll = new SpringAnimation(springScrollX)
+                .setSpring(MorphShapeDrawable.playfulSpring())
+                .addUpdateListener((animation, value, velocity) -> applySpringScroll(value))
+                .addEndListener((animation, canceled, value, velocity) -> onSpringScrollEnd(canceled));
 
         initializeConstants(context, values, sideItems);
 
@@ -707,8 +711,10 @@ public class HorizontalPicker extends View {
                     return false;
                 }
 
-                if (!adjustScrollerX.isFinished()) {
-                    adjustScrollerX.forceFinished(true);
+                if (springScroll.isRunning()) {
+                    // Cancel without running the end action, matching the
+                    // scroller force-finish behavior below.
+                    springScroll.cancel();
                 } else if (!flingScrollerX.isFinished()) {
                     flingScrollerX.forceFinished(true);
                 } else {
@@ -996,10 +1002,7 @@ public class HorizontalPicker extends View {
     private void computeScrollX() {
         OverScroller scroller = flingScrollerX;
         if (scroller.isFinished()) {
-            scroller = adjustScrollerX;
-            if (scroller.isFinished()) {
-                return;
-            }
+            return;
         }
 
         if (scroller.computeScrollOffset()) {
@@ -1066,9 +1069,50 @@ public class HorizontalPicker extends View {
 
         int deltaX = itemX - x;
 
-        previousScrollerX = Integer.MIN_VALUE;
-        adjustScrollerX.startScroll(x, 0, deltaX, 0, SELECTOR_ADJUSTMENT_DURATION_MILLIS);
-        invalidate();
+        if (deltaX == 0) {
+            return;
+        }
+        // Spring the remaining snap with the playful overshoot. No end action:
+        // finishScrolling() is already running on the caller's side.
+        startSpringScroll(itemX, null);
+    }
+
+    /**
+     * Starts the M3E spring snap toward {@code targetX}. Re-targeting cancels
+     * the in-flight spring (without running its end action) and restarts from
+     * the live scroll position.
+     */
+    private void startSpringScroll(int targetX, Runnable endAction) {
+        springScroll.cancel();
+        springScrollEndAction = endAction;
+        springScrollX.setValue(getScrollX());
+        springScroll.animateToFinalPosition(targetX);
+    }
+
+    /**
+     * Applies one spring frame through {@code overScrollBy}, so clamping and the
+     * {@code onOverScrolled} → {@code scrollTo} path stay identical to the
+     * scroller-driven movement.
+     */
+    private void applySpringScroll(float value) {
+        int target = Math.round(value);
+        int current = getScrollX();
+        int delta = target - current;
+        if (delta == 0) {
+            return;
+        }
+        overScrollBy(delta, 0, current, getScrollY(), getScrollRange(), 0,
+                overscrollDistance, 0, false);
+        postInvalidateOnAnimation();
+    }
+
+    /** Runs the snap's completion (the fling-equivalent finish) unless cancelled. */
+    private void onSpringScrollEnd(boolean canceled) {
+        Runnable action = springScrollEndAction;
+        springScrollEndAction = null;
+        if (!canceled && action != null) {
+            action.run();
+        }
     }
 
     private void calculateItemSize(int w, int h) {
@@ -1178,10 +1222,10 @@ public class HorizontalPicker extends View {
         int deltaMoveX = (itemWidth + (int) dividerSize) * i;
         deltaMoveX = getRelativeInBound(deltaMoveX);
 
-        previousScrollerX = Integer.MIN_VALUE;
-        flingScrollerX.startScroll(getScrollX(), 0, deltaMoveX, 0);
         stopMarqueeIfNeeded();
-        invalidate();
+        // M3E spring snap: glides to the neighbouring mode, overshoots a touch
+        // and settles, then runs the same finish path a fling would.
+        startSpringScroll(getScrollX() + deltaMoveX, this::finishScrolling);
     }
 
     /**
@@ -1246,6 +1290,7 @@ public class HorizontalPicker extends View {
      * @param index Index of an item to scroll to
      */
     private void scrollToItem(int index) {
+        springScroll.cancel();
         scrollTo((int) ((itemWidth + dividerSize) * index + getItemCenterBias()), 0);
         // invalidate() not needed because scrollTo() already invalidates the view
     }
