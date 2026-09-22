@@ -30,6 +30,14 @@ public class PreferenceKeys {
     private static final String TAG = "PreferenceKeys";
     private static final Set<String> COMMON_KEYS = new HashSet<>();
     private static final String PER_LENS_KEY_PREFIX = "settings_for_camera_";
+    /**
+     * Per-lens photo frame-rate keys: prefix + camera id, with an optional
+     * Quad Bayer suffix. Kept out of the per-lens JSON snapshots (they are
+     * already lens-scoped) so they survive backup/restore as plain main-prefs
+     * keys.
+     */
+    private static final String FPS_LENS_KEY_PREFIX = "pref_fps_preview_key_lens_";
+    private static final String FPS_LENS_QUAD_SUFFIX = "_quad";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static PreferenceKeys preferenceKeys;
 
@@ -52,6 +60,9 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_FOCUS_PEAK.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
+        // The legacy photo frame rate is only the seed/fallback for the
+        // per-lens keys, so it must not travel through lens snapshots.
+        COMMON_KEYS.add(Key.KEY_FPS_PREVIEW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
@@ -171,6 +182,18 @@ public class PreferenceKeys {
             //Log.d(TAG, key + " : changed!");
         });
     }
+
+    /**
+     * Keys that are already lens/sensor scoped and must not be copied into the
+     * per-lens JSON snapshots (loading one lens would otherwise resurrect
+     * another lens's values).
+     */
+    private static boolean isLensScopedKey(String key) {
+        return key != null && (key.startsWith("pref_tunable_")
+                || key.startsWith("pref_sensorconfig_")
+                || key.startsWith(FPS_LENS_KEY_PREFIX));
+    }
+
     public static void addIds(String[] ids){
         if(ids != null) {
             SettingsManager settingsManager = preferenceKeys.settingsManager;
@@ -178,8 +201,8 @@ public class PreferenceKeys {
             settingsManager.setDefaults(Key.CAMERA_ID, ids[0], ids);
             Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
             map.keySet().removeAll(COMMON_KEYS);
-            // Exclude tunable and sensor config preferences - they manage their own scope
-            map.keySet().removeIf(key -> key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_")));
+            // Exclude keys that are already lens/sensor scoped
+            map.keySet().removeIf(PreferenceKeys::isLensScopedKey);
             String json = GSON.toJson(map);
             for (String cameraId : ids) { //Makes a copy of default settings for each camera
                 settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
@@ -191,8 +214,8 @@ public class PreferenceKeys {
         SettingsManager settingsManager = preferenceKeys.settingsManager;
         Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
         map.keySet().removeAll(COMMON_KEYS);
-        // Exclude tunable and sensor config preferences - they manage their own scope
-        map.keySet().removeIf(key -> key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_")));
+        // Exclude keys that are already lens/sensor scoped
+        map.keySet().removeIf(PreferenceKeys::isLensScopedKey);
         String hashmapAsJson = GSON.toJson(map);
         String alreadySavedJSON = settingsManager.getString(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraID, "");
         if (!alreadySavedJSON.equals(hashmapAsJson)) {
@@ -213,8 +236,8 @@ public class PreferenceKeys {
         }
         for (Map.Entry<String, ?> e : map.entrySet()) {
             String key = e.getKey();
-            // Skip tunable and sensor config preferences - they manage their own scope
-            if (key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_"))) {
+            // Skip keys that are already lens/sensor scoped or global
+            if (isLensScopedKey(key) || COMMON_KEYS.contains(key)) {
                 continue;
             }
             Object value = e.getValue();
@@ -549,6 +572,58 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, value);
     }
 
+    /**
+     * Photo-mode frame rate for a specific lens and Quad Bayer state. Falls
+     * back to the legacy global value, which seeds every lens/quad
+     * combination on installs that predate the per-lens keys.
+     */
+    public static int getFpsModeForLens(String cameraId, boolean quadBayer) {
+        int fallback = getFpsMode();
+        if (cameraId == null || cameraId.isEmpty()) {
+            return fallback;
+        }
+        String key = fpsLensKey(cameraId, quadBayer);
+        // Direct read (no prefs-map copy): this runs on the session/capture
+        // path. Tolerates values restored as native numbers, not just strings.
+        String value;
+        try {
+            value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, key, null);
+        } catch (ClassCastException e) {
+            Integer intValue = SettingsManagerExtensions.getInteger(
+                    preferenceKeys.settingsManager, SCOPE_GLOBAL, key, null);
+            value = intValue != null ? String.valueOf(intValue) : null;
+        }
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public static void setFpsModeForLens(String cameraId, boolean quadBayer, int value) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return;
+        }
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, fpsLensKey(cameraId, quadBayer),
+                String.valueOf(value));
+    }
+
+    /** Photo-mode frame rate for the active lens + Quad Bayer state. */
+    public static int getCurrentLensFpsMode() {
+        return getFpsModeForLens(getCameraID(), isQuadBayerOn());
+    }
+
+    public static void setCurrentLensFpsMode(int value) {
+        setFpsModeForLens(getCameraID(), isQuadBayerOn(), value);
+    }
+
+    private static String fpsLensKey(String cameraId, boolean quadBayer) {
+        return FPS_LENS_KEY_PREFIX + cameraId + (quadBayer ? FPS_LENS_QUAD_SUFFIX : "");
+    }
+
     /** Frame-rate selection for video and RAW video. */
     public static int getVideoFpsMode() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS);
@@ -560,18 +635,19 @@ public class PreferenceKeys {
 
     /**
      * Frame-rate selection for the mode's group: video and RAW video share the
-     * video setting, photo and motion share the photo setting.
+     * global video setting, while photo modes use the active lens + Quad Bayer
+     * combination.
      */
     public static int getFpsModeForMode(CameraMode mode) {
         return (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO)
-                ? getVideoFpsMode() : getFpsMode();
+                ? getVideoFpsMode() : getCurrentLensFpsMode();
     }
 
     public static void setFpsModeForMode(CameraMode mode, int value) {
         if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
             setVideoFpsMode(value);
         } else {
-            setFpsMode(value);
+            setCurrentLensFpsMode(value);
         }
     }
 

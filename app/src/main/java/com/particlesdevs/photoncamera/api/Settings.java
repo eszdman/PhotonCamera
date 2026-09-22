@@ -88,7 +88,7 @@ public class Settings {
         remosaic = PreferenceKeys.isRemosaicOn();
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
-        fpsMode = PreferenceKeys.getFpsMode();
+        fpsMode = PreferenceKeys.getCurrentLensFpsMode();
         videoFpsMode = PreferenceKeys.getVideoFpsMode();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         ultraHdr = PreferenceKeys.isUltraHdrOn();
@@ -109,11 +109,15 @@ public class Settings {
 
     /**
      * Frame-rate selection for the currently selected mode: video and RAW
-     * video use {@link #videoFpsMode}, everything else {@link #fpsMode}.
+     * video use {@link #videoFpsMode}; photo modes read the per-lens, per
+     * Quad Bayer value live so a lens or Quad Bayer switch applies as soon as
+     * the camera reopens, without waiting for a settings reload.
      */
     public int getActiveFpsMode() {
-        return (selectedMode == CameraMode.VIDEO || selectedMode == CameraMode.RAWVIDEO)
-                ? videoFpsMode : fpsMode;
+        if (selectedMode == CameraMode.VIDEO || selectedMode == CameraMode.RAWVIDEO) {
+            return videoFpsMode;
+        }
+        return PreferenceKeys.getCurrentLensFpsMode();
     }
 
     /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */

@@ -2215,6 +2215,11 @@ public class CameraFragment extends Fragment {
             // Authoritative per-open refresh: mode-switch restarts bypass
             // onOpenCamera, so the pill/zoom model is rebuilt here too.
             refreshLensPillAndZoomModel();
+            // Per-lens settings (photo frame rate) follow the newly active
+            // lens: refresh the models and rebuild the entry views so the
+            // pulldown shows the new value without a mode switch.
+            settingsBarEntryProvider.updateAllEntries();
+            settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
             if (captureController != null) {
                 if (captureController.isZoomDrivenLensSwitch()) {
                     // The zoom target changed because a lens switch occurred. Preserve
