@@ -115,11 +115,12 @@ final class CameraUIController implements CameraUIEventsListener,
             case R.id.fps_toggle_button:
                 // The top-bar button only exists in video mode and edits the
                 // video/RAW-video rate.
-                PreferenceKeys.setVideoFpsMode((PreferenceKeys.getVideoFpsMode() + 1) % 4);
+                PreferenceKeys.setCurrentLensVideoFpsMode(
+                        (PreferenceKeys.getCurrentLensVideoFpsMode() + 1) % 4);
                 if (haptics != null) haptics.modeChange();
                 cameraFragment.captureController.applyFpsRange();
                 cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
-                        .setFpsModeState(PreferenceKeys.getVideoFpsMode());
+                        .setFpsModeState(PreferenceKeys.getCurrentLensVideoFpsMode());
                 cameraFragment.updateSettingsBar();
                 break;
 

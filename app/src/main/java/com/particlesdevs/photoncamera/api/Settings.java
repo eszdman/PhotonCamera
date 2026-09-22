@@ -89,7 +89,7 @@ public class Settings {
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
         fpsMode = PreferenceKeys.getCurrentLensFpsMode();
-        videoFpsMode = PreferenceKeys.getVideoFpsMode();
+        videoFpsMode = PreferenceKeys.getCurrentLensVideoFpsMode();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         ultraHdr = PreferenceKeys.isUltraHdrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
@@ -108,14 +108,14 @@ public class Settings {
     }
 
     /**
-     * Frame-rate selection for the currently selected mode: video and RAW
-     * video use {@link #videoFpsMode}; photo modes read the per-lens, per
-     * Quad Bayer value live so a lens or Quad Bayer switch applies as soon as
-     * the camera reopens, without waiting for a settings reload.
+     * Frame-rate selection for the currently selected mode. Both groups read
+     * their per-lens value live (video is kept separate from the photo keys),
+     * so a lens or Quad Bayer switch applies as soon as the camera reopens,
+     * without waiting for a settings reload.
      */
     public int getActiveFpsMode() {
         if (selectedMode == CameraMode.VIDEO || selectedMode == CameraMode.RAWVIDEO) {
-            return videoFpsMode;
+            return PreferenceKeys.getCurrentLensVideoFpsMode();
         }
         return PreferenceKeys.getCurrentLensFpsMode();
     }

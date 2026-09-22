@@ -22,7 +22,7 @@ public class FpsButton extends AppCompatButton {
         if (!isInEditMode()) {
             // The top-bar button only exists in video mode: it shows the
             // video/RAW-video rate, not the photo/motion one.
-            setFpsModeState(PreferenceKeys.getVideoFpsMode());
+            setFpsModeState(PreferenceKeys.getCurrentLensVideoFpsMode());
         }
     }
 

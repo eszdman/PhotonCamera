@@ -432,7 +432,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private void syncFpsButton() {
         try {
             cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
-                    .setFpsModeState(PreferenceKeys.getVideoFpsMode());
+                    .setFpsModeState(PreferenceKeys.getCurrentLensVideoFpsMode());
         } catch (Exception e) {
             Log.w(TAG, "syncFpsButton failed", e);
         }

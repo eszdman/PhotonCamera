@@ -39,6 +39,8 @@ public class PreferenceKeys {
      */
     private static final String FPS_LENS_KEY_PREFIX = "pref_fps_preview_key_lens_";
     private static final String FPS_LENS_QUAD_SUFFIX = "_quad";
+    /** Per-lens video/RAW-video frame rate: prefix + camera id. */
+    private static final String VIDEO_FPS_LENS_KEY_PREFIX = "pref_video_fps_key_lens_";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static PreferenceKeys preferenceKeys;
 
@@ -82,6 +84,8 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_LENSES.mValue);
+        // Legacy global video frame rate: now only the seed/fallback for the
+        // per-lens video keys, so it must not travel through lens snapshots.
         COMMON_KEYS.add(Key.KEY_VIDEO_FPS.mValue);
         // Audio settings are global like video.
         COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
@@ -192,7 +196,8 @@ public class PreferenceKeys {
     private static boolean isLensScopedKey(String key) {
         return key != null && (key.startsWith("pref_tunable_")
                 || key.startsWith("pref_sensorconfig_")
-                || key.startsWith(FPS_LENS_KEY_PREFIX));
+                || key.startsWith(FPS_LENS_KEY_PREFIX)
+                || key.startsWith(VIDEO_FPS_LENS_KEY_PREFIX));
     }
 
     public static void addIds(String[] ids){
@@ -583,9 +588,15 @@ public class PreferenceKeys {
         if (cameraId == null || cameraId.isEmpty()) {
             return fallback;
         }
-        String key = fpsLensKey(cameraId, quadBayer);
-        // Direct read (no prefs-map copy): this runs on the session/capture
-        // path. Tolerates values restored as native numbers, not just strings.
+        return getLensFpsValue(fpsLensKey(cameraId, quadBayer), fallback);
+    }
+
+    /**
+     * Reads a per-lens frame-rate value with the given fallback. Direct read
+     * (no prefs-map copy): this runs on the session/capture path. Tolerates
+     * values restored as native numbers, not just strings.
+     */
+    private static int getLensFpsValue(String key, int fallback) {
         String value;
         try {
             value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, key, null);
@@ -625,7 +636,7 @@ public class PreferenceKeys {
         return FPS_LENS_KEY_PREFIX + cameraId + (quadBayer ? FPS_LENS_QUAD_SUFFIX : "");
     }
 
-    /** Frame-rate selection for video and RAW video. */
+    /** Legacy global frame-rate selection for video and RAW video (seed). */
     public static int getVideoFpsMode() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS);
     }
@@ -635,18 +646,48 @@ public class PreferenceKeys {
     }
 
     /**
+     * Video/RAW-video frame rate for a specific lens. Falls back to the legacy
+     * global video value, which seeds every lens on installs that predate the
+     * per-lens keys. Kept separate from the photo-mode keys.
+     */
+    public static int getVideoFpsModeForLens(String cameraId) {
+        int fallback = getVideoFpsMode();
+        if (cameraId == null || cameraId.isEmpty()) {
+            return fallback;
+        }
+        return getLensFpsValue(VIDEO_FPS_LENS_KEY_PREFIX + cameraId, fallback);
+    }
+
+    public static void setVideoFpsModeForLens(String cameraId, int value) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return;
+        }
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, VIDEO_FPS_LENS_KEY_PREFIX + cameraId,
+                String.valueOf(value));
+    }
+
+    /** Video/RAW-video frame rate for the active lens. */
+    public static int getCurrentLensVideoFpsMode() {
+        return getVideoFpsModeForLens(getCameraID());
+    }
+
+    public static void setCurrentLensVideoFpsMode(int value) {
+        setVideoFpsModeForLens(getCameraID(), value);
+    }
+
+    /**
      * Frame-rate selection for the mode's group: video and RAW video share the
-     * global video setting, while photo modes use the active lens + Quad Bayer
-     * combination.
+     * per-lens video setting, while photo modes use the active lens + Quad
+     * Bayer combination.
      */
     public static int getFpsModeForMode(CameraMode mode) {
         return (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO)
-                ? getVideoFpsMode() : getCurrentLensFpsMode();
+                ? getCurrentLensVideoFpsMode() : getCurrentLensFpsMode();
     }
 
     public static void setFpsModeForMode(CameraMode mode, int value) {
         if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
-            setVideoFpsMode(value);
+            setCurrentLensVideoFpsMode(value);
         } else {
             setCurrentLensFpsMode(value);
         }
