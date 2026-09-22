@@ -12,6 +12,7 @@ import android.widget.ProgressBar;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
@@ -96,6 +97,14 @@ public class CameraUIViewImpl implements CameraUIView {
         currentState.reConfigureModeViews(mode);
     }
 
+    /**
+     * Quad Bayer controls are unavailable when the tunable disables them or on
+     * an ISZ virtual lens, where Quad Bayer is always off.
+     */
+    private boolean isQuadResAvailable() {
+        return enableQuadRes && !CameraManager2.isIszVirtual(PreferenceKeys.getCameraID());
+    }
+
     private void initListeners() {
         TunableInjector.inject(this);
         if (!enableQuadRes) {
@@ -103,7 +112,7 @@ public class CameraUIViewImpl implements CameraUIView {
         }
         this.topbar.setTopBarClickListener(v -> this.uiEventsListener.onClick(v));
         this.bottombuttons.setBottomBarClickListener(v -> this.uiEventsListener.onClick(v));
-        this.topbar.setQuadVisible(enableQuadRes);
+        this.topbar.setQuadVisible(isQuadResAvailable());
     }
 
     private void initModeSwitcher() {
@@ -293,7 +302,7 @@ public class CameraUIViewImpl implements CameraUIView {
         if (!enableQuadRes) {
             PreferenceKeys.setQuadBayer(false);
         }
-        this.topbar.setQuadVisible(enableQuadRes);
+        this.topbar.setQuadVisible(isQuadResAvailable());
         cameraFragment.cameraFragmentBinding.invalidateAll();
         CameraMode current = resolveVisibleMode();
         updateModePickerValues();
@@ -474,7 +483,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
             attachRecordButton();
             if (mode == CameraMode.RAWVIDEO) {
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
@@ -516,7 +525,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
             mShutterButton.setBackground(mShutterMorph);
             //cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
             //cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
@@ -558,7 +567,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
             mShutterButton.setBackground(mShutterMorph);
             if(PhotonCamera.getSettings().aspect169) {
                 // Set the dummy view's aspect ratio to 16:9

@@ -12,6 +12,7 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.IszLensUtil;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
 import java.util.Arrays;
@@ -651,8 +652,13 @@ public class PreferenceKeys {
         }
     }
 
+    /**
+     * Effective Quad Bayer state: always off on ISZ virtual lenses. The stored
+     * value is left untouched, so switching back to a non-ISZ lens restores it.
+     */
     public static boolean isQuadBayerOn() {
-        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER);
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER)
+                && !IszLensUtil.isIszVirtual(getCameraID());
     }
     public static boolean isUltraHdrOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_ULTRAHDR);

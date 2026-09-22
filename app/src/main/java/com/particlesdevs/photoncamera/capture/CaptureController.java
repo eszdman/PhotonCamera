@@ -1970,6 +1970,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * Applies the newly active lens id and refreshes the cached settings so
+     * per-lens state (including the effective Quad Bayer flag) matches the new
+     * lens before its session is built.
+     */
+    private void setActiveCameraId(String cameraId) {
+        PreferenceKeys.setCameraID(cameraId);
+        PhotonCamera.getSettings().loadCache();
+    }
+
+    /**
      * Closes the current session/device and schedules the open of {@code req}
      * after the HAL settle delay. Runs on the main thread; only one such cycle
      * can be active because the scheduler only promotes a request when idle.
@@ -1981,7 +1991,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             lensSwitchScheduler.cancel();
             return;
         }
-        PreferenceKeys.setCameraID(req.cameraId);
+        setActiveCameraId(req.cameraId);
         zoomDrivenLensSwitch = req.zoomDriven;
         armOrCancelIszTransition();
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
@@ -2094,7 +2104,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     @SuppressLint("MissingPermission")
     private void openCameraDevice(final int token, String cameraId, boolean zoomDriven) {
         if (token != openToken.get() || !isCameraResumed) return;
-        PreferenceKeys.setCameraID(cameraId);
+        setActiveCameraId(cameraId);
         zoomDrivenLensSwitch = zoomDriven;
         armOrCancelIszTransition();
         parseCameraIds(cameraId);
