@@ -1706,12 +1706,32 @@ public class CameraFragment extends Fragment {
     }
 
     public String cycler(String savedCameraID) {
-        if (Objects.requireNonNull(mCameraLensDataMap.get(savedCameraID)).getFacing() == CameraCharacteristics.LENS_FACING_BACK) {
+        CameraLensData saved = mCameraLensDataMap.get(savedCameraID);
+        int facing = saved != null ? saved.getFacing() : cameraFacingOf(savedCameraID);
+        if (facing == CameraCharacteristics.LENS_FACING_BACK) {
             sActiveBackCamId = savedCameraID;
             return sActiveFrontCamId;
-        } else {
-            sActiveFrontCamId = savedCameraID;
-            return sActiveBackCamId;
+        }
+        sActiveFrontCamId = savedCameraID;
+        return sActiveBackCamId;
+    }
+
+    /**
+     * Live facing of a camera id that has no lens-map entry (e.g. the logical
+     * id used by video logical mode). Unknown ids default to back so the flip
+     * cycler keeps treating them like the current back camera.
+     */
+    private int cameraFacingOf(String cameraId) {
+        try {
+            android.hardware.camera2.CameraManager manager =
+                    (android.hardware.camera2.CameraManager)
+                            activity.getSystemService(Context.CAMERA_SERVICE);
+            CameraCharacteristics chars = manager != null
+                    ? manager.getCameraCharacteristics(cameraId) : null;
+            Integer facing = chars != null ? chars.get(CameraCharacteristics.LENS_FACING) : null;
+            return facing != null ? facing : CameraCharacteristics.LENS_FACING_BACK;
+        } catch (Exception e) {
+            return CameraCharacteristics.LENS_FACING_BACK;
         }
     }
 

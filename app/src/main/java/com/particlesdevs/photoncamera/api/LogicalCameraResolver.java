@@ -194,7 +194,36 @@ public final class LogicalCameraResolver {
             }
             if (!PreferenceKeys.isVideoUseLogicalId()) return false;
             if (context == null) return false;
+            // The selfie camera is not a member of the logical back camera:
+            // flipping to it must open the front device normally instead of
+            // being overridden back to the logical id.
+            if (isSelectedCameraFrontFacing(context)) return false;
             return !resolveEffectiveMembers(context, PreferenceKeys.getVideoLogicalId()).isEmpty();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * True when the currently selected camera id is a front-facing camera.
+     * Member pill ids ({@code logical#physical}) are reduced to their physical
+     * part. Unknown or unreachable ids return false, so composite/synthetic
+     * ids keep logical mode enabled.
+     */
+    public static boolean isSelectedCameraFrontFacing(@Nullable Context context) {
+        if (context == null) return false;
+        try {
+            String selected = PreferenceKeys.getCameraID();
+            if (selected == null || selected.isEmpty()) return false;
+            String[] member = splitMemberId(selected);
+            String id = member != null ? member[1] : selected.trim();
+            if (id.isEmpty()) return false;
+            CameraManager manager =
+                    (CameraManager) context.getSystemService(Context.CAMERA_SERVICE);
+            if (manager == null) return false;
+            CameraCharacteristics chars = manager.getCameraCharacteristics(id);
+            Integer facing = chars != null ? chars.get(CameraCharacteristics.LENS_FACING) : null;
+            return facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT;
         } catch (Exception e) {
             return false;
         }
