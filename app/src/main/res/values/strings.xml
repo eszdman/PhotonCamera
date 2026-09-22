@@ -3,11 +3,15 @@
     <string name="iso" translatable="false">"ISO "</string>
     <string name="icon_string" translatable="false">Icon</string>
     <string name="backup_file_name" translatable="false">PCAM_BKP_%1$s</string>
-    <string name="app_name" translatable="false">PhotonCamera</string>
+    <string name="app_name" translatable="false">Koshcam</string>
     <string name="gallery_name" translatable="false">PGallery</string>
     <string name="device_support" translatable="false">PhotonCamera Pro</string>
     <string name="request_permission">This app needs camera permission.</string>
     <string name="camera_error">This device doesn\'t support Camera2 API.</string>
+    <string name="video_res_2k" translatable="false">2K (2560x1440)</string>
+    <string name="ai_mode_title" translatable="false">Режим ИИ (AI Processing Mode)</string>
+    <string name="upscaler_preset_title" translatable="false">Разрешение Апскейлера (Upscaler Resolution)</string>
+    <string name="color_lut_title" translatable="false">3D LUT Профиль (Color Science)</string>
     <string name="luma_nr_count">Luminance Noise Reduction Strength</string>
     <string name="frame_count">HDR Frame Count</string>
     <string name="disable_aligning">Disable Aligning</string>

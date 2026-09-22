@@ -12,4 +12,7 @@ public enum SettingType {
     BATTERY_SAVER,
     BRACKETING,
     AE_METERING_STD,
+    AI_MODE,
+    UPSCALER_PRESET,
+    COLOR_LUT
 }

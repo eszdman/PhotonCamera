@@ -508,7 +508,12 @@ public class PreferenceKeys {
     }
 
     public static String getCameraID() {
-        return preferenceKeys.settingsManager.getString(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID);
+        String id = preferenceKeys.settingsManager.getString(Key.CAMERAS_PREFERENCE_FILE_NAME.mValue, Key.CAMERA_ID);
+        if (id == null || id.contains("-") || id.equals("null")) {
+            id = "0";
+            setCameraID("0");
+        }
+        return id;
     }
 
     public static int getCountdownTimerIndex() {
@@ -525,6 +530,45 @@ public class PreferenceKeys {
     
     public static void setBracketingMode(int value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, value);
+    }
+
+    public static int getAiMode() {
+        try {
+            String val = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_AI_MODE, "0");
+            return Integer.parseInt(val);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static void setAiMode(int mode) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_AI_MODE, String.valueOf(mode));
+    }
+
+    public static int getUpscalerPreset() {
+        try {
+            String val = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_UPSCALER_PRESET, "200");
+            return Integer.parseInt(val);
+        } catch (Exception e) {
+            return 200;
+        }
+    }
+
+    public static void setUpscalerPreset(int mp) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_UPSCALER_PRESET, String.valueOf(mp));
+    }
+
+    public static int getColorLut() {
+        try {
+            String val = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_COLOR_LUT, "1");
+            return Integer.parseInt(val);
+        } catch (Exception e) {
+            return 1;
+        }
+    }
+
+    public static void setColorLut(int lut) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_COLOR_LUT, String.valueOf(lut));
     }
 
     public static int getAeMeteringStd() {
@@ -746,6 +790,9 @@ public class PreferenceKeys {
         KEY_AE_METERING_STD(R.string.pref_ae_metering_std_key),
         KEY_BRACKETING_MODE(R.string.pref_bracketing_key),
         KEY_COUNTDOWN_TIMER(R.string.pref_countdown_timer_key),
+        KEY_AI_MODE(R.string.ai_mode_title),
+        KEY_UPSCALER_PRESET(R.string.upscaler_preset_title),
+        KEY_COLOR_LUT(R.string.color_lut_title),
         /**
          * Enhanced settings keys
          */

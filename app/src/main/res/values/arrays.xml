@@ -152,13 +152,56 @@
     </integer-array>
     <string-array name="video_resolution_entries">
         <item>@string/video_res_4k</item>
+        <item>@string/video_res_2k</item>
         <item>@string/video_res_fhd</item>
         <item>@string/video_res_hd</item>
     </string-array>
     <string-array name="video_resolution_entryvalues">
         <item>3840x2160</item>
+        <item>2560x1440</item>
         <item>1920x1080</item>
         <item>1280x720</item>
+    </string-array>
+
+    <string-array name="ai_mode_entries">
+        <item>Быстрый ИИ (FAST AI)</item>
+        <item>Детализация (DETAIL)</item>
+        <item>Ультра Детализация (ULTRA DETAIL)</item>
+        <item>Еда (Culinary Pro)</item>
+        <item>Ночь (Night Pro)</item>
+    </string-array>
+    <string-array name="ai_mode_entryvalues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+    </string-array>
+
+    <string-array name="upscaler_preset_entries">
+        <item>64 Мп</item>
+        <item>100 Мп</item>
+        <item>108 Мп</item>
+        <item>200 Мп</item>
+    </string-array>
+    <string-array name="upscaler_preset_entryvalues">
+        <item>64</item>
+        <item>100</item>
+        <item>108</item>
+        <item>200</item>
+    </string-array>
+
+    <string-array name="color_lut_entries">
+        <item>Откл (Off)</item>
+        <item>Leica (Пленочный контраст)</item>
+        <item>Zeiss (Холодный скинтон)</item>
+        <item>Vivo (Насыщенный HDR)</item>
+    </string-array>
+    <string-array name="color_lut_entryvalues">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
     </string-array>
     <string-array name="rawvideo_container_entries">
         <item>@string/rawvideo_container_dng</item>

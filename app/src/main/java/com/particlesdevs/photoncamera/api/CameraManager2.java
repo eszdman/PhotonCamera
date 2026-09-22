@@ -67,30 +67,23 @@ public final class CameraManager2 {
         SpecificSetting sp = PhotonCamera.getSpecific().specificSetting;
         String[] ids = sp.cameraIDS;
         Log.d("CameraManager2", "Loaded ids:"+ Arrays.toString(ids));
-            if (!isLoaded()) {
-                if(ids == null)
-                    scanAllCameras(cameraManager);
-                else {
-                    for (String id : ids) {
+            scanAllCameras(cameraManager);
+            if (mAllCameraIDsSet.isEmpty() || mCameraLensDataMap.isEmpty()) {
+                try {
+                    String[] systemCameraIds = cameraManager.getCameraIdList();
+                    for (String sysId : systemCameraIds) {
                         try {
-                            String physicalID = id;
-                            if(id.contains("-")){
-                                physicalID = id.split("-")[1];
-                            }
-                            CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(physicalID);
-                            CameraLensData cameraLensData = createNewCameraLensData(id, cameraCharacteristics);
-                            mAllCameraIDsSet.add(id);
-                            mCameraLensDataMap.put(id, cameraLensData);
-                        } catch (Exception ignored) {
-                        }
+                            CameraCharacteristics chars = cameraManager.getCameraCharacteristics(sysId);
+                            CameraLensData lensData = createNewCameraLensData(sysId, chars);
+                            mAllCameraIDsSet.add(sysId);
+                            mCameraLensDataMap.put(sysId, lensData);
+                        } catch (Exception ignored) {}
                     }
-                    findLensZoomFactor(mCameraLensDataMap);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed fallback camera ID scan: " + e.getMessage());
                 }
-                //Override ID detection
-                save();
-            } else {
-                loadFromSave(cameraManager,ids);
             }
+            save();
             injectIszVirtualLenses();
     }
     private void initExt(CameraManager cameraManager, String[] ids) {
@@ -128,80 +121,35 @@ public final class CameraManager2 {
     }
 
     private void scanAllCameras(CameraManager cameraManager) {
-        boolean isSamsung = Build.BRAND.equalsIgnoreCase("samsung") || Build.BRAND.equalsIgnoreCase("google");
-            CameraLensData mainLensData = null;
-            try {
-                mainLensData = createNewCameraLensData("0", cameraManager.getCameraCharacteristics("0"));
-                for (int num = 0; num < 121; num++) {
-                    try {
-                        String formatID = String.valueOf(num);
-                        if(isSamsung){
-                            formatID = "0-" + formatID;
-                        }
-                        CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
-                        log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
-                        CameraLensData cameraLensData = createNewCameraLensData(formatID, cameraCharacteristics);
-                        if (mainLensData.getCameraFocalLength() == cameraLensData.getCameraFocalLength()) {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                                boolean isLogical = !cameraCharacteristics.getPhysicalCameraIds().isEmpty();
-                                if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData) && !isLogical) {
-                                    mAllCameraIDsSet.add(formatID);
-                                    mCameraLensDataMap.put(formatID, cameraLensData);
-                                    break;
-                                }
-                            } else {
-                                if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
-                                    mAllCameraIDsSet.add(formatID);
-                                    mCameraLensDataMap.put(formatID, cameraLensData);
-                                    break;
-                                }
-                            }
-                        }
-                    } catch (Exception ignored) {
-                    }
-                }
-            } catch (Exception ignored) {
-
-            }
-            for (int num = 0; num < 121; num++) {
+        mAllCameraIDsSet.clear();
+        mCameraLensDataMap.clear();
+        try {
+            String[] availableIds = cameraManager.getCameraIdList();
+            for (String id : availableIds) {
                 try {
-                    String formatID = String.valueOf(num);
-                    if(isSamsung){
-                        formatID = "0-" + formatID;
-                    }
-                    CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(num));
-                    log("BitAnalyser:" + num + ":" + intToReverseBinary(num));
-                    CameraLensData cameraLensData = createNewCameraLensData(formatID, cameraCharacteristics);
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                        boolean isLogical = !cameraCharacteristics.getPhysicalCameraIds().isEmpty();
-                        if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData) && !isLogical) {
-                            mAllCameraIDsSet.add(formatID);
-                            mCameraLensDataMap.put(formatID, cameraLensData);
-                        }
-                    } else {
-                        if (!getBit(6, num) && !mCameraLensDataMap.containsValue(cameraLensData)) {
-                            mAllCameraIDsSet.add(formatID);
-                            mCameraLensDataMap.put(formatID, cameraLensData);
-                        }
-                    }
-                } catch (Exception ignored) {
+                    CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(id);
+                    CameraLensData lensData = createNewCameraLensData(id, characteristics);
+                    mAllCameraIDsSet.add(id);
+                    mCameraLensDataMap.put(id, lensData);
+                } catch (Exception e) {
+                    Log.e(TAG, "Error querying camera ID " + id, e);
                 }
             }
-            if(mAllCameraIDsSet.size() == 0) {
-                for(int i = 0; i<2;i++){
-                    try {
-                        String formatID = String.valueOf(i);
-                        if(isSamsung){
-                            formatID = "0-" + formatID;
-                        }
-                        CameraCharacteristics cameraCharacteristics = cameraManager.getCameraCharacteristics(String.valueOf(i));
-                        CameraLensData cameraLensData = createNewCameraLensData(formatID, cameraCharacteristics);
-                        mAllCameraIDsSet.add(formatID);
-                        mCameraLensDataMap.put(formatID, cameraLensData);
-                        } catch (Exception ignored) {
-                        }
-                }
+        } catch (Exception e) {
+            Log.e(TAG, "Error getting camera ID list", e);
+        }
+
+        if (mAllCameraIDsSet.isEmpty()) {
+            for (int i = 0; i < 2; i++) {
+                try {
+                    String id = String.valueOf(i);
+                    CameraCharacteristics characteristics = cameraManager.getCameraCharacteristics(id);
+                    CameraLensData lensData = createNewCameraLensData(id, characteristics);
+                    mAllCameraIDsSet.add(id);
+                    mCameraLensDataMap.put(id, lensData);
+                } catch (Exception ignored) {}
             }
+        }
 
         findLensZoomFactor(mCameraLensDataMap);
     }

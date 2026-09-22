@@ -1877,14 +1877,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     /** Splits a composite {@code logical-physical} camera id into its parts. */
     private void parseCameraIds(String cameraId) {
         String effective = cameraId;
-        if (effective != null && !LogicalCameraResolver.isMemberId(effective) && isVideoLogicalActive()) {
-            // Video logical mode: open the logical device regardless of the
-            // selected physical lens. Prefs keep the physical id; only the
-            // parsed open ids are overridden here.
+        if (effective == null || effective.trim().isEmpty() || effective.equals("null")) {
+            effective = "0";
+        }
+        if (!LogicalCameraResolver.isMemberId(effective) && isVideoLogicalActive()) {
             String logical = PreferenceKeys.getVideoLogicalId();
             if (logical != null && !logical.trim().isEmpty()) effective = logical.trim();
         }
-        if (effective != null && effective.contains("-")) {
+        if (effective.contains("-")) {
             String[] ids = effective.split("-");
             logicalID = ids[0];
             physicalID = ids[1];
@@ -1892,10 +1892,25 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             logicalID = effective;
             physicalID = effective;
         }
+        if (mCameraCharacteristicsMap != null && !mCameraCharacteristicsMap.containsKey(physicalID) && !mCameraCharacteristicsMap.containsKey(effective)) {
+            if (!mCameraCharacteristicsMap.isEmpty()) {
+                String firstKey = mCameraCharacteristicsMap.keySet().iterator().next();
+                if (firstKey != null) {
+                    if (firstKey.contains("-")) {
+                        String[] parts = firstKey.split("-");
+                        logicalID = parts[0];
+                        physicalID = parts[1];
+                    } else {
+                        logicalID = firstKey;
+                        physicalID = firstKey;
+                    }
+                }
+            } else {
+                logicalID = "0";
+                physicalID = "0";
+            }
+        }
         if (isVideoLogicalActive() && logicalID != null && !logicalID.isEmpty()) {
-            // Stream sizing, orientation, FPS and HDR must come from the
-            // logical camera; per-sensor features keep using the member id
-            // via getTunablePhysicalId().
             ensureLogicalCharacteristics(logicalID);
             if (mCameraCharacteristicsMap != null) {
                 CameraCharacteristics logicalChars = mCameraCharacteristicsMap.get(logicalID);
@@ -2325,17 +2340,29 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
     });
     }
+    public static int parseSensorIdSafely(String id) {
+        if (id == null || id.isEmpty()) return 0;
+        try {
+            String clean = id;
+            if (clean.contains("-")) {
+                clean = clean.split("-")[0];
+            }
+            clean = clean.replaceAll("[^0-9]", "");
+            return clean.isEmpty() ? 0 : Integer.parseInt(clean);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
     public void UpdateCameraCharacteristics(String cameraId) {
         if (isVideoLogicalActive() && mLogicalMemberPhysical != null
                 && !mLogicalMemberPhysical.isEmpty()) {
-            // Sensor specifics follow the active member stream; the logical
-            // id itself has no sensor-specific tuning block.
             try {
-                PhotonCamera.getSpecificSensor().selectSpecifics(Integer.parseInt(mLogicalMemberPhysical));
-            } catch (NumberFormatException ignored) {
+                PhotonCamera.getSpecificSensor().selectSpecifics(parseSensorIdSafely(mLogicalMemberPhysical));
+            } catch (Exception ignored) {
             }
         } else {
-            PhotonCamera.getSpecificSensor().selectSpecifics(Integer.parseInt(cameraId));
+            PhotonCamera.getSpecificSensor().selectSpecifics(parseSensorIdSafely(cameraId));
         }
         CameraCharacteristics characteristics = this.mCameraCharacteristicsMap.get(cameraId);
         mCameraCharacteristics = characteristics;
@@ -2388,18 +2415,23 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
         if(mImageReaderRaw != null)
             mImageReaderRaw.close();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && (PhotonCamera.getSettings().QuadBayer
-                || !(Build.BRAND.equalsIgnoreCase("oppo")
-                || Build.BRAND.equalsIgnoreCase("vivo")
-                || Build.BRAND.equalsIgnoreCase("oneplus")
-                || Build.BRAND.equalsIgnoreCase("realme")
-                || Build.BRAND.equalsIgnoreCase("iqoo")
-                || Build.BRAND.equalsIgnoreCase("nothing")
-                || Build.BRAND.equalsIgnoreCase("google")
-        ))
-        ) {
-            mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, maxjpg, 0x00100000);
-        } else {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && PhotonCamera.getSettings().QuadBayer
+                    && !(Build.BRAND.equalsIgnoreCase("oppo")
+                    || Build.BRAND.equalsIgnoreCase("vivo")
+                    || Build.BRAND.equalsIgnoreCase("oneplus")
+                    || Build.BRAND.equalsIgnoreCase("realme")
+                    || Build.BRAND.equalsIgnoreCase("iqoo")
+                    || Build.BRAND.equalsIgnoreCase("nothing")
+                    || Build.BRAND.equalsIgnoreCase("google")
+                    || Build.BRAND.equalsIgnoreCase("samsung")
+            )) {
+                mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, maxjpg, 0x00100000);
+            } else {
+                mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, maxjpg);
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "mImageReaderRaw creation fallback: " + e.getMessage());
             mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, maxjpg);
         }
         mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
@@ -2755,27 +2787,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     @NotNull
     private List<Surface> configureSurfaces(boolean isBurstSession) {
-        if (mImageReaderPreview == null || mImageReaderRaw == null) {
-            throw new IllegalStateException("Preview/RAW ImageReader not ready (preview="
-                    + mImageReaderPreview + ", raw=" + mImageReaderRaw + ")");
+        List<Surface> surfaces = new ArrayList<>();
+        if (surface != null && surface.isValid()) {
+            surfaces.add(surface);
         }
-        List<Surface> surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-        if (isDualSession) {
-            if (isBurstSession) {
-                surfaces = Arrays.asList(mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-            }
-            if (mTargetFormat == mPreviewTargetFormat) {
-                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface());
-            }
-        } else {
-           if(Build.BRAND.equalsIgnoreCase("samsung")){
-                surfaces = Arrays.asList(surface, mImageReaderRaw.getSurface());
-            } else {
-                surfaces = Arrays.asList(surface, mImageReaderPreview.getSurface(), mImageReaderRaw.getSurface());
-            }
-           if(PhotonCamera.getSettings().previewFormat == 0) {
-                surfaces = Arrays.asList(surface, mImageReaderRaw.getSurface());
-           }
+        if (mImageReaderPreview != null && mImageReaderPreview.getSurface() != null) {
+            surfaces.add(mImageReaderPreview.getSurface());
+        }
+        if (mImageReaderRaw != null && mImageReaderRaw.getSurface() != null) {
+            surfaces.add(mImageReaderRaw.getSurface());
+        }
+        if (surfaces.isEmpty()) {
+            throw new IllegalStateException("No valid surfaces available for camera preview");
         }
         if (mIsRecordingVideo) {
             // Resolve the 10-bit session profile BEFORE preparing the encoder
@@ -3114,15 +3137,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mInitialMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
         mPreviewMeteringAF = mInitialMeteringAF;
         mPreviewAFMode = PreferenceKeys.getAfMode();
-        if (recordTemplate) {
-            mPreviewRequestBuilder.set(CONTROL_AF_MODE, CONTROL_AF_MODE_CONTINUOUS_VIDEO);
-            mPreviewAFMode = CONTROL_AF_MODE_CONTINUOUS_VIDEO;
-            // Explicit ON/OFF: leaving the key unset would inherit whatever the
-            // previous session left behind.
-            mPreviewRequestBuilder.set(CONTROL_VIDEO_STABILIZATION_MODE,
-                    PreferenceKeys.isEisPhotoOn()
-                            ? CONTROL_VIDEO_STABILIZATION_MODE_ON
-                            : CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_OFF);
+        // Aggressive EIS stabilization for both photo preview and video streams
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_PREVIEW_STABILIZATION);
+            } else {
+                mPreviewRequestBuilder.set(CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE,
+                        CaptureRequest.CONTROL_VIDEO_STABILIZATION_MODE_ON);
+            }
+            mPreviewRequestBuilder.set(CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE,
+                    CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON);
+        } catch (Exception e) {
+            Log.w(TAG, "Aggressive EIS application: " + e.getMessage());
         }
         mInitialMeteringAE = mPreviewRequestBuilder.get(CONTROL_AE_REGIONS);
         mPreviewMeteringAE = mInitialMeteringAE;
@@ -4343,6 +4370,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
+    @SuppressLint("WrongConstant")
     private void setUpMediaRecorder(boolean allowHdr) {
         mMediaRecorder.reset();
         int audioSource = mAudioSourceRetry >= 0 ? mAudioSourceRetry : resolveAudioSource();
@@ -4651,31 +4679,34 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         } else {
             mPreviewTargetFormat = ImageFormat.JPEG;
         }
-        processExecutor.execute(() -> {
-            if (mTextureView == null)
-                mTextureView = new GLPreview(activity);
-            if (mTextureView.isAvailable()) {
-                // The GL surface survived backgrounding (no onSurfaceCreated will
-                // fire on resume), so open the camera directly against the
-                // existing SurfaceTexture instead of waiting for a callback.
-                Log.d(TAG,"ID:"+mCameraCharacteristicsMap.get(physicalID));
-                Size optimal = getPreviewOutputSize(getSafeDisplay(),
-                        mCameraCharacteristicsMap.get(physicalID),
-                        PhotonCamera.getSettings().selectedMode);
-                openCamera(optimal.getWidth(), optimal.getHeight());
-            } else {
-                mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
-                // The availability callback is delivered through the main-thread
-                // handler; it may have fired between the check above and arming
-                // the listener. Re-check so the camera is never left waiting for
-                // an event that already happened.
+        runOnMain(() -> {
+            GLPreview found = activity.findViewById(R.id.texture);
+            if (found != null) {
+                mTextureView = found;
+            }
+            processExecutor.execute(() -> {
+                if (mTextureView == null) {
+                    mTextureView = activity.findViewById(R.id.texture);
+                }
+                if (mTextureView == null) {
+                    return;
+                }
                 if (mTextureView.isAvailable()) {
+                    Log.d(TAG,"ID:"+mCameraCharacteristicsMap.get(physicalID));
                     Size optimal = getPreviewOutputSize(getSafeDisplay(),
                             mCameraCharacteristicsMap.get(physicalID),
                             PhotonCamera.getSettings().selectedMode);
                     openCamera(optimal.getWidth(), optimal.getHeight());
+                } else {
+                    mTextureView.setSurfaceTextureListener(mSurfaceTextureListener);
+                    if (mTextureView.isAvailable()) {
+                        Size optimal = getPreviewOutputSize(getSafeDisplay(),
+                                mCameraCharacteristicsMap.get(physicalID),
+                                PhotonCamera.getSettings().selectedMode);
+                        openCamera(optimal.getWidth(), optimal.getHeight());
+                    }
                 }
-            }
+            });
         });
     }
 

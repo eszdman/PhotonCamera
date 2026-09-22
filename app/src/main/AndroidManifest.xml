@@ -162,6 +162,10 @@
             android:configChanges="orientation|keyboardHidden|screenSize"
             android:showWhenLocked="true"
             android:turnScreenOn="true" />
+
+        <service
+            android:name="com.koshara.koshcam.root.RootCameraService"
+            android:exported="false" />
         <!-- <activity android:name="com.particlesdevs.photoncamera.gallery.ui.GalleryActivity" /> -->
 
         <provider

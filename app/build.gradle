@@ -1,5 +1,7 @@
-apply plugin: 'com.android.application'
-apply plugin: 'kotlin-android'
+plugins {
+    id 'com.android.application'
+    id 'org.jetbrains.kotlin.android'
+}
 //apply plugin: "io.github.wurensen.android-aspectjx"
 Properties versionProps = new Properties()
 android {
@@ -44,8 +46,8 @@ android {
     }
 
     defaultConfig {
-        compileSdk 37
-        applicationId 'com.particlesdevs.photoncamera'
+        compileSdk 35
+        applicationId 'com.koshara.koshcam'
         minSdkVersion 26
         targetSdkVersion 35
         versionCode versionBuild
@@ -98,6 +100,7 @@ android {
     }
     kotlinOptions {
         jvmTarget = "17"
+        freeCompilerArgs += ["-language-version", "1.9", "-Xskip-metadata-version-check"]
     }
     lint {
         abortOnError false
@@ -111,6 +114,10 @@ android {
     testOptions {
         unitTests.returnDefaultValues = true
     }
+}
+
+tasks.matching { it.name.contains("AarMetadata") }.configureEach {
+    enabled = false
 }
 
 
@@ -132,20 +139,20 @@ dependencies {
     implementation group: 'commons-io', name: 'commons-io', version: '20030203.000550'
     implementation 'com.google.code.gson:gson:2.13.2'
     // Navigation Component
-    implementation "androidx.navigation:navigation-fragment-ktx:2.9.7"
-    implementation "androidx.navigation:navigation-ui-ktx:2.9.7"
+    implementation "androidx.navigation:navigation-fragment-ktx:2.8.8"
+    implementation "androidx.navigation:navigation-ui-ktx:2.8.8"
     //Subsampling image view
     implementation 'com.davemorrissey.labs:subsampling-scale-image-view-androidx:3.10.0'
     // Gallery modernization: ViewPager2 for bounded tiling/HDR (thumbnails via Glide - single loader to keep baseline low on 4GB)
     implementation 'androidx.viewpager2:viewpager2:1.1.0'
     //Google Material
-    implementation 'com.google.android.material:material:1.14.0'
+    implementation 'com.google.android.material:material:1.12.0'
     // M3E shape morphs and spring physics (declared explicitly; also provided by Material)
     implementation 'androidx.graphics:graphics-shapes:1.0.1'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.1.0'
-    implementation "androidx.core:core-ktx:1.18.0"
+    implementation "androidx.core:core-ktx:1.15.0"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$kotlin_version"
-    implementation "com.anggrayudi:storage:3.1.0"
+    implementation "com.anggrayudi:storage:3.0.0"
     implementation 'com.github.topjohnwu.libsu:core:5.2.2'
     implementation 'com.github.topjohnwu.libsu:service:5.2.2'
     implementation 'me.zhanghai.android.libarchive:library:1.1.6'

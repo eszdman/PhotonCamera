@@ -2,19 +2,33 @@ package com.particlesdevs.photoncamera.ui.camera;
 
 import android.Manifest;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.ActivityInfo;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Looper;
 import android.provider.Settings;
 import com.particlesdevs.photoncamera.util.Log;
+import android.view.Gravity;
 import android.view.KeyEvent;
 import android.view.View;
 import android.view.WindowManager;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import com.koshara.koshcam.root.IRootCameraService;
+import com.koshara.koshcam.root.RootCameraService;
+import com.topjohnwu.superuser.ipc.RootService;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.annotation.NonNull;
@@ -297,6 +311,19 @@ public class CameraActivity extends BaseActivity {
         }
     }
 
+    private IRootCameraService rootCameraService;
+    private boolean isRootServiceBound = false;
+    private TextView thermalHudText;
+    private boolean isAlertShown = false;
+    private final Handler thermalHandler = new Handler(Looper.getMainLooper());
+    private final Runnable thermalRunnable = new Runnable() {
+        @Override
+        public void run() {
+            updateThermalHud();
+            thermalHandler.postDelayed(this, 2000);
+        }
+    };
+
     private void tryLoad() {
         if (SDK_INT >= Build.VERSION_CODES.R) {
             SimpleStorageHelper.updateFileManagerPaths(this);
@@ -311,6 +338,87 @@ public class CameraActivity extends BaseActivity {
             getSupportFragmentManager().beginTransaction()
                     .replace(R.id.container, CameraFragment.newInstance())
                     .commit();
+        }
+        bindRootCameraService();
+        setupThermalHudView();
+    }
+
+    private void bindRootCameraService() {
+        try {
+            Intent intent = new Intent(this, RootCameraService.class);
+            RootService.bind(intent, new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    rootCameraService = IRootCameraService.Stub.asInterface(service);
+                    isRootServiceBound = true;
+                    Log.i("CameraActivity", "RootCameraService bound successfully");
+                    try {
+                        if (rootCameraService != null) {
+                            rootCameraService.setPerformanceGovernor();
+                        }
+                    } catch (Exception e) {
+                        Log.e("CameraActivity", "Failed to set performance governor", e);
+                    }
+                    thermalHandler.post(thermalRunnable);
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    rootCameraService = null;
+                    isRootServiceBound = false;
+                }
+            });
+        } catch (Exception e) {
+            Log.e("CameraActivity", "Error binding RootCameraService", e);
+        }
+    }
+
+    private void setupThermalHudView() {
+        if (thermalHudText != null) return;
+        thermalHudText = new TextView(this);
+        thermalHudText.setText("T: --°C");
+        thermalHudText.setTextSize(13f);
+        thermalHudText.setTypeface(android.graphics.Typeface.MONOSPACE, android.graphics.Typeface.BOLD);
+        thermalHudText.setTextColor(Color.parseColor("#00FF66"));
+        
+        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+        bg.setCornerRadius(24f);
+        bg.setColor(Color.parseColor("#B3111111"));
+        bg.setStroke(2, Color.parseColor("#33FFFFFF"));
+        thermalHudText.setBackground(bg);
+        thermalHudText.setPadding(32, 16, 32, 16);
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                FrameLayout.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP | Gravity.START
+        );
+        params.topMargin = 260;
+        params.leftMargin = 40;
+
+        addContentView(thermalHudText, params);
+    }
+
+    private void updateThermalHud() {
+        if (rootCameraService == null || thermalHudText == null) return;
+        try {
+            int tempC = rootCameraService.getThermalTemperature();
+            thermalHudText.setText("T: " + tempC + "°C");
+            if (tempC >= 45) {
+                thermalHudText.setTextColor(Color.parseColor("#FF3344"));
+                if (!isAlertShown) {
+                    isAlertShown = true;
+                    Toast.makeText(this, "CRITICAL THERMAL: Подключите Flydigi BS2", Toast.LENGTH_LONG).show();
+                }
+            } else if (tempC >= 40) {
+                thermalHudText.setTextColor(Color.parseColor("#FFCC00"));
+                isAlertShown = false;
+            } else {
+                thermalHudText.setTextColor(Color.parseColor("#00FF66"));
+                isAlertShown = false;
+            }
+        } catch (Exception e) {
+            Log.e("CameraActivity", "Error updating thermal HUD", e);
         }
     }
 

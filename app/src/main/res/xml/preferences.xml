@@ -318,6 +318,41 @@
     </PreferenceCategory>
     <PreferenceCategory
             android:layout="@layout/preference_category_layout"
+            android:key="pref_category_koshcam_ai"
+            android:title="Koshcam AI &amp; Upscaler">
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_ai_mode_key"
+                android:title="Режим ИИ (AI Mode)"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                android:entries="@array/ai_mode_entries"
+                android:entryValues="@array/ai_mode_entryvalues"
+                android:defaultValue="0"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_upscaler_preset_key"
+                android:title="Разрешение Апскейлера (Resolution)"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_tune_black_24dp"
+                android:entries="@array/upscaler_preset_entries"
+                android:entryValues="@array/upscaler_preset_entryvalues"
+                android:defaultValue="200"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="pref_color_lut_key"
+                android:title="3D LUT Профиль (Color Science)"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/color_lut_entries"
+                android:entryValues="@array/color_lut_entryvalues"
+                android:defaultValue="1"
+                />
+    </PreferenceCategory>
+    <PreferenceCategory
+            android:layout="@layout/preference_category_layout"
             android:key="@string/pref_category_jpg_key"
             android:title="@string/jpg">
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference

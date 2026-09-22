@@ -1,0 +1,75 @@
+#ifndef FLOWNETCORRLOOKUP_COMP_H
+#define FLOWNETCORRLOOKUP_COMP_H
+
+#include <cstddef>
+
+static const unsigned char flownetcorrlookup_comp_data[] = R"(#version 450
+
+layout(local_size_x = 8, local_size_y = 8, local_size_z = 1) in;
+
+layout(binding = 0) buffer corr_buf { float corr_data[]; };
+layout(binding = 1) buffer coords_buf { float coords_data[]; };
+layout(binding = 2) buffer delta_buf { float delta_data[]; };
+layout(binding = 3) buffer out_buf { float out_data[]; };
+
+layout(push_constant) uniform parameter
+{
+    int H;
+    int W;
+    int corr_cstep;
+    int coords_cstep;
+    int delta_cstep;
+    int out_cstep;
+    int KK;
+    int K2;
+} p;
+
+void main()
+{
+    const int oy = int(gl_GlobalInvocationID.y);
+    const int ox = int(gl_GlobalInvocationID.x);
+
+    if (oy >= p.H || ox >= p.W)
+        return;
+
+    const int n = oy * p.W + ox;
+
+    const float cx = coords_data[n * p.coords_cstep + 0];
+    const float cy = coords_data[n * p.coords_cstep + 1];
+
+    const int base = n * p.corr_cstep;
+
+    for (int i = 0; i < p.KK; i++)
+    {
+        for (int j = 0; j < p.K2; j++)
+        {
+            const int k = i * p.K2 + j;
+
+            const float x = cx + delta_data[n * p.delta_cstep + k * 2 + 0];
+            const float y = cy + delta_data[n * p.delta_cstep + k * 2 + 1];
+
+            const int ix = int(floor(x));
+            const int iy = int(floor(y));
+            const float fx = x - float(ix);
+            const float fy = y - float(iy);
+            const int x0 = ix, x1 = ix + 1, y0 = iy, y1 = iy + 1;
+
+            float v = 0.0;
+            if (x0 >= 0 && x0 < p.W && y0 >= 0 && y0 < p.H)
+                v += corr_data[base + y0 * p.W + x0] * (1.0 - fx) * (1.0 - fy);
+            if (x1 >= 0 && x1 < p.W && y0 >= 0 && y0 < p.H)
+                v += corr_data[base + y0 * p.W + x1] * fx * (1.0 - fy);
+            if (x0 >= 0 && x0 < p.W && y1 >= 0 && y1 < p.H)
+                v += corr_data[base + y1 * p.W + x0] * (1.0 - fx) * fy;
+            if (x1 >= 0 && x1 < p.W && y1 >= 0 && y1 < p.H)
+                v += corr_data[base + y1 * p.W + x1] * fx * fy;
+
+            out_data[k * p.out_cstep + n] = v;
+        }
+    }
+}
+)";
+
+static const size_t flownetcorrlookup_comp_data_size = sizeof(flownetcorrlookup_comp_data) - 1;
+
+#endif // FLOWNETCORRLOOKUP_COMP_H

@@ -1,8 +1,8 @@
 plugins {
     id 'com.android.library'
+    id 'org.jetbrains.kotlin.android'
     id 'jacoco'
 }
-apply plugin: 'kotlin-android'
 
 android {
     compileSdkVersion 33

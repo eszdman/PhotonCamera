@@ -56,9 +56,9 @@ public final class VideoCodecSupport {
         return supported;
     }
 
-    /** HDR switch requires Save storage (HEVC) plus a Main10-capable encoder. */
+    /** HDR switch requires Save storage (HEVC) encoder. Enabled for Samsung Dimensity 700. */
     public static boolean isHdrVideoSupported() {
-        return hasHevcEncoder() && hasHevcMain10();
+        return hasHevcEncoder();
     }
 
     /**

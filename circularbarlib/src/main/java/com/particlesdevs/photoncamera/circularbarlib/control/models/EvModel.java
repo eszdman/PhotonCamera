@@ -18,7 +18,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 
 /**
- * Created by killerink, vibhorSrv, eszdman
+ * Created by koshara
  */
 public class EvModel extends ManualModel<Float> {
 
