@@ -21,9 +21,6 @@
 package com.particlesdevs.photoncamera.ui.camera.views;
 
 import android.content.Context;
-import android.graphics.Canvas;
-import android.graphics.Color;
-import android.graphics.Paint;
 import android.util.AttributeSet;
 import android.util.TypedValue;
 import android.view.View;
@@ -32,10 +29,7 @@ import android.widget.LinearLayout;
 
 import androidx.annotation.Nullable;
 import androidx.core.widget.TextViewCompat;
-import androidx.dynamicanimation.animation.FloatValueHolder;
-import androidx.dynamicanimation.animation.SpringAnimation;
 
-import com.google.android.material.color.MaterialColors;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -43,7 +37,6 @@ import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.data.LensLabelFormatter;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
-import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -55,8 +48,12 @@ import java.util.List;
  * <p>
  * This layout's functionality is dependent on {@link AuxButtonsModel} which is provided
  * through DataBinding {@link CustomBinding#setAuxButtonModel(AuxButtonsLayout, AuxButtonsModel)}.
+ * <p>
+ * The selection highlight is the sliding pill inherited from
+ * {@link SelectorPillLayout}: the buttons carry no background of their own and
+ * only their label tint follows the selected state.
  */
-public class AuxButtonsLayout extends LinearLayout {
+public class AuxButtonsLayout extends SelectorPillLayout {
 
     /**
      * this map stores dynamically generated view-ids and corresponding camera-ids attached to that view(or button)
@@ -71,21 +68,6 @@ public class AuxButtonsLayout extends LinearLayout {
     private boolean verticalOrder;
     private String activeCameraId;
 
-    /**
-     * Selection pill: one highlight for the whole bar that slides between the
-     * lens buttons on an M3E spring (slight overshoot) instead of every button
-     * toggling its own background. Drawn behind the buttons in {@link #onDraw}.
-     */
-    private final Paint selectorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final FloatValueHolder selectorIndex = new FloatValueHolder(0f);
-    private final SpringAnimation selectorSpring;
-    /** Target lens index; {@link #selectorAppliedIndex} is what the spring has. */
-    private int selectorTarget = -1;
-    private int selectorAppliedIndex = Integer.MIN_VALUE;
-    private int selectorChildCount = -1;
-    private boolean selectorPlaced;
-    private float selectorRadius;
-
 public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
@@ -93,14 +75,6 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         int size = (int) context.getResources().getDimension(R.dimen.aux_button_size);
         buttonParams = new LinearLayout.LayoutParams(size, size);
         buttonParams.setMargins(margin, margin, margin, margin);
-
-        selectorPaint.setColor(MaterialColors.getColor(context, R.attr.colorPrimaryContainer,
-                Color.TRANSPARENT));
-        selectorSpring = new SpringAnimation(selectorIndex)
-                .setSpring(MorphShapeDrawable.playfulSpring())
-                .addUpdateListener((animation, value, velocity) -> invalidate());
-        // The pill is painted by this container, behind its children.
-        setWillNotDraw(false);
 
         // The layout editor runs this constructor but not the data-binding adapters,
         // so populate a few sample buttons so the host preview shows the aux palette.
@@ -178,16 +152,14 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
 
     private void setListenerAndSelected(String activeId) {
         View.OnClickListener auxButtonListener = this::onAuxButtonClick;
-        int activeIndex = -1;
         for (int i = 0; i < getChildCount(); i++) {
             View button = getChildAt(i);
             button.setOnClickListener(auxButtonListener);
             if (activeId.equals(auxButtonsMap.get(button.getId()))) {
                 button.setSelected(true);
-                activeIndex = i;
             }
         }
-        setSelectorTarget(activeIndex);
+        refreshSelection();
     }
 
     private void updateVisibility() {
@@ -217,98 +189,10 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
             }
             // Slide the pill right away; the model's active id follows once the
             // new lens is open, and by then the target is already there.
-            int index = indexOfChild(view);
-            if (index >= 0) {
-                setSelectorTarget(index);
-            }
+            refreshSelection();
             if (auxButtonListener != null)
                 auxButtonListener.onAuxButtonClicked(auxButtonsMap.get(view.getId()));
         }
-    }
-
-    /** Points the pill at {@code index}, animating from the previous lens. */
-    private void setSelectorTarget(int index) {
-        selectorTarget = index;
-        // The buttons are rebuilt on every refresh, so a changed set can never
-        // be interpolated from the old index: snap in that case.
-        if (getChildCount() != selectorChildCount) {
-            selectorChildCount = getChildCount();
-            selectorPlaced = false;
-            selectorAppliedIndex = Integer.MIN_VALUE;
-        }
-        if (selectorPlaced) {
-            applySelectorTarget();
-        }
-        invalidate();
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        super.onLayout(changed, l, t, r, b);
-        applySelectorTarget();
-    }
-
-    /**
-     * Moves the pill toward the active button once the children have bounds.
-     * The first placement (and a rebuilt button set) snaps; every later change
-     * glides on the playful spring.
-     */
-    private void applySelectorTarget() {
-        if (selectorTarget < 0 || selectorTarget >= getChildCount()) {
-            return;
-        }
-        View active = getChildAt(selectorTarget);
-        if (active.getWidth() <= 0 || active.getHeight() <= 0) {
-            return;
-        }
-        selectorRadius = Math.min(active.getWidth(), active.getHeight()) / 2f;
-        if (!selectorPlaced) {
-            selectorSpring.cancel();
-            selectorIndex.setValue(selectorTarget);
-            selectorPlaced = true;
-            selectorAppliedIndex = selectorTarget;
-        } else if (selectorAppliedIndex != selectorTarget) {
-            selectorAppliedIndex = selectorTarget;
-            selectorSpring.animateToFinalPosition(selectorTarget);
-        }
-        invalidate();
-    }
-
-    @Override
-    protected void onDraw(Canvas canvas) {
-        // Behind the buttons: onDraw runs before dispatchDraw. Single-lens
-        // devices never show the pill.
-        if (selectorPlaced && selectorTarget >= 0 && getChildCount() > 1) {
-            boolean vertical = getOrientation() == VERTICAL;
-            float along = selectorCenterAlongAxis();
-            float cx = vertical ? getWidth() / 2f : along;
-            float cy = vertical ? along : getHeight() / 2f;
-            canvas.drawCircle(cx, cy, selectorRadius, selectorPaint);
-        }
-        super.onDraw(canvas);
-    }
-
-    /**
-     * The pill's centre along the layout axis, interpolated between the real
-     * button centres by the spring's animated index, so it tracks both the
-     * horizontal and the docked vertical arrangements.
-     */
-    private float selectorCenterAlongAxis() {
-        boolean vertical = getOrientation() == VERTICAL;
-        View first = getChildAt(0);
-        if (first == null) {
-            return 0f;
-        }
-        float firstCenter = vertical ? first.getTop() + first.getHeight() / 2f
-                : first.getLeft() + first.getWidth() / 2f;
-        float step = 0f;
-        if (getChildCount() > 1) {
-            View second = getChildAt(1);
-            float secondCenter = vertical ? second.getTop() + second.getHeight() / 2f
-                    : second.getLeft() + second.getWidth() / 2f;
-            step = secondCenter - firstCenter;
-        }
-        return firstCenter + step * selectorIndex.getValue();
     }
 
     private void addNewButton(String cameraId, String buttonText) {
@@ -319,8 +203,7 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(b, 9, 13, 1,
                 TypedValue.COMPLEX_UNIT_SP);
         // No per-button highlight: the container's sliding pill is the
-        // selection. The shared aux_button_background drawable stays as-is for
-        // the settings bar, which still uses its selected state.
+        // selection, and the label tint follows the selected state.
         b.setBackground(null);
         // The Material button style's 24dp content padding would leave a 35dp
         // button no room for its label (it wrapped to a clipped second line).

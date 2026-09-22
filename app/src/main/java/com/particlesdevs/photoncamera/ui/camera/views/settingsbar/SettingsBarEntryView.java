@@ -32,6 +32,7 @@ import androidx.appcompat.content.res.AppCompatResources;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
+import com.particlesdevs.photoncamera.ui.camera.views.SelectorPillLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -43,6 +44,11 @@ public class SettingsBarEntryView extends LinearLayout {
     private final TextView stateTextView;
     private final List<ImageButton> imageButtons = new ArrayList<>();
     private final Context context;
+    /**
+     * The option buttons live in their own row so it can paint the sliding
+     * selection pill (see {@link SelectorPillLayout}) behind them.
+     */
+    private final SelectorPillLayout buttonRow;
 
     public SettingsBarEntryView(Context context) {
         super(context);
@@ -74,7 +80,14 @@ public class SettingsBarEntryView extends LinearLayout {
         textContainer.addView(titleTextView, textViewParam);
         textContainer.addView(stateTextView, textViewParam);
 
+        buttonRow = new SelectorPillLayout(context);
+        buttonRow.setOrientation(HORIZONTAL);
+        buttonRow.setGravity(CENTER_VERTICAL);
+        buttonRow.setLayoutParams(new LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT));
+
         addView(textContainer);
+        addView(buttonRow);
     }
 
     public void setSettingsBarEntryModel(SettingsBarEntryModel entryModel) {
@@ -85,13 +98,17 @@ public class SettingsBarEntryView extends LinearLayout {
         }
 
         imageButtons.clear();
+        buttonRow.removeAllViews();
         if (entryModel.getSettingsBarButtonModels() != null) {
             for (SettingsBarButtonModel buttonModel : entryModel.getSettingsBarButtonModels()) {
                 ImageButton button = new ImageButton(context);
                 button.setId(buttonModel.getId());
                 button.setImageResource(buttonModel.getButtonDrawableId());
                 button.setImageTintList(AppCompatResources.getColorStateList(context, R.color.cam_icon_tint));
-                button.setBackgroundResource(R.drawable.aux_button_background);
+                // No per-button highlight: the row's sliding pill is the
+                // selection and the icon tint follows the selected state.
+                button.setBackground(null);
+                button.setPadding(0, 0, 0, 0);
                 button.setCropToPadding(false);
                 button.setOnClickListener(buttonModel.getButtonClickListener());
                 button.setSelected(buttonModel.isSelected());
@@ -99,6 +116,15 @@ public class SettingsBarEntryView extends LinearLayout {
             }
             addToLayout(imageButtons);
         }
+        refreshSelection();
+    }
+
+    /**
+     * Re-syncs the selection pill after in-place selected-state updates (an
+     * option tap updates the models without rebuilding the views).
+     */
+    public void refreshSelection() {
+        buttonRow.refreshSelection();
     }
 
     private void addToLayout(List<ImageButton> buttons) {
@@ -106,7 +132,7 @@ public class SettingsBarEntryView extends LinearLayout {
         buttonParam.setMargins(dp(5), dp(2), dp(5), dp(2));
         if (buttons != null) {
             for (ImageButton button : buttons) {
-                addView(button, buttonParam);
+                buttonRow.addView(button, buttonParam);
             }
         }
     }
