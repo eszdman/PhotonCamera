@@ -213,6 +213,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
          */
         private boolean videoScopeSelfie;
         private String videoScopeResolution;
+        private int videoScopeFpsMode;
         private EditTextPreference hdrSessionTypePref;
         private EditTextPreference sdrSessionTypePref;
 
@@ -234,6 +235,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             videoScopeResolution = videoScopeSelfie
                     ? PreferenceKeys.getSelfieVideoResolution()
                     : PreferenceKeys.getVideoResolution();
+            // The frame rate comes from the camera's video fps setting for the
+            // active lens (there is no fps control on this screen).
+            videoScopeFpsMode = PreferenceKeys.getCurrentLensVideoFpsMode();
             mSettingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
             supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
             Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
@@ -399,7 +403,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     return;
                 }
                 com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(
-                        mContext, screen, config, videoScopeSelfie, videoScopeResolution);
+                        mContext, screen, config, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode);
             } catch (Exception e) {
                 Log.e("SettingsActivity", "ERROR in generateVideoTunablePreferences", e);
                 e.printStackTrace();
@@ -635,24 +639,24 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         : PreferenceKeys.getVideoResolution();
             }
             if (hdrSessionTypePref != null) {
-                hdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoResolutionScope
-                        .sessionTypeKey(true, videoScopeSelfie, videoScopeResolution));
-                hdrSessionTypePref.setText(
-                        PreferenceKeys.getVideoHdrSessionType(videoScopeSelfie, videoScopeResolution));
+                hdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoScope
+                        .sessionTypeKey(true, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+                hdrSessionTypePref.setText(PreferenceKeys.getVideoHdrSessionType(
+                        videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
             }
             if (sdrSessionTypePref != null) {
-                sdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoResolutionScope
-                        .sessionTypeKey(false, videoScopeSelfie, videoScopeResolution));
-                sdrSessionTypePref.setText(
-                        PreferenceKeys.getVideoSdrSessionType(videoScopeSelfie, videoScopeResolution));
+                sdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoScope
+                        .sessionTypeKey(false, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+                sdrSessionTypePref.setText(PreferenceKeys.getVideoSdrSessionType(
+                        videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
             }
             updateVideoScopeLabels();
         }
 
-        /** "1920x1080 · Back" / "… · Selfie" label for the scoped video entries. */
+        /** "1920x1080 · 60fps · Back" label for the scoped video entries. */
         private String videoScopeLabel() {
-            return videoScopeResolution + " \u00B7 " + mContext.getString(
-                    videoScopeSelfie ? R.string.video_scope_selfie : R.string.video_scope_back);
+            return com.particlesdevs.photoncamera.settings.VideoScope.label(
+                    mContext, videoScopeResolution, videoScopeFpsMode, videoScopeSelfie);
         }
 
         private void updateVideoScopeLabels() {

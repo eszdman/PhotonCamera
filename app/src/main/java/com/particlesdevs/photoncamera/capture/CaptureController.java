@@ -3046,7 +3046,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                 com.particlesdevs.photoncamera.settings.TunableKeyManager
                                         .applyVideoTunableKeys(mPreviewRequestBuilder, getTunablePhysicalId(),
                                                 mVideoHdrActive && mIsRecordingVideo,
-                                                isActiveCameraFrontFacing(), getActiveVideoResolution());
+                                                isActiveCameraFrontFacing(), getActiveVideoResolution(),
+                                                PhotonCamera.getSettings().getActiveFpsMode());
                             }
                         } catch (Exception e) {
                             Log.w(TAG, "video tunable keys failed", e);
@@ -3174,18 +3175,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Range<Integer> videoFpsRange = videoMode ? getSelectedFpsRange() : null;
         List<VendorTagUtils.TunableKey> videoFull = null;
         boolean videoListIsHdr = false;
-        // Scope for the video lists/session types: active lens + its resolution.
+        // Scope for the video lists/session types: active lens + resolution + fps.
         boolean videoSelfie = isActiveCameraFrontFacing();
         String videoResolution = getActiveVideoResolution();
+        int videoFpsMode = PhotonCamera.getSettings() != null
+                ? PhotonCamera.getSettings().getActiveFpsMode() : 0;
         List<VendorTagUtils.TunableKey> videoKeys = new java.util.ArrayList<>();
         try {
             if (videoMode) {
                 videoListIsHdr = mVideoHdrActive && mIsRecordingVideo;
                 videoFull = videoListIsHdr
                         ? com.particlesdevs.photoncamera.settings.TunableKeyManager
-                                .loadVideoHdrKeys(context, videoSelfie, videoResolution)
+                                .loadVideoHdrKeys(context, videoSelfie, videoResolution, videoFpsMode)
                         : com.particlesdevs.photoncamera.settings.TunableKeyManager
-                                .loadVideoKeys(context, videoSelfie, videoResolution);
+                                .loadVideoKeys(context, videoSelfie, videoResolution, videoFpsMode);
                 videoKeys = com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(videoFull);
             }
         } catch (Exception e) {
@@ -3221,10 +3224,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (videoFull != null) {
                 if (videoListIsHdr) {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoHdrKeys(
-                            context, videoSelfie, videoResolution, videoFull);
+                            context, videoSelfie, videoResolution, videoFpsMode, videoFull);
                 } else {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoKeys(
-                            context, videoSelfie, videoResolution, videoFull);
+                            context, videoSelfie, videoResolution, videoFpsMode, videoFull);
                 }
             }
         } catch (Exception e) {
@@ -5000,9 +5003,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             boolean hdr = mIsRecordingVideo ? mVideoHdrActive : isVideoHdrRequested();
             boolean selfie = isActiveCameraFrontFacing();
             String resolution = getActiveVideoResolution();
+            int fpsMode = PhotonCamera.getSettings().getActiveFpsMode();
             String raw = hdr
-                    ? PreferenceKeys.getVideoHdrSessionType(selfie, resolution)
-                    : PreferenceKeys.getVideoSdrSessionType(selfie, resolution);
+                    ? PreferenceKeys.getVideoHdrSessionType(selfie, resolution, fpsMode)
+                    : PreferenceKeys.getVideoSdrSessionType(selfie, resolution, fpsMode);
             if (raw == null || raw.isEmpty()) return fallback;
             int value = Integer.parseInt(raw);
             if (value < 0 || value > 65535) {
@@ -5011,7 +5015,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             Log.d(TAG, "video session type override=" + value + " (per-sensor fallback=" + fallback
                     + ", hdr=" + hdr + ", recording=" + mIsRecordingVideo
-                    + ", scope=" + (selfie ? "selfie" : "back") + "/" + resolution
+                    + ", scope=" + (selfie ? "selfie" : "back") + "/" + resolution + "/"
+                    + com.particlesdevs.photoncamera.settings.VideoScope.fpsToken(fpsMode)
                     + ", device=" + getOpenDeviceId() + ")");
             return value;
         } catch (NumberFormatException e) {

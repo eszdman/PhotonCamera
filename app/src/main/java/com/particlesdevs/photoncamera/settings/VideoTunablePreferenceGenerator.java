@@ -16,9 +16,10 @@ import java.util.List;
 
 /**
  * Builds the preferences for the video-only tunable-key lists (SDR and HDR),
- * scoped per resolution and facing via {@link VideoResolutionScope}. Mirrors the
- * sensor-config tunable section ({@link SensorConfigPreferenceGenerator}) but
- * uses the video ids so the keys apply in video mode only, regardless of sensor.
+ * scoped per resolution, frame rate and facing via {@link VideoScope}. Mirrors
+ * the sensor-config tunable section ({@link SensorConfigPreferenceGenerator})
+ * but uses the video ids so the keys apply in video mode only, regardless of
+ * sensor.
  */
 public final class VideoTunablePreferenceGenerator {
     private static final String TAG = "VideoTunablePrefs";
@@ -68,24 +69,24 @@ public final class VideoTunablePreferenceGenerator {
     private VideoTunablePreferenceGenerator() {}
 
     public static void generatePreferences(Context context, PreferenceScreen screen, Config config) {
-        generatePreferences(context, screen, config, false, null);
+        generatePreferences(context, screen, config, false, null, 0);
     }
 
     /**
-     * Generates the list for one scope. The scope's list is seeded from the
-     * legacy global list the first time it is shown, so the UI and the capture
-     * path agree on the keys that apply until the scope is edited.
+     * Generates the list for one scope. The scope's list is seeded from its
+     * fallbacks the first time it is shown, so the UI and the capture path
+     * agree on the keys that apply until the scope is edited.
      *
      * @param selfie     true for the front (selfie) camera's scope
      * @param resolution the scope's video resolution value
+     * @param fpsMode    the scope's frame-rate setting (0=Auto .. 3=60)
      */
     public static void generatePreferences(Context context, PreferenceScreen screen, Config config,
-            boolean selfie, String resolution) {
+            boolean selfie, String resolution, int fpsMode) {
         try {
-            TunableKeyManager.seedVideoScope(context, config.hdr, selfie, resolution);
-            String tunableId = VideoResolutionScope.tunableId(config.hdr, selfie, resolution);
-            String scope = VideoResolutionScope.label(resolution) + " \u00B7 "
-                    + context.getString(selfie ? R.string.video_scope_selfie : R.string.video_scope_back);
+            TunableKeyManager.seedVideoScope(context, config.hdr, selfie, resolution, fpsMode);
+            String tunableId = VideoScope.tunableId(config.hdr, selfie, resolution, fpsMode);
+            String scope = VideoScope.label(context, resolution, fpsMode, selfie);
 
             PreferenceCategory category = new PreferenceCategory(context);
             category.setKey(config.categoryKey);

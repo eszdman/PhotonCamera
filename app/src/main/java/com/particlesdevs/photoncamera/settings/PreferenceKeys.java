@@ -948,38 +948,48 @@ public class PreferenceKeys {
     }
 
     /**
-     * HDR video session-type override for a scope (resolution + facing). Falls
-     * back to the legacy global value until the scope has its own entry.
+     * HDR video session-type override for a scope (facing + resolution + fps).
+     * Falls back to the previous resolution-only scope and then the legacy
+     * global value until the scope has its own entry.
      */
-    public static String getVideoHdrSessionType(boolean selfie, String resolution) {
-        return getScopedSessionType(
-                VideoResolutionScope.sessionTypeKey(true, selfie, resolution),
-                Key.KEY_VIDEO_HDR_SESSION_TYPE);
+    public static String getVideoHdrSessionType(boolean selfie, String resolution, int fpsMode) {
+        return getScopedSessionType(true, selfie, resolution, fpsMode, Key.KEY_VIDEO_HDR_SESSION_TYPE);
     }
 
-    public static void setVideoHdrSessionType(boolean selfie, String resolution, String value) {
+    public static void setVideoHdrSessionType(boolean selfie, String resolution, int fpsMode, String value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
-                VideoResolutionScope.sessionTypeKey(true, selfie, resolution), value);
+                VideoScope.sessionTypeKey(true, selfie, resolution, fpsMode), value);
     }
 
-    /** SDR video session-type override for a scope (resolution + facing). */
-    public static String getVideoSdrSessionType(boolean selfie, String resolution) {
-        return getScopedSessionType(
-                VideoResolutionScope.sessionTypeKey(false, selfie, resolution),
-                Key.KEY_VIDEO_SDR_SESSION_TYPE);
+    /** SDR video session-type override for a scope (facing + resolution + fps). */
+    public static String getVideoSdrSessionType(boolean selfie, String resolution, int fpsMode) {
+        return getScopedSessionType(false, selfie, resolution, fpsMode, Key.KEY_VIDEO_SDR_SESSION_TYPE);
     }
 
-    public static void setVideoSdrSessionType(boolean selfie, String resolution, String value) {
+    public static void setVideoSdrSessionType(boolean selfie, String resolution, int fpsMode, String value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
-                VideoResolutionScope.sessionTypeKey(false, selfie, resolution), value);
+                VideoScope.sessionTypeKey(false, selfie, resolution, fpsMode), value);
     }
 
-    /** Scoped value, or the legacy global value while the scope has none. */
-    private static String getScopedSessionType(String scopedKey, Key legacyKey) {
+    /**
+     * Scoped value, or the previous resolution-only scope's value, or the
+     * legacy global value while neither scope has its own entry.
+     */
+    private static String getScopedSessionType(boolean hdr, boolean selfie, String resolution,
+            int fpsMode, Key legacyKey) {
         SettingsManager settingsManager = preferenceKeys.settingsManager;
-        String value = settingsManager.isSet(SCOPE_GLOBAL, scopedKey)
-                ? settingsManager.getString(SCOPE_GLOBAL, scopedKey, "")
-                : settingsManager.getString(SCOPE_GLOBAL, legacyKey, "");
+        String scopedKey = VideoScope.sessionTypeKey(hdr, selfie, resolution, fpsMode);
+        if (settingsManager.isSet(SCOPE_GLOBAL, scopedKey)) {
+            return trim(settingsManager.getString(SCOPE_GLOBAL, scopedKey, ""));
+        }
+        String resolutionKey = VideoScope.resolutionSessionTypeKey(hdr, selfie, resolution);
+        if (settingsManager.isSet(SCOPE_GLOBAL, resolutionKey)) {
+            return trim(settingsManager.getString(SCOPE_GLOBAL, resolutionKey, ""));
+        }
+        return trim(settingsManager.getString(SCOPE_GLOBAL, legacyKey, ""));
+    }
+
+    private static String trim(String value) {
         return value != null ? value.trim() : "";
     }
 

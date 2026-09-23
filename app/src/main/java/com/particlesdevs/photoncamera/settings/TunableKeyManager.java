@@ -79,40 +79,44 @@ public class TunableKeyManager {
         saveKeys(context, physicalId, keys);
     }
 
-    /** Load the video tunable list for a scope (legacy global list as fallback). */
+    /** Load the video tunable list for a scope (older scopes as fallback). */
     public static List<VendorTagUtils.TunableKey> loadVideoKeys(Context context, boolean selfie,
-            String resolution) {
-        return loadScopedVideoKeys(context, false, selfie, resolution);
+            String resolution, int fpsMode) {
+        return loadScopedVideoKeys(context, false, selfie, resolution, fpsMode);
     }
 
     /** Save the video tunable list for a scope. */
-    public static void saveVideoKeys(Context context, boolean selfie, String resolution,
+    public static void saveVideoKeys(Context context, boolean selfie, String resolution, int fpsMode,
             List<VendorTagUtils.TunableKey> keys) {
-        saveKeys(context, VideoResolutionScope.tunableId(false, selfie, resolution), keys);
+        saveKeys(context, VideoScope.tunableId(false, selfie, resolution, fpsMode), keys);
     }
 
-    /** Load the HDR video tunable list for a scope (legacy global list as fallback). */
+    /** Load the HDR video tunable list for a scope (older scopes as fallback). */
     public static List<VendorTagUtils.TunableKey> loadVideoHdrKeys(Context context, boolean selfie,
-            String resolution) {
-        return loadScopedVideoKeys(context, true, selfie, resolution);
+            String resolution, int fpsMode) {
+        return loadScopedVideoKeys(context, true, selfie, resolution, fpsMode);
     }
 
     /** Save the HDR video tunable list for a scope. */
-    public static void saveVideoHdrKeys(Context context, boolean selfie, String resolution,
+    public static void saveVideoHdrKeys(Context context, boolean selfie, String resolution, int fpsMode,
             List<VendorTagUtils.TunableKey> keys) {
-        saveKeys(context, VideoResolutionScope.tunableId(true, selfie, resolution), keys);
+        saveKeys(context, VideoScope.tunableId(true, selfie, resolution, fpsMode), keys);
     }
 
     /**
-     * Loads the scoped list, falling back to the legacy global list until the
-     * scope has been saved once (even if saved empty), so existing values keep
-     * applying after the per-resolution split.
+     * Loads the scoped list, falling back to the previous resolution-only scope
+     * and then the legacy global list until the scope has been saved once (even
+     * if saved empty), so existing values keep applying after the split.
      */
     private static List<VendorTagUtils.TunableKey> loadScopedVideoKeys(Context context,
-            boolean hdr, boolean selfie, String resolution) {
-        String scopedId = VideoResolutionScope.tunableId(hdr, selfie, resolution);
+            boolean hdr, boolean selfie, String resolution, int fpsMode) {
+        String scopedId = VideoScope.tunableId(hdr, selfie, resolution, fpsMode);
         if (isStored(context, scopedId)) {
             return loadKeys(context, scopedId);
+        }
+        String resolutionId = VideoScope.resolutionTunableId(hdr, selfie, resolution);
+        if (isStored(context, resolutionId)) {
+            return loadKeys(context, resolutionId);
         }
         return loadKeys(context, hdr ? VIDEO_HDR_TUNABLE_ID : VIDEO_TUNABLE_ID);
     }
@@ -125,16 +129,17 @@ public class TunableKeyManager {
     }
 
     /**
-     * Seeds a scope's list from the legacy global list the first time it is
-     * shown or used, so the settings UI and the capture path agree on the keys
-     * that apply until the scope is edited.
+     * Seeds a scope's list from its fallbacks (previous resolution-only scope,
+     * then the legacy global list) the first time it is shown or used, so the
+     * settings UI and the capture path agree on the keys that apply until the
+     * scope is edited.
      */
-    public static void seedVideoScope(Context context, boolean hdr, boolean selfie, String resolution) {
+    public static void seedVideoScope(Context context, boolean hdr, boolean selfie, String resolution,
+            int fpsMode) {
         if (context == null) return;
-        String scopedId = VideoResolutionScope.tunableId(hdr, selfie, resolution);
+        String scopedId = VideoScope.tunableId(hdr, selfie, resolution, fpsMode);
         if (isStored(context, scopedId)) return;
-        saveKeys(context, scopedId,
-                loadKeys(context, hdr ? VIDEO_HDR_TUNABLE_ID : VIDEO_TUNABLE_ID));
+        saveKeys(context, scopedId, loadScopedVideoKeys(context, hdr, selfie, resolution, fpsMode));
     }
 
     /**
@@ -147,19 +152,19 @@ public class TunableKeyManager {
      * @param hdrActive true to apply the HDR list, false for the SDR list.
      */
     public static void applyVideoTunableKeys(CaptureRequest.Builder builder, String physicalId,
-            boolean hdrActive, boolean selfie, String resolution) {
+            boolean hdrActive, boolean selfie, String resolution, int fpsMode) {
         Context context = PhotonCamera.getSettingsManagerStatic() != null
                 ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
         if (context == null || builder == null) return;
         List<VendorTagUtils.TunableKey> keys = hdrActive
-                ? loadVideoHdrKeys(context, selfie, resolution)
-                : loadVideoKeys(context, selfie, resolution);
+                ? loadVideoHdrKeys(context, selfie, resolution, fpsMode)
+                : loadVideoKeys(context, selfie, resolution, fpsMode);
         if (keys.isEmpty()) return;
         VendorTagUtils.applyTunableKeys(builder, keys, physicalId);
         if (hdrActive) {
-            saveVideoHdrKeys(context, selfie, resolution, keys);
+            saveVideoHdrKeys(context, selfie, resolution, fpsMode, keys);
         } else {
-            saveVideoKeys(context, selfie, resolution, keys);
+            saveVideoKeys(context, selfie, resolution, fpsMode, keys);
         }
     }
 
