@@ -8,9 +8,11 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.LinearLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
+import androidx.dynamicanimation.animation.SpringForce;
 
 import com.google.android.material.color.MaterialColors;
 import com.particlesdevs.photoncamera.R;
@@ -45,10 +47,20 @@ public class SelectorPillLayout extends LinearLayout {
         pillPaint.setColor(MaterialColors.getColor(context, R.attr.colorPrimaryContainer,
                 Color.TRANSPARENT));
         pillSpring = new SpringAnimation(pillIndex)
-                .setSpring(MorphShapeDrawable.playfulSpring())
+                .setSpring(createPillSpring())
                 .addUpdateListener((animation, value, velocity) -> invalidate());
         // The pill is painted by this container, behind its children.
         setWillNotDraw(false);
+    }
+
+    /**
+     * Spring driving the slide. Subclasses may slow it so the slide reads as one
+     * motion with their other animations (the lens bar matches the viewfinder's
+     * aspect stretch).
+     */
+    @NonNull
+    protected SpringForce createPillSpring() {
+        return MorphShapeDrawable.playfulSpring();
     }
 
     /** Animates the pill to the first selected child ({@code -1} hides it). */

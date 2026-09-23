@@ -6,7 +6,6 @@ import android.view.GestureDetector;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ScaleGestureDetector;
-import android.widget.FrameLayout;
 import android.widget.ImageView;
 
 import androidx.constraintlayout.widget.ConstraintLayout;
@@ -175,14 +174,20 @@ public class Swipe {
     private RectF getViewfinderRect() {
         //takes into consideration the top and bottom translation of camera_container(if it has been moved due to different display ratios)
         // for calculation of size of viewfinder RectF.(for touch focus detection)
+        // The viewfinder frame is the visible preview rect: the include around
+        // it spans the whole camera container, so its bounds are not usable.
         ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
-        FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
-        return new RectF(
-                layout_viewfinder.getLeft(),//left edge of viewfinder
-                camera_container.getY(), //y position of camera_container
-                layout_viewfinder.getRight(), //right edge of viewfinder
-                layout_viewfinder.getBottom() + camera_container.getY() //bottom edge of viewfinder + y position of camera_container
-        );
+        View frame = cameraFragment.findViewById(R.id.viewfinder_frame);
+        if (camera_container == null || frame == null) {
+            return new RectF();
+        }
+        int[] containerLocation = new int[2];
+        int[] frameLocation = new int[2];
+        camera_container.getLocationOnScreen(containerLocation);
+        frame.getLocationOnScreen(frameLocation);
+        float left = frameLocation[0] - containerLocation[0];
+        float top = frameLocation[1] - containerLocation[1] + camera_container.getY();
+        return new RectF(left, top, left + frame.getWidth(), top + frame.getHeight());
     }
 
     private void startTouchToFocus(MotionEvent event) {
@@ -200,16 +205,10 @@ public class Swipe {
     private void startSpotWb(MotionEvent event) {
         // Dispatches long-press coordinates to TouchFocus for Spot WB measurement
         ConstraintLayout camera_container = cameraFragment.findViewById(R.id.camera_container);
-        FrameLayout layout_viewfinder = cameraFragment.findViewById(R.id.layout_viewfinder);
-        if (camera_container == null || layout_viewfinder == null || cameraFragment.getTouchFocus() == null) {
+        if (camera_container == null || cameraFragment.getTouchFocus() == null) {
             return;
         }
-        RectF viewfinderRect = new RectF(
-                layout_viewfinder.getLeft(),
-                camera_container.getY(),
-                layout_viewfinder.getRight(),
-                layout_viewfinder.getBottom() + camera_container.getY()
-        );
+        RectF viewfinderRect = getViewfinderRect();
         if (viewfinderRect.contains(event.getX(), event.getY())) {
             float translateX = event.getX() - camera_container.getLeft();
             float translateY = event.getY() - camera_container.getTop();

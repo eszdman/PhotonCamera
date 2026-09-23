@@ -21,6 +21,7 @@
 package com.particlesdevs.photoncamera.ui.camera.views.settingsbar;
 
 import android.content.Context;
+import android.animation.LayoutTransition;
 import android.content.Intent;
 import android.util.AttributeSet;
 import android.util.TypedValue;
@@ -63,6 +64,13 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
 
         optionsContainer = new LinearLayout(context);
         optionsContainer.setOrientation(LinearLayout.VERTICAL);
+        // The mode states toggle entry visibility on every switch; a layout
+        // transition fades appearing entries at their final bounds and glides
+        // the retained ones, instead of the mode transition flying them in.
+        // Its legs share the standard curve with the explicit switch animations.
+        LayoutTransition entriesTransition = new LayoutTransition();
+        Motion.applyStandardTo(entriesTransition, context);
+        optionsContainer.setLayoutTransition(entriesTransition);
         RelativeLayout.LayoutParams optionsContainerParam = new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
 
         scrollView.addView(optionsContainer, optionsContainerParam);
@@ -113,6 +121,22 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         optionsContainer.addView(entryView);
     }
 
+    /**
+     * Adds the entry, or re-applies its model when the panel already holds it.
+     * Reusing the entry views (and their option buttons) keeps the rows'
+     * selection pills placed, so they slide to a new selection instead of being
+     * rebuilt, and an open pulldown no longer fades its rows out and back in on
+     * every rebuild.
+     */
+    public void addOrUpdateEntry(SettingsBarEntryModel entryModel) {
+        View existing = findViewById(entryModel.getId());
+        if (existing instanceof SettingsBarEntryView) {
+            ((SettingsBarEntryView) existing).setSettingsBarEntryModel(entryModel);
+            return;
+        }
+        addEntry(entryModel);
+    }
+
     private int dp(float f) {
         return (int) TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, f, getContext().getResources().getDisplayMetrics());
     }
@@ -130,12 +154,6 @@ public class SettingsBarLayout extends RelativeLayout implements SettingsBarList
         }
         if (entryModel.getStateTextStringId() != 0) {
             ((TextView) entry.findViewById(android.R.id.summary)).setText(entryModel.getStateTextStringId());
-        }
-    }
-
-    public void removeEntries() {
-        if (optionsContainer != null) {
-            optionsContainer.removeAllViews();
         }
     }
 

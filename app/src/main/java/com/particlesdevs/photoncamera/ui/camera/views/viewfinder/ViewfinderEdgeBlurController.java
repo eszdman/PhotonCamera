@@ -25,7 +25,8 @@ public class ViewfinderEdgeBlurController {
     private int lastSharpTop = Integer.MIN_VALUE;
     private int lastSharpWidth = -1;
     private int lastSharpHeight = -1;
-    private boolean lastEnabled;
+    private boolean lastFullBleed;
+    private boolean lastPreviewEnabled;
 
     public ViewfinderEdgeBlurController(ConstraintLayout root, GLPreview preview, View frame) {
         this.root = root;
@@ -58,6 +59,13 @@ public class ViewfinderEdgeBlurController {
         int frameLeft = frameLocation[0] - rootLocation[0];
         int frameTop = frameLocation[1] - rootLocation[1];
 
+        // While the frame stretches between aspects the surface must cover both
+        // the old and the new rect, so it stays full-bleed and the renderer
+        // letterboxes the sharp image into the moving rect instead of resizing
+        // the GL surface every animation frame.
+        boolean fullBleed = enabled || (frame instanceof ViewfinderFrameView
+                && ((ViewfinderFrameView) frame).isAspectAnimating());
+
         int targetLeft;
         int targetTop;
         int targetW;
@@ -66,7 +74,7 @@ public class ViewfinderEdgeBlurController {
         int sharpTop;
         int sharpW;
         int sharpH;
-        if (enabled) {
+        if (fullBleed) {
             targetLeft = 0;
             targetTop = 0;
             targetW = rootW;
@@ -85,10 +93,13 @@ public class ViewfinderEdgeBlurController {
             sharpW = frameW;
             sharpH = frameH;
         }
-        if (targetLeft == lastLeft && targetTop == lastTop && targetW == lastWidth
-                && targetH == lastHeight && sharpLeft == lastSharpLeft
+        boolean targetChanged = targetLeft != lastLeft || targetTop != lastTop
+                || targetW != lastWidth || targetH != lastHeight;
+        boolean previewEnabledChanged = enabled != lastPreviewEnabled;
+        if (!targetChanged && sharpLeft == lastSharpLeft
                 && sharpTop == lastSharpTop && sharpW == lastSharpWidth
-                && sharpH == lastSharpHeight && enabled == lastEnabled) {
+                && sharpH == lastSharpHeight && fullBleed == lastFullBleed
+                && enabled == lastPreviewEnabled) {
             return;
         }
         lastLeft = targetLeft;
@@ -99,21 +110,29 @@ public class ViewfinderEdgeBlurController {
         lastSharpTop = sharpTop;
         lastSharpWidth = sharpW;
         lastSharpHeight = sharpH;
-        lastEnabled = enabled;
+        lastFullBleed = fullBleed;
+        lastPreviewEnabled = enabled;
 
-        ConstraintLayout.LayoutParams params =
-                (ConstraintLayout.LayoutParams) preview.getLayoutParams();
-        params.width = targetW;
-        params.height = targetH;
-        params.leftMargin = targetLeft;
-        params.topMargin = targetTop;
-        params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
-        params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
-        params.endToEnd = ConstraintLayout.LayoutParams.UNSET;
-        params.bottomToBottom = ConstraintLayout.LayoutParams.UNSET;
-        preview.setLayoutParams(params);
+        // Only re-apply the surface's layout params when its own target moved:
+        // the sharp rect changes every frame while the viewfinder morphs, and a
+        // redundant setLayoutParams would request a layout each frame.
+        if (targetChanged) {
+            ConstraintLayout.LayoutParams params =
+                    (ConstraintLayout.LayoutParams) preview.getLayoutParams();
+            params.width = targetW;
+            params.height = targetH;
+            params.leftMargin = targetLeft;
+            params.topMargin = targetTop;
+            params.startToStart = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.topToTop = ConstraintLayout.LayoutParams.PARENT_ID;
+            params.endToEnd = ConstraintLayout.LayoutParams.UNSET;
+            params.bottomToBottom = ConstraintLayout.LayoutParams.UNSET;
+            preview.setLayoutParams(params);
+        }
 
-        preview.setEdgeBlurEnabled(enabled);
+        if (previewEnabledChanged) {
+            preview.setEdgeBlurEnabled(enabled);
+        }
         preview.setSharpRect(new Rect(sharpLeft, sharpTop, sharpLeft + sharpW, sharpTop + sharpH));
     }
 }

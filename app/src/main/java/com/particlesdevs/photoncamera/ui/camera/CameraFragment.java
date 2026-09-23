@@ -44,6 +44,7 @@ import android.util.DisplayMetrics;
 
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.PreviewScopeAnalyzer;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.manual.ManualAutoValues;
@@ -54,6 +55,7 @@ import android.util.SizeF;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.animation.LayoutTransition;
+import android.animation.ValueAnimator;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
 import android.widget.Toast;
@@ -191,6 +193,23 @@ public class CameraFragment extends Fragment {
     public Swipe mSwipe;
     private LensZoomBarController lensZoomBarController;
     private ViewfinderEdgeBlurController edgeBlurController;
+    /**
+     * Aspect-switch crossfade: a snapshot of the previous capture (taken at the
+     * mode switch) stretches with the frame and is crossfaded away once the new
+     * camera's frames are live, so the two captures blend without any black.
+     */
+    private boolean aspectSwitchPending;
+    private boolean settingsBarRebuildPending;
+    private ValueAnimator aspectSwitchAnimator;
+    private static final int ASPECT_SWITCH_FRAMES = 2;
+    private static final long ASPECT_CROSSFADE_MS = 450L;
+    /**
+     * Fallback for a reveal whose frames never arrive (or arrive far later than
+     * the glide's ceiling). Kept well above a normal camera reopen so it can
+     * never cut the viewfinder's stretch short before the new frames.
+     */
+    private static final long ASPECT_SWITCH_TIMEOUT_MS = 3000L;
+    private final Runnable aspectSwitchTimeout = this::startAspectSwitchCrossfade;
     // Created on an AsyncTask thread in onResume and consumed from the camera
     // callback threads; volatile + local-copy access keeps them consistent.
     private volatile MediaPlayer burstPlayer;
@@ -310,14 +329,17 @@ public class CameraFragment extends Fragment {
     static void preparePreviewLayout(View rootLayout) {
         // The bottom-bar anchor uses a portrait 3:4 ratio in photo mode (CameraUIViewImpl).
         CustomBinding.setAspectRatio(rootLayout.findViewById(R.id.dummy_reference_view), "3:4");
-        // The viewfinder is a 3:4 portrait block on the phone; the layout editor can't
-        // measure it from the camera, so give it the same ratio for the preview.
-        View viewfinder = rootLayout.findViewById(R.id.layout_viewfinder);
-        if (viewfinder != null && viewfinder.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
-            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) viewfinder.getLayoutParams();
+        // The viewfinder frame is a 3:4 portrait block on the phone; the layout
+        // editor can't measure it from the camera, so constrain it to the same
+        // ratio for the preview. (At runtime the frame measures itself from the
+        // preview size; the include around it is a fixed full-height container.)
+        View frame = rootLayout.findViewById(R.id.viewfinder_frame);
+        if (frame != null && frame.getLayoutParams() instanceof ConstraintLayout.LayoutParams) {
+            ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) frame.getLayoutParams();
+            params.width = 0;
             params.height = 0;
             params.dimensionRatio = "3:4";
-            viewfinder.setLayoutParams(params);
+            frame.setLayoutParams(params);
         }
         // settingsBarVisibility defaults to false -> the settings bar is hidden
         View settingsBar = rootLayout.findViewById(R.id.settings_bar);
@@ -380,6 +402,11 @@ public class CameraFragment extends Fragment {
                 (v, l, t, r, b, ol, ot, or, ob) -> edgeBlurController.update());
         edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
         textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
+        // Aspect switches: the changed aspect stretches straight away, holding
+        // a snapshot of the previous capture until the new camera's frames are
+        // live, then crossfading into them.
+        cameraFragmentBinding.layoutViewfinder.viewfinderFrame.setListener(
+                this::onAspectChangeStarting);
         mSwipe.setZoomGestureListener(lensZoomBarController);
         cameraFragmentViewModel.getCameraFragmentModel().addOnPropertyChangedCallback(
                 new Observable.OnPropertyChangedCallback() {
@@ -417,12 +444,20 @@ public class CameraFragment extends Fragment {
         // nothing, so it then "heals". Disable only the appearing leg — the
         // disappearing fade the container was given stays intact.
         if (cameraFragmentBinding.layoutViewfinder.getRoot() instanceof ViewGroup) {
-            LayoutTransition viewfinderTransitions =
-                    ((ViewGroup) cameraFragmentBinding.layoutViewfinder.getRoot()).getLayoutTransition();
+            ViewGroup viewfinderRoot =
+                    (ViewGroup) cameraFragmentBinding.layoutViewfinder.getRoot();
+            LayoutTransition viewfinderTransitions = viewfinderRoot.getLayoutTransition();
             if (viewfinderTransitions != null) {
                 viewfinderTransitions.disableTransitionType(LayoutTransition.APPEARING);
+                Motion.applyStandardTo(viewfinderTransitions, view.getContext());
             }
         }
+        // Chrome that toggles with the mode runs its layout changes on the same
+        // standard curve and duration as the explicit mode-switch animations, so
+        // the whole switch reads as one motion.
+        Motion.applyStandardTo(
+                ((ViewGroup) view.findViewById(R.id.topbar_button_row)).getLayoutTransition(),
+                view.getContext());
         camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
         camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
         if (manualPanelBar != null) {
@@ -454,6 +489,86 @@ public class CameraFragment extends Fragment {
         applySecureSessionUI();
     }
 
+    /**
+     * Starts the viewfinder aspect stretch at the mode switch, so it runs with
+     * the rest of the UI instead of after the camera reopens. The post-open
+     * preview size then matches this target and is a no-op.
+     */
+    public void beginAspectSwitchForMode(CameraMode mode) {
+        if (cameraFragmentBinding == null || mode == null) {
+            return;
+        }
+        Size aspect = CaptureController.aspectForMode(mode);
+        cameraFragmentBinding.layoutViewfinder.viewfinderFrame
+                .animateToAspect(aspect.getWidth(), aspect.getHeight());
+    }
+
+    /**
+     * A changed aspect is about to stretch: snapshot the current capture and
+     * hold it at full opacity, so the viewfinder keeps showing it (stretching)
+     * while the new camera's frames come up behind it. They are crossfaded in
+     * once they are live.
+     */
+    private void onAspectChangeStarting() {
+        if (textureView == null) {
+            return;
+        }
+        // A switch is already in flight: the running settle/timeout finishes it.
+        // Re-snapshotting and re-arming here would flash the old capture back in.
+        if (aspectSwitchPending) {
+            return;
+        }
+        textureView.requestSnapshot();
+        textureView.setSnapshotAlpha(1f);
+        aspectSwitchPending = true;
+        textureView.removeCallbacks(aspectSwitchTimeout);
+        textureView.postDelayed(aspectSwitchTimeout, ASPECT_SWITCH_TIMEOUT_MS);
+        textureView.beginPreviewSettleTracking(this::startAspectSwitchCrossfade, ASPECT_SWITCH_FRAMES);
+    }
+
+    /**
+     * The new camera's frames are live (or the fallback fired). The stretch is
+     * landed first — the chrome glides on the same progress, so when the frame
+     * lands every mode-switch animation is done — and only then is the held
+     * capture crossfaded into the new preview. Crossfading over a half-way
+     * frame left the viewfinder and the chrome appearing to hang mid-animation.
+     */
+    private void startAspectSwitchCrossfade() {
+        if (textureView == null || !aspectSwitchPending) {
+            return;
+        }
+        textureView.removeCallbacks(aspectSwitchTimeout);
+        cameraFragmentBinding.layoutViewfinder.viewfinderFrame
+                .finishStretch(this::crossfadeAspectSwitch);
+    }
+
+    /** Fades the held capture into the new camera's live frames. */
+    private void crossfadeAspectSwitch() {
+        if (textureView == null || !aspectSwitchPending) {
+            return;
+        }
+        aspectSwitchPending = false;
+        if (aspectSwitchAnimator != null) {
+            aspectSwitchAnimator.cancel();
+        }
+        aspectSwitchAnimator = ValueAnimator.ofFloat(1f, 0f);
+        aspectSwitchAnimator.setDuration(ASPECT_CROSSFADE_MS);
+        aspectSwitchAnimator.setInterpolator(Motion.standard(textureView.getContext()));
+        aspectSwitchAnimator.addUpdateListener(
+                animation -> textureView.setSnapshotAlpha((float) animation.getAnimatedValue()));
+        aspectSwitchAnimator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (aspectSwitchPending) {
+                    // A newer switch took over; its own end flushes.
+                    return;
+                }
+                flushDeferredSettingsBarRebuild();
+            }
+        });
+        aspectSwitchAnimator.start();
+    }
+
     private void initSettingsBar() {
         settingsBarEntryProvider.createEntries();
         settingsBarEntryProvider.addObserver(mCameraUIEventsListener);
@@ -461,9 +576,45 @@ public class CameraFragment extends Fragment {
     }
 
     public void updateSettingsBar(){
+        if (deferSettingsBarRebuild()) {
+            return;
+        }
+        rebuildSettingsBarEntries();
+        this.mCameraUIView.refresh(CaptureController.isProcessing);
+    }
+
+    /**
+     * Rebuilds the settings-bar entries from the current mode's preferences.
+     * This is the whole of a deferred flush: re-running the full mode refresh
+     * here (which re-selects the mode picker) jumped the picker back under the
+     * user's finger when the flush landed right after a switch.
+     */
+    private void rebuildSettingsBarEntries() {
         settingsBarEntryProvider.updateAllEntries();
         settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
-        this.mCameraUIView.refresh(CaptureController.isProcessing);
+    }
+
+    /**
+     * While a mode switch is animating, rebuilding the settings bar (about ten
+     * entries, each with its own buttons) drops frames for every running
+     * animation. The panel is closed during a switch, so the rebuild waits for
+     * the crossfade to finish.
+     */
+    private boolean deferSettingsBarRebuild() {
+        if (!aspectSwitchPending) {
+            return false;
+        }
+        settingsBarRebuildPending = true;
+        return true;
+    }
+
+    /** Runs a settings-bar rebuild that was deferred during an aspect switch. */
+    private void flushDeferredSettingsBarRebuild() {
+        if (!settingsBarRebuildPending) {
+            return;
+        }
+        settingsBarRebuildPending = false;
+        rebuildSettingsBarEntries();
     }
 
     @Override
@@ -583,6 +734,14 @@ public class CameraFragment extends Fragment {
         textureView.onPause();
         surfaceView.clear();
         if (mViewfinderHudView != null) mViewfinderHudView.clear();
+        // A mode switch paused mid-crossfade must not leave the snapshot up.
+        aspectSwitchPending = false;
+        textureView.removeCallbacks(aspectSwitchTimeout);
+        if (aspectSwitchAnimator != null) {
+            aspectSwitchAnimator.cancel();
+            aspectSwitchAnimator = null;
+        }
+        textureView.setSnapshotAlpha(0f);
         captureController.closeCamera();
 //        stopBackgroundThread();
         cameraFragmentViewModel.onPause();
@@ -1058,7 +1217,18 @@ public class CameraFragment extends Fragment {
     public void onDestroyView() {
         if (textureView != null) {
             textureView.removeCallbacks(panelBlurTracker);
+            textureView.removeCallbacks(aspectSwitchTimeout);
             textureView.setPanelBlur(null);
+            textureView.setSnapshotAlpha(0f);
+        }
+        aspectSwitchPending = false;
+        settingsBarRebuildPending = false;
+        if (cameraFragmentBinding != null) {
+            cameraFragmentBinding.layoutViewfinder.viewfinderFrame.cancelStretch();
+        }
+        if (aspectSwitchAnimator != null) {
+            aspectSwitchAnimator.cancel();
+            aspectSwitchAnimator = null;
         }
         if (getView() != null) {
             getView().getViewTreeObserver().removeOnPreDrawListener(lensOffsetCorrection);
@@ -2249,8 +2419,9 @@ public class CameraFragment extends Fragment {
             // Per-lens settings (photo frame rate) follow the newly active
             // lens: refresh the models and rebuild the entry views so the
             // pulldown shows the new value without a mode switch.
-            settingsBarEntryProvider.updateAllEntries();
-            settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+            if (!deferSettingsBarRebuild()) {
+                rebuildSettingsBarEntries();
+            }
             if (captureController != null) {
                 if (captureController.isZoomDrivenLensSwitch()) {
                     // The zoom target changed because a lens switch occurred. Preserve

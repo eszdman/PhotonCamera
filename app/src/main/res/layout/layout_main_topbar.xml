@@ -48,10 +48,12 @@
             >
 
         <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/topbar_button_row"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:paddingTop="@dimen/topbar_padding"
                 android:paddingBottom="@dimen/topbar_padding"
+                android:animateLayoutChanges="true"
                 android:visibility="visible"
                 tools:visibility="visible"
                 app:layout_constraintBottom_toBottomOf="parent"

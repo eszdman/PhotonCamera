@@ -110,8 +110,11 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     public void addEntries(SettingsBarLayout settingsBarLayout) {
-        settingsBarLayout.removeEntries();
-        allEntries.forEach(settingsBarLayout::addEntry);
+        // Reuse the entries already in the panel: recreating them churned every
+        // entry view and option button, which reset the rows' selection pills
+        // (they snapped instead of sliding) and made an open pulldown fade its
+        // rows out and back in.
+        allEntries.forEach(settingsBarLayout::addOrUpdateEntry);
     }
 
     private void createHdrxEntry() {

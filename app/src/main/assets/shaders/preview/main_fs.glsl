@@ -10,6 +10,13 @@ uniform float uCornerRadius;
 // Sharp rect origin in GL surface pixels, so the mask is built in screen space
 // (texCoord is rotated by the vertex shader and would stretch the arcs).
 uniform vec2 uSharpOrigin;
+// Snapshot of the previous camera's rendered frame (the mode/aspect switch
+// crossfade): uSnapshotAlpha 1 shows the snapshot, 0 the live preview. It holds
+// exactly the sharp rect the capture was taken with, so it is sampled by the
+// fragment's position inside the current sharp rect and stays valid across
+// surface resizes.
+uniform sampler2D sSnapshot;
+uniform float uSnapshotAlpha;
 out vec4 Output;
 in vec2 texCoord;
 void main() {
@@ -26,6 +33,13 @@ void main() {
     if(mirror)
         uv.y = 1.0 - uv.y;
     vec4 color = texture(sTexture, uv);
+    if (uSnapshotAlpha > 0.001) {
+        // Map the current sharp rect onto the snapshot: the previous capture is
+        // stretched into the animating rect while it crossfades away.
+        vec2 sharpSize = max(resolution, vec2(1.0));
+        vec2 localUv = (gl_FragCoord.xy - uSharpOrigin) / sharpSize;
+        color = mix(color, texture(sSnapshot, clamp(localUv, 0.0, 1.0)), uSnapshotAlpha);
+    }
     vec2 size = resolution;
     // focus peaking
     vec4 avg = vec4(0.0);

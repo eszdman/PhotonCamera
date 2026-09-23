@@ -859,6 +859,17 @@ public class HorizontalPicker extends View {
         return getPositionFromCoordinates(x);
     }
 
+    /**
+     * True while the user is dragging the picker or its snap/fling is still
+     * settling. Callers must not re-seat the selection then: the picker's own
+     * scroll position is the source of truth for the selected item, and a
+     * {@link #setSelectedItem(int)} in that window snaps the picker back under
+     * the finger.
+     */
+    public boolean isUserScrolling() {
+        return scrollingX || springScroll.isRunning() || !flingScrollerX.isFinished();
+    }
+
     public void setSelectedItem(int index) {
         selectedItem = index;
         scrollToItem(index);

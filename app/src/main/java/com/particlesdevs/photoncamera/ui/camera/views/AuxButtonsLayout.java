@@ -27,8 +27,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.LinearLayout;
 
+import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.widget.TextViewCompat;
+import androidx.dynamicanimation.animation.SpringForce;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
@@ -37,6 +39,7 @@ import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
 import com.particlesdevs.photoncamera.ui.camera.data.LensLabelFormatter;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
+import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -68,7 +71,7 @@ public class AuxButtonsLayout extends SelectorPillLayout {
     private boolean verticalOrder;
     private String activeCameraId;
 
-public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
+    public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         super(context, attrs);
 
         int margin = (int) context.getResources().getDimension(R.dimen.aux_button_internal_margin);
@@ -90,6 +93,17 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     public void setAuxButtonsModel(AuxButtonsModel auxButtonsModel) {
         this.auxButtonsModel = auxButtonsModel;
         auxButtonListener = auxButtonsModel.getAuxButtonListener();
+    }
+
+    /**
+     * The lens slide uses the slower playful spring so it takes about as long
+     * as the viewfinder's aspect stretch (~350ms) and the two read as one
+     * motion; the quick-settings rows keep the snappy default.
+     */
+    @NonNull
+    @Override
+    protected SpringForce createPillSpring() {
+        return MorphShapeDrawable.slowPlayfulSpring();
     }
 
     public void setActiveId(String activeId) {
@@ -124,17 +138,34 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
     }
 
     private void setAuxButtons(List<CameraLensData> cameraLensDataList, String activeId) {
-        removeAllViews();
-        auxButtonsMap.clear();
         List<CameraLensData> ordered = cameraLensDataList;
         if (verticalOrder) {
             ordered = new ArrayList<>(cameraLensDataList);
             Collections.reverse(ordered);
         }
         boolean mmEquivalent = PreferenceKeys.isLensMmEquivalentOn();
-        for (CameraLensData cameraLensData : ordered) {
-            addNewButton(cameraLensData.getCameraId(),
-                    LensLabelFormatter.format(cameraLensData, mmEquivalent));
+        // Reuse the existing buttons instead of recreating them: inflating a
+        // styled Button per lens mid-animation (the lens set changes between a
+        // logical video id and the physical photo lenses) drops frames for
+        // every running animation. Trim/append only the difference, then
+        // reassign the ids and labels by position.
+        int count = ordered.size();
+        while (getChildCount() > count) {
+            View last = getChildAt(getChildCount() - 1);
+            auxButtonsMap.remove(last.getId());
+            removeViewAt(getChildCount() - 1);
+        }
+        while (getChildCount() < count) {
+            addNewButton();
+        }
+        for (int i = 0; i < count; i++) {
+            CameraLensData cameraLensData = ordered.get(i);
+            Button button = (Button) getChildAt(i);
+            auxButtonsMap.put(button.getId(), cameraLensData.getCameraId());
+            String label = LensLabelFormatter.format(cameraLensData, mmEquivalent);
+            if (!label.contentEquals(button.getText())) {
+                button.setText(label);
+            }
         }
         setListenerAndSelected(activeId);
         updateVisibility();
@@ -155,9 +186,10 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         for (int i = 0; i < getChildCount(); i++) {
             View button = getChildAt(i);
             button.setOnClickListener(auxButtonListener);
-            if (activeId.equals(auxButtonsMap.get(button.getId()))) {
-                button.setSelected(true);
-            }
+            // Reused buttons keep their previous state, so the selection must
+            // be written both ways: leaving a stale selected button behind
+            // would park the pill on a lens that is no longer active.
+            button.setSelected(activeId.equals(auxButtonsMap.get(button.getId())));
         }
         refreshSelection();
     }
@@ -195,10 +227,10 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         }
     }
 
-    private void addNewButton(String cameraId, String buttonText) {
+    /** Creates and adds one aux button; the caller assigns its id/label. */
+    private Button addNewButton() {
         Button b = new Button(getContext());
         b.setLayoutParams(buttonParams);
-        b.setText(buttonText);
         b.setTextAppearance(R.style.AuxButtonText);
         TextViewCompat.setAutoSizeTextTypeUniformWithConfiguration(b, 9, 13, 1,
                 TypedValue.COMPLEX_UNIT_SP);
@@ -214,10 +246,16 @@ public AuxButtonsLayout(Context context, @Nullable AttributeSet attrs) {
         b.setMaxLines(1);
         b.setStateListAnimator(null);
         b.setTransformationMethod(null);
-        int buttonId = View.generateViewId();
-        b.setId(buttonId);
-        this.auxButtonsMap.put(buttonId, cameraId);
+        b.setId(View.generateViewId());
         addView(b);
+        return b;
+    }
+
+    /** Layout-editor helper: creates a button with its id and label set. */
+    private void addNewButton(String cameraId, String buttonText) {
+        Button b = addNewButton();
+        b.setText(buttonText);
+        auxButtonsMap.put(b.getId(), cameraId);
     }
 
     public interface AuxButtonListener {

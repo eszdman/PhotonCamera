@@ -118,6 +118,18 @@ public class MorphShapeDrawable extends Drawable {
         return spring;
     }
 
+    /**
+     * Slower playful spring (~350ms settle, same ~4% overshoot) for slides that
+     * must read as one motion with the viewfinder's aspect stretch.
+     */
+    @NonNull
+    public static SpringForce slowPlayfulSpring() {
+        SpringForce spring = new SpringForce(1f);
+        spring.setStiffness(350f);
+        spring.setDampingRatio(0.7f);
+        return spring;
+    }
+
     @Override
     public boolean isStateful() {
         return true;

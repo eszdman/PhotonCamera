@@ -53,13 +53,12 @@
                     android:id="@+id/layout_viewfinder"
                     layout="@layout/layout_main_viewfinder"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
                     tools:visibility="visible"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintBaseline_toBottomOf="parent"
                     app:layout_constraintVertical_bias="0.0" />
 
             <!--    Block 1.2-->
@@ -226,7 +225,7 @@
                     android:background="@drawable/chevron_up"
                     android:contentDescription="Arrow"
                     android:visibility="visible"
-                    app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
+                    app:layout_constraintTop_toBottomOf="@id/dummy_reference_view"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintStart_toStartOf="parent"
                     android:layout_marginTop="8dp" />

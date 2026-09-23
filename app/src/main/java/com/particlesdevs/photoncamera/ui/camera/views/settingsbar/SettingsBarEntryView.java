@@ -34,15 +34,11 @@ import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarEntryModel;
 import com.particlesdevs.photoncamera.ui.camera.views.SelectorPillLayout;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import static android.view.Gravity.CENTER_VERTICAL;
 
 public class SettingsBarEntryView extends LinearLayout {
     private final TextView titleTextView;
     private final TextView stateTextView;
-    private final List<ImageButton> imageButtons = new ArrayList<>();
     private final Context context;
     /**
      * The option buttons live in their own row so it can paint the sliding
@@ -97,24 +93,24 @@ public class SettingsBarEntryView extends LinearLayout {
             stateTextView.setText(entryModel.getStateTextStringId());
         }
 
-        imageButtons.clear();
-        buttonRow.removeAllViews();
-        if (entryModel.getSettingsBarButtonModels() != null) {
-            for (SettingsBarButtonModel buttonModel : entryModel.getSettingsBarButtonModels()) {
-                ImageButton button = new ImageButton(context);
-                button.setId(buttonModel.getId());
-                button.setImageResource(buttonModel.getButtonDrawableId());
-                button.setImageTintList(AppCompatResources.getColorStateList(context, R.color.cam_icon_tint));
-                // No per-button highlight: the row's sliding pill is the
-                // selection and the icon tint follows the selected state.
-                button.setBackground(null);
-                button.setPadding(0, 0, 0, 0);
-                button.setCropToPadding(false);
-                button.setOnClickListener(buttonModel.getButtonClickListener());
-                button.setSelected(buttonModel.isSelected());
-                imageButtons.add(button);
-            }
-            addToLayout(imageButtons);
+        SettingsBarButtonModel[] buttonModels = entryModel.getSettingsBarButtonModels();
+        int count = buttonModels == null ? 0 : buttonModels.length;
+        // Reuse the option buttons instead of recreating them: the row's
+        // selection pill keeps its placement and slides to a new selection,
+        // where a rebuilt row could only snap.
+        while (buttonRow.getChildCount() > count) {
+            buttonRow.removeViewAt(buttonRow.getChildCount() - 1);
+        }
+        while (buttonRow.getChildCount() < count) {
+            buttonRow.addView(newOptionButton(), optionButtonParams());
+        }
+        for (int i = 0; i < count; i++) {
+            SettingsBarButtonModel buttonModel = buttonModels[i];
+            ImageButton button = (ImageButton) buttonRow.getChildAt(i);
+            button.setId(buttonModel.getId());
+            button.setImageResource(buttonModel.getButtonDrawableId());
+            button.setOnClickListener(buttonModel.getButtonClickListener());
+            button.setSelected(buttonModel.isSelected());
         }
         refreshSelection();
     }
@@ -127,14 +123,22 @@ public class SettingsBarEntryView extends LinearLayout {
         buttonRow.refreshSelection();
     }
 
-    private void addToLayout(List<ImageButton> buttons) {
+    /** One option button, styled once; id, icon and state follow the model. */
+    private ImageButton newOptionButton() {
+        ImageButton button = new ImageButton(context);
+        button.setImageTintList(AppCompatResources.getColorStateList(context, R.color.cam_icon_tint));
+        // No per-button highlight: the row's sliding pill is the selection and
+        // the icon tint follows the selected state.
+        button.setBackground(null);
+        button.setPadding(0, 0, 0, 0);
+        button.setCropToPadding(false);
+        return button;
+    }
+
+    private LayoutParams optionButtonParams() {
         LayoutParams buttonParam = new LayoutParams(dp(40), dp(40));
         buttonParam.setMargins(dp(5), dp(2), dp(5), dp(2));
-        if (buttons != null) {
-            for (ImageButton button : buttons) {
-                buttonRow.addView(button, buttonParam);
-            }
-        }
+        return buttonParam;
     }
 
     private int dp(float f) {

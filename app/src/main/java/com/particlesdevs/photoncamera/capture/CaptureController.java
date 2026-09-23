@@ -2400,13 +2400,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
     private Size getAspect(CameraMode targetMode){
-        Size aspectRatio;
-        if (targetMode == CameraMode.VIDEO || targetMode == CameraMode.RAWVIDEO || PhotonCamera.getSettings().aspect169) {
-            aspectRatio = new Size(9, 16);
-        } else {
-            aspectRatio = new Size(3, 4);
-        }
-        return aspectRatio;
+        return aspectForMode(targetMode);
+    }
+
+    /**
+     * Portrait aspect (width:height) the viewfinder uses for a mode. Depends
+     * only on the mode and the 16:9-photo option, so the UI can start the
+     * viewfinder's aspect stretch at the mode switch instead of waiting for the
+     * camera to reopen.
+     */
+    public static Size aspectForMode(CameraMode targetMode) {
+        boolean wide = targetMode == CameraMode.VIDEO || targetMode == CameraMode.RAWVIDEO
+                || (PhotonCamera.getSettings() != null && PhotonCamera.getSettings().aspect169);
+        return wide ? new Size(9, 16) : new Size(3, 4);
     }
 
     private Display getSafeDisplay() {

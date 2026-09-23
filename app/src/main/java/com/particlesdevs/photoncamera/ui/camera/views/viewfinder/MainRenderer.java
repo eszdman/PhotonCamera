@@ -180,6 +180,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mAnalysisProgram;
     private int uCornerRadius;
     private int uSharpOrigin;
+    private int uSnapshotAlpha;
+    private int uSnapshotSampler;
     private int uEdgeViewSize;
     private int uEdgeSharpOrigin;
     private int uEdgeSharpSize;
@@ -224,6 +226,39 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mBlurH;
     private int mViewW = 1;
     private int mViewH = 1;
+
+    /**
+     * Snapshot of the previous camera's rendered frame, used to crossfade a
+     * mode/aspect switch between the old and the new capture. Taken with a
+     * GPU-side framebuffer copy inside a rendered frame; alpha 1 shows it,
+     * 0 shows the live preview.
+     */
+    private int mSnapshotTex;
+    private volatile boolean mSnapshotRequested;
+    private volatile boolean mSnapshotValid;
+    private volatile float mSnapshotAlpha;
+
+    /** Queues a snapshot of the next rendered frame (GPU-side, no bitmap). */
+    public void requestSnapshot() {
+        mSnapshotRequested = true;
+        mView.requestRender();
+    }
+
+    /**
+     * Snapshot crossfade progress: 1 shows the snapshot (the previous capture),
+     * 0 the live preview. Reaching 0 invalidates the snapshot.
+     */
+    public void setSnapshotAlpha(float alpha) {
+        float clamped = Math.max(0f, Math.min(1f, alpha));
+        if (Math.abs(clamped - mSnapshotAlpha) < 0.003f) {
+            return;
+        }
+        mSnapshotAlpha = clamped;
+        if (clamped <= 0.003f) {
+            mSnapshotValid = false;
+        }
+        mView.requestRender();
+    }
 
     /**
      * Pre-peaking analysis target used by the histogram/waveform scopes. The
@@ -272,9 +307,27 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private final IszSettleCounter mSettleCounter = new IszSettleCounter(ISZ_SETTLE_FRAMES);
 
     /**
-     * Begins settle tracking for an ISZ lens-switch mask. Re-arming resets the
-     * counter. Tracking stops on its own at the threshold; a stuck flag with
-     * no frames is inert. Safe to call from any thread.
+     * One-shot listener posted to the view once settle tracking completes, so
+     * callers can sequence work on the newly live preview (e.g. the aspect
+     * switch fade reveal). Re-arming replaces a listener that has not fired.
+     */
+    private volatile Runnable mSettleListener;
+
+    /**
+     * Begins settle tracking with an explicit frame threshold, reporting
+     * completion on the view's thread once live rendering resumes. Safe to call
+     * from any thread.
+     */
+    public void beginSettleTracking(Runnable onSettled, int frames) {
+        mSettleCounter.reset(frames);
+        mSettleListener = onSettled;
+        mSettleTracking = true;
+    }
+
+    /**
+     * Begins settle tracking for an ISZ lens-switch mask. Tracking stops on its
+     * own at the threshold; a stuck flag with no frames is inert. Safe to call
+     * from any thread.
      */
     public void beginSettleTracking() {
         mSettleCounter.reset();
@@ -389,6 +442,16 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glUniform2f(resolution, sharpWidth, sharpHeight);
         GLES20.glUniform1f(uCornerRadius, mRoundCorners ? mRoundCornerRadiusPx : 0f);
         GLES20.glUniform2f(uSharpOrigin, sharpLeft, sharpBottom);
+        // Mode/aspect switch crossfade: the previous capture's snapshot is
+        // mixed over the live preview until its alpha reaches zero.
+        boolean snapshot = mSnapshotValid && mSnapshotTex != 0 && mSnapshotAlpha > 0.003f;
+        GLES20.glUniform1f(uSnapshotAlpha, snapshot ? mSnapshotAlpha : 0f);
+        if (snapshot) {
+            GLES20.glUniform1i(uSnapshotSampler, 1);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        }
         bindQuadAttributes(mSharpProgram);
         // The blur passes bind 2D textures to unit 0; re-bind the camera texture.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -396,10 +459,61 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         // GLES20.glFlush();
 
+        // Snapshot the just-drawn sharp preview for the mode/aspect switch
+        // crossfade. It must happen inside the frame (the back buffer is
+        // undefined after the swap) and before the panels, so the snapshot is
+        // exactly the camera capture without any frosted backdrops.
+        if (mSnapshotRequested) {
+            captureSnapshot(sharpLeft, sharpBottom, sharpWidth, sharpHeight);
+        }
+
         // Live frosted-glass backdrops behind the visible camera panels.
         if (blurReady && hasPanels) {
             compositePanels(blur, sharpLeft, sharpBottom, sharpWidth, sharpHeight);
         }
+    }
+
+    /** Creates the snapshot texture once (GL thread only). */
+    private boolean ensureSnapshotTarget() {
+        if (mSnapshotTex != 0) {
+            return true;
+        }
+        int[] tex = new int[1];
+        GLES20.glGenTextures(1, tex, 0);
+        if (tex[0] == 0) {
+            return false;
+        }
+        mSnapshotTex = tex[0];
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        return true;
+    }
+
+    /**
+     * Copies the sharp rect of the current framebuffer (the just-drawn
+     * preview) into the snapshot texture, so the crossfade samples exactly the
+     * previous capture. Runs on the GL thread.
+     */
+    private void captureSnapshot(int sharpLeft, int sharpBottom, int sharpWidth, int sharpHeight) {
+        mSnapshotRequested = false;
+        if (!ensureSnapshotTarget()) {
+            mSnapshotValid = false;
+            return;
+        }
+        try {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+            GLES20.glCopyTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB,
+                    Math.max(0, sharpLeft), Math.max(0, sharpBottom),
+                    Math.max(1, sharpWidth), Math.max(1, sharpHeight), 0);
+        } catch (Exception e) {
+            android.util.Log.w("MainRenderer", "snapshot capture failed", e);
+            mSnapshotValid = false;
+            return;
+        }
+        mSnapshotValid = true;
     }
 
     /**
@@ -578,6 +692,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         // The EGL context is fresh: drop any GL resources from the previous one.
         releaseBlurTargets();
         releaseAnalysisTarget();
+        mSnapshotTex = 0;
+        mSnapshotValid = false;
 
         initTex();
         mSTexture = new SurfaceTexture(hTex[0]);
@@ -619,6 +735,13 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 resolution = GLES20.glGetUniformLocation(mSharpProgram, "resolution");
                 uCornerRadius = GLES20.glGetUniformLocation(mSharpProgram, "uCornerRadius");
                 uSharpOrigin = GLES20.glGetUniformLocation(mSharpProgram, "uSharpOrigin");
+                uSnapshotAlpha = GLES20.glGetUniformLocation(mSharpProgram, "uSnapshotAlpha");
+                uSnapshotSampler = GLES20.glGetUniformLocation(mSharpProgram, "sSnapshot");
+                // The snapshot sampler must live on its own texture unit: two
+                // sampler types sharing a unit makes the driver reject the draw
+                // (the sharp pass would silently stop rendering, leaving only
+                // the blurred backdrop on screen).
+                GLES20.glUniform1i(uSnapshotSampler, 1);
                 GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4 * 2, pVertex);
                 GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4 * 2, pTexCoord);
                 GLES20.glEnableVertexAttribArray(vPosition);
@@ -707,6 +830,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES30.glViewport(0, 0, width, height);
         // Blur targets are sized from the surface; let them be recreated lazily.
         releaseBlurTargets();
+        // The snapshot texture holds the sharp rect and is sampled relative to
+        // the current rect, so a surface resize does not invalidate it.
     }
 
     private boolean ensureBlurTargets() {
@@ -891,6 +1016,11 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             }
             // Settled: fall through to live rendering of the newest frame.
             mSettleTracking = false;
+            Runnable settled = mSettleListener;
+            mSettleListener = null;
+            if (settled != null) {
+                mView.post(settled);
+            }
         }
         mUpdateST = true;
         mView.requestRender();
