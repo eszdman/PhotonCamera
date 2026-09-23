@@ -1852,7 +1852,18 @@ public class CameraFragment extends Fragment {
         Intent settingsIntent = new Intent(activity, SettingsActivity.class);
         // Pass current camera mode to settings
         settingsIntent.putExtra("camera_mode", PreferenceKeys.getCameraModeOrdinal());
+        // Per-resolution video tunables/session types follow the lens Settings
+        // is opened from.
+        settingsIntent.putExtra(SettingsActivity.EXTRA_VIDEO_SELFIE, isActiveCameraFrontFacing());
         startActivity(settingsIntent);
+    }
+
+    /** True when the active camera is front-facing (video settings scope). */
+    private boolean isActiveCameraFrontFacing() {
+        String cameraId = PreferenceKeys.getCameraID();
+        CameraLensData data = mCameraLensDataMap.get(cameraId);
+        int facing = data != null ? data.getFacing() : cameraFacingOf(cameraId);
+        return facing == CameraCharacteristics.LENS_FACING_FRONT;
     }
 
     public <T extends View> T findViewById(@IdRes int id) {

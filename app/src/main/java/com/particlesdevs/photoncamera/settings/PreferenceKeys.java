@@ -199,7 +199,12 @@ public class PreferenceKeys {
         return key != null && (key.startsWith("pref_tunable_")
                 || key.startsWith("pref_sensorconfig_")
                 || key.startsWith(FPS_LENS_KEY_PREFIX)
-                || key.startsWith(VIDEO_FPS_LENS_KEY_PREFIX));
+                || key.startsWith(VIDEO_FPS_LENS_KEY_PREFIX)
+                // Per-resolution video session types are global like the rest
+                // of the video settings (the fixed legacy keys are in
+                // COMMON_KEYS; these scoped ones are matched by prefix).
+                || key.startsWith("pref_video_hdr_session_type_")
+                || key.startsWith("pref_video_sdr_session_type_"));
     }
 
     public static void addIds(String[] ids){
@@ -942,22 +947,40 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, value);
     }
 
-    public static String getVideoHdrSessionType() {
-        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, "");
+    /**
+     * HDR video session-type override for a scope (resolution + facing). Falls
+     * back to the legacy global value until the scope has its own entry.
+     */
+    public static String getVideoHdrSessionType(boolean selfie, String resolution) {
+        return getScopedSessionType(
+                VideoResolutionScope.sessionTypeKey(true, selfie, resolution),
+                Key.KEY_VIDEO_HDR_SESSION_TYPE);
+    }
+
+    public static void setVideoHdrSessionType(boolean selfie, String resolution, String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
+                VideoResolutionScope.sessionTypeKey(true, selfie, resolution), value);
+    }
+
+    /** SDR video session-type override for a scope (resolution + facing). */
+    public static String getVideoSdrSessionType(boolean selfie, String resolution) {
+        return getScopedSessionType(
+                VideoResolutionScope.sessionTypeKey(false, selfie, resolution),
+                Key.KEY_VIDEO_SDR_SESSION_TYPE);
+    }
+
+    public static void setVideoSdrSessionType(boolean selfie, String resolution, String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
+                VideoResolutionScope.sessionTypeKey(false, selfie, resolution), value);
+    }
+
+    /** Scoped value, or the legacy global value while the scope has none. */
+    private static String getScopedSessionType(String scopedKey, Key legacyKey) {
+        SettingsManager settingsManager = preferenceKeys.settingsManager;
+        String value = settingsManager.isSet(SCOPE_GLOBAL, scopedKey)
+                ? settingsManager.getString(SCOPE_GLOBAL, scopedKey, "")
+                : settingsManager.getString(SCOPE_GLOBAL, legacyKey, "");
         return value != null ? value.trim() : "";
-    }
-
-    public static void setVideoHdrSessionType(String value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, value);
-    }
-
-    public static String getVideoSdrSessionType() {
-        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, "");
-        return value != null ? value.trim() : "";
-    }
-
-    public static void setVideoSdrSessionType(String value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, value);
     }
 
     public static boolean isVideoUseLogicalId() {

@@ -3045,7 +3045,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     && PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
                                 com.particlesdevs.photoncamera.settings.TunableKeyManager
                                         .applyVideoTunableKeys(mPreviewRequestBuilder, getTunablePhysicalId(),
-                                                mVideoHdrActive && mIsRecordingVideo);
+                                                mVideoHdrActive && mIsRecordingVideo,
+                                                isActiveCameraFrontFacing(), getActiveVideoResolution());
                             }
                         } catch (Exception e) {
                             Log.w(TAG, "video tunable keys failed", e);
@@ -3173,13 +3174,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Range<Integer> videoFpsRange = videoMode ? getSelectedFpsRange() : null;
         List<VendorTagUtils.TunableKey> videoFull = null;
         boolean videoListIsHdr = false;
+        // Scope for the video lists/session types: active lens + its resolution.
+        boolean videoSelfie = isActiveCameraFrontFacing();
+        String videoResolution = getActiveVideoResolution();
         List<VendorTagUtils.TunableKey> videoKeys = new java.util.ArrayList<>();
         try {
             if (videoMode) {
                 videoListIsHdr = mVideoHdrActive && mIsRecordingVideo;
                 videoFull = videoListIsHdr
-                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoHdrKeys(context)
-                        : com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoKeys(context);
+                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager
+                                .loadVideoHdrKeys(context, videoSelfie, videoResolution)
+                        : com.particlesdevs.photoncamera.settings.TunableKeyManager
+                                .loadVideoKeys(context, videoSelfie, videoResolution);
                 videoKeys = com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(videoFull);
             }
         } catch (Exception e) {
@@ -3215,10 +3221,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (videoFull != null) {
                 if (videoListIsHdr) {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoHdrKeys(
-                            context, videoFull);
+                            context, videoSelfie, videoResolution, videoFull);
                 } else {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoKeys(
-                            context, videoFull);
+                            context, videoSelfie, videoResolution, videoFull);
                 }
             }
         } catch (Exception e) {
@@ -4992,9 +4998,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // preview session already uses the HDR vendor type like the
             // record session will.
             boolean hdr = mIsRecordingVideo ? mVideoHdrActive : isVideoHdrRequested();
+            boolean selfie = isActiveCameraFrontFacing();
+            String resolution = getActiveVideoResolution();
             String raw = hdr
-                    ? PreferenceKeys.getVideoHdrSessionType()
-                    : PreferenceKeys.getVideoSdrSessionType();
+                    ? PreferenceKeys.getVideoHdrSessionType(selfie, resolution)
+                    : PreferenceKeys.getVideoSdrSessionType(selfie, resolution);
             if (raw == null || raw.isEmpty()) return fallback;
             int value = Integer.parseInt(raw);
             if (value < 0 || value > 65535) {
@@ -5003,6 +5011,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             Log.d(TAG, "video session type override=" + value + " (per-sensor fallback=" + fallback
                     + ", hdr=" + hdr + ", recording=" + mIsRecordingVideo
+                    + ", scope=" + (selfie ? "selfie" : "back") + "/" + resolution
                     + ", device=" + getOpenDeviceId() + ")");
             return value;
         } catch (NumberFormatException e) {

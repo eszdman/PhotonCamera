@@ -29,6 +29,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -68,6 +69,11 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.SCOPE_GLOBA
 public class SettingsActivity extends BaseActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
     public static boolean toRestartApp;
     private static int sCameraMode = -1;
+    /**
+     * Intent extra: the video tunables/session-type entries are scoped to the
+     * front (selfie) camera's resolution instead of the back camera's.
+     */
+    public static final String EXTRA_VIDEO_SELFIE = "video_selfie";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -201,6 +207,14 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private ActivityResultLauncher<String[]> locationPermissionLauncher;
         /** Viewfinder background mode before the current settings change. */
         private String viewfinderBackgroundBefore;
+        /**
+         * Video scope: the per-resolution tunable lists and HDR/SDR session
+         * types follow the lens Settings was opened from.
+         */
+        private boolean videoScopeSelfie;
+        private String videoScopeResolution;
+        private EditTextPreference hdrSessionTypePref;
+        private EditTextPreference sdrSessionTypePref;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -212,6 +226,14 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onCreate(savedInstanceState);
             activity = getActivity();
             mContext = getContext();
+            // Video tunables/session types are scoped to the lens Settings was
+            // opened from; the resolution is read live so a resolution change
+            // re-scopes the entries.
+            videoScopeSelfie = activity != null && activity.getIntent() != null
+                    && activity.getIntent().getBooleanExtra(EXTRA_VIDEO_SELFIE, false);
+            videoScopeResolution = videoScopeSelfie
+                    ? PreferenceKeys.getSelfieVideoResolution()
+                    : PreferenceKeys.getVideoResolution();
             mSettingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
             supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
             Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
@@ -267,7 +289,14 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             
             filterPreferencesByMode();
             applySaveHeicUi();
+            // Capture the session-type entries before re-keying them to the
+            // video scope; applyVideoUi() then gates their visibility through
+            // these references (the legacy keys no longer match after this).
+            hdrSessionTypePref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+            sdrSessionTypePref = findPreference(mContext.getString(R.string.pref_video_sdr_session_type_key));
+            rescopeVideoSettings();
             applyVideoUi();
+            setupVideoResolutionScope();
             showHideHdrxSettings();
             setFramesSummary();
             updateHideModesSummary();
@@ -369,7 +398,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     Log.w("SettingsActivity", "PreferenceScreen is null, cannot generate video tunable preferences");
                     return;
                 }
-                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(mContext, screen, config);
+                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(
+                        mContext, screen, config, videoScopeSelfie, videoScopeResolution);
             } catch (Exception e) {
                 Log.e("SettingsActivity", "ERROR in generateVideoTunablePreferences", e);
                 e.printStackTrace();
@@ -569,7 +599,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 if (hdrTunablePref != null) {
                     hdrTunablePref.setVisible(hdrOn);
                 }
-                Preference hdrSessionPref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+                Preference hdrSessionPref = hdrSessionTypePref;
                 if (hdrSessionPref != null) {
                     hdrSessionPref.setVisible(hdrOn);
                 }
@@ -590,6 +620,84 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             } catch (Exception e) {
                 Log.e("SettingsFragment", "applyVideoUi failed", e);
             }
+        }
+
+        /**
+         * Re-keys the HDR/SDR session-type entries to the current video scope
+         * (lens + resolution) and refreshes the scoped labels. Called on open
+         * and whenever the matching resolution preference changes, so changing
+         * the resolution changes exactly the values that can be set/seen.
+         */
+        private void rescopeVideoSettings() {
+            if (videoScopeResolution == null || videoScopeResolution.isEmpty()) {
+                videoScopeResolution = videoScopeSelfie
+                        ? PreferenceKeys.getSelfieVideoResolution()
+                        : PreferenceKeys.getVideoResolution();
+            }
+            if (hdrSessionTypePref != null) {
+                hdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoResolutionScope
+                        .sessionTypeKey(true, videoScopeSelfie, videoScopeResolution));
+                hdrSessionTypePref.setText(
+                        PreferenceKeys.getVideoHdrSessionType(videoScopeSelfie, videoScopeResolution));
+            }
+            if (sdrSessionTypePref != null) {
+                sdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoResolutionScope
+                        .sessionTypeKey(false, videoScopeSelfie, videoScopeResolution));
+                sdrSessionTypePref.setText(
+                        PreferenceKeys.getVideoSdrSessionType(videoScopeSelfie, videoScopeResolution));
+            }
+            updateVideoScopeLabels();
+        }
+
+        /** "1920x1080 · Back" / "… · Selfie" label for the scoped video entries. */
+        private String videoScopeLabel() {
+            return videoScopeResolution + " \u00B7 " + mContext.getString(
+                    videoScopeSelfie ? R.string.video_scope_selfie : R.string.video_scope_back);
+        }
+
+        private void updateVideoScopeLabels() {
+            String scope = videoScopeLabel();
+            Preference sdrTunable = findPreference("pref_video_tunable_submenu");
+            if (sdrTunable != null) {
+                sdrTunable.setTitle(mContext.getString(R.string.video_tunable_keys_sdr) + " \u00B7 " + scope);
+            }
+            Preference hdrTunable = findPreference("pref_video_hdr_tunable_submenu");
+            if (hdrTunable != null) {
+                hdrTunable.setTitle(mContext.getString(R.string.video_tunable_keys_hdr) + " \u00B7 " + scope);
+            }
+            if (hdrSessionTypePref != null) {
+                hdrSessionTypePref.setTitle(mContext.getString(R.string.video_hdr_session_type) + " \u00B7 " + scope);
+            }
+            if (sdrSessionTypePref != null) {
+                sdrSessionTypePref.setTitle(mContext.getString(R.string.video_sdr_session_type) + " \u00B7 " + scope);
+            }
+        }
+
+        /**
+         * Re-scopes the video entries when the resolution of the lens Settings
+         * was opened from changes. The other lens's resolution keeps its own
+         * scope until Settings is reopened from that lens.
+         */
+        private void setupVideoResolutionScope() {
+            Preference backResolution = findPreference(mContext.getString(R.string.pref_video_resolution_key));
+            if (backResolution != null) {
+                backResolution.setOnPreferenceChangeListener(
+                        (preference, newValue) -> onVideoResolutionChanged(false, newValue));
+            }
+            Preference selfieResolution = findPreference(mContext.getString(R.string.pref_video_resolution_selfie_key));
+            if (selfieResolution != null) {
+                selfieResolution.setOnPreferenceChangeListener(
+                        (preference, newValue) -> onVideoResolutionChanged(true, newValue));
+            }
+        }
+
+        private boolean onVideoResolutionChanged(boolean selfie, Object newValue) {
+            if (selfie != videoScopeSelfie || newValue == null) {
+                return true;
+            }
+            videoScopeResolution = newValue.toString();
+            rescopeVideoSettings();
+            return true;
         }
 
         /**

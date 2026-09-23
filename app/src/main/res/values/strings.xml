@@ -259,6 +259,8 @@
     <string name="video_tunable_keys_hdr">HDR video tunable keys</string>
     <string name="video_tunable_summary_hdr">Custom vendor tags applied for HDR video only, on every sensor</string>
     <string name="video_tunable_add_summary_hdr">Add a custom vendor tag applied for HDR video only (type, name, value)</string>
+    <string name="video_scope_back">Back</string>
+    <string name="video_scope_selfie">Selfie</string>
     <string name="audio_settings">Audio Settings</string>
     <string name="audio_bitrate">Bitrate (kbit/s)</string>
     <string name="audio_bitrate_default" translatable="false">128</string>
