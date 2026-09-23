@@ -152,11 +152,13 @@
     </integer-array>
     <string-array name="video_resolution_entries">
         <item>@string/video_res_4k</item>
+        <item>@string/video_res_qhd</item>
         <item>@string/video_res_fhd</item>
         <item>@string/video_res_hd</item>
     </string-array>
     <string-array name="video_resolution_entryvalues">
         <item>3840x2160</item>
+        <item>2560x1440</item>
         <item>1920x1080</item>
         <item>1280x720</item>
     </string-array>

@@ -224,6 +224,7 @@
     <string name="pref_video_resolution_selfie_key" translatable="false">pref_video_resolution_selfie_key</string>
     <string name="pref_video_resolution_selfie_default" translatable="false">1920x1080</string>
     <string name="video_res_4k" translatable="false">3840x2160 (4K)</string>
+    <string name="video_res_qhd" translatable="false">2560x1440 (1440p)</string>
     <string name="video_res_fhd" translatable="false">1920x1080 (Full HD)</string>
     <string name="video_res_hd" translatable="false">1280x720 (HD)</string>
     <string name="video_bitrate">Bitrate (Mbit/s)</string>

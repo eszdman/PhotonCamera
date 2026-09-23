@@ -4967,7 +4967,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private CamcorderProfile resolveVideoProfile(int cameraId, String resolution) {
         int[] qualities;
         switch (resolution) {
-            case "3840x2160": qualities = new int[]{CamcorderProfile.QUALITY_2160P, CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P}; break;
+            // AOSP has no 1440p profile quality, so 1440p shares the 4K
+            // preference order: the actual size comes from the resolution
+            // string (MediaRecorder outputs) in resolveVideoSize(), and the
+            // profile only seeds frame-rate/bitrate defaults.
+            case "3840x2160":
+            case "2560x1440": qualities = new int[]{CamcorderProfile.QUALITY_2160P, CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P}; break;
             case "1280x720":  qualities = new int[]{CamcorderProfile.QUALITY_720P,  CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_2160P}; break;
             default:          qualities = new int[]{CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P,  CamcorderProfile.QUALITY_2160P}; break;
         }
