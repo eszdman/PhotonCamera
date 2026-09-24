@@ -455,6 +455,19 @@ public class CameraFragment extends Fragment {
         Motion.applyStandardTo(
                 ((ViewGroup) view.findViewById(R.id.topbar_button_row)).getLayoutTransition(),
                 view.getContext());
+        // The camera container's change animations would fight the mode-switch
+        // FLIP: its direct children are the very views the FLIP translates, and
+        // the lens bar's content (the new camera's lens set) changes mid-switch,
+        // ~0.4s in. A LayoutTransition CHANGING animation on those views writes
+        // its own translation while the FLIP owns it, which made them slide from
+        // positions they were never at. The appearing/disappearing legs stay
+        // (panel fades).
+        ViewGroup cameraContainer = view.findViewById(R.id.camera_container);
+        LayoutTransition containerTransitions = cameraContainer.getLayoutTransition();
+        if (containerTransitions != null) {
+            containerTransitions.disableTransitionType(LayoutTransition.CHANGE_APPEARING);
+            containerTransitions.disableTransitionType(LayoutTransition.CHANGE_DISAPPEARING);
+        }
         camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
         camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
         if (manualPanelBar != null) {

@@ -303,15 +303,21 @@ public class CameraUIViewImpl implements CameraUIView {
                     clearModeSwitchTranslations(root);
                     return true;
                 }
-                int[] deltas = new int[views.size()];
                 float progress = frame.getStretchProgress();
                 for (int i = 0; i < views.size(); i++) {
-                    deltas[i] = tops[i] - views.get(i).getTop();
-                    views.get(i).setTranslationY(deltas[i] * (1f - progress));
+                    View view = views.get(i);
+                    view.setTranslationY((tops[i] - view.getTop()) * (1f - progress));
                 }
                 frame.setProgressListener(stretchProgress -> {
+                    float remaining = 1f - stretchProgress;
                     for (int i = 0; i < views.size(); i++) {
-                        views.get(i).setTranslationY(deltas[i] * (1f - stretchProgress));
+                        View view = views.get(i);
+                        // The delta is re-anchored every frame: a view can
+                        // re-lay out while the switch is still gliding (the new
+                        // camera's lens set arrives mid-switch), and a delta
+                        // frozen at the switch would then start the glide from a
+                        // position the view was never at.
+                        view.setTranslationY((tops[i] - view.getTop()) * remaining);
                     }
                     if (stretchProgress >= 1f) {
                         frame.setProgressListener(null);
