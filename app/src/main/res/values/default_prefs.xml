@@ -7,7 +7,6 @@
     <bool name="pref_energy_safe_default">false</bool>
     <string name="pref_show_grid_default" translatable="false">0</string>
     <string name="pref_lens_bar_position_default" translatable="false">right</string>
-    <bool name="pref_lens_mm_equivalent_default">false</bool>
     <bool name="pref_wide169_default">false</bool>
     <bool name="pref_binning_default">false</bool>
     <bool name="pref_show_watermark_default">true</bool>

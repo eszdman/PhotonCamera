@@ -84,14 +84,6 @@
                 android:entryValues="@array/lens_bar_position_entryvalues"
                 android:icon="@drawable/ic_multi_lens"
                 />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_lens_mm_equivalent_key"
-                android:defaultValue="@bool/pref_lens_mm_equivalent_default"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/lenses_as_mm_equivalent"
-                android:summary="@string/lenses_as_mm_equivalent_summary"
-                android:icon="@drawable/ic_multi_lens"
-                />
         <ListPreference
                 android:key="@string/pref_show_grid_key"
                 android:defaultValue="@string/pref_show_grid_default"

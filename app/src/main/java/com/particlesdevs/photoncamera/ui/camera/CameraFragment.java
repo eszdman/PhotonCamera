@@ -85,7 +85,6 @@ import com.particlesdevs.photoncamera.api.CameraEventsListener;
 import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.api.CameraReflectionApi;
-import com.particlesdevs.photoncamera.api.LogicalCameraResolver;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.CaptureEventsListener;
@@ -119,7 +118,6 @@ import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderEdgeB
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.MainRenderer;
 import com.particlesdevs.photoncamera.ui.camera.views.settingsbar.SettingsBarLayout;
 import com.particlesdevs.photoncamera.util.BlurSupport;
-import com.particlesdevs.photoncamera.util.FocalEquivalence;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
@@ -177,7 +175,6 @@ public class CameraFragment extends Fragment {
     /** Logical members driving the pill/zoom in video logical mode (empty when inactive). */
     private List<com.particlesdevs.photoncamera.api.LogicalCameraResolver.Member> mVideoLogicalMembers =
             new ArrayList<>();
-    private volatile float mActiveLens35mm;
     public Activity activity;
     private TimerFrameCountViewModel timerFrameCountViewModel;
     private CameraUIView mCameraUIView;
@@ -651,9 +648,6 @@ public class CameraFragment extends Fragment {
         super.onResume();
         updateSettingsBar();
         lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
-        if (cameraFragmentBinding != null) {
-            cameraFragmentBinding.auxButtonsContainer.refresh();
-        }
         edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
         textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
         mSwipe.init();
@@ -1466,7 +1460,9 @@ public class CameraFragment extends Fragment {
         float aperture = 1.8f;
         CameraCharacteristics chars = CaptureController.mCameraCharacteristics;
         if (chars != null) {
-            float lens35mm = activeLens35mm(chars);
+            float[] focalLengths = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
+            SizeF sensorSize = chars.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
+            float fl = (focalLengths != null && focalLengths.length > 0) ? focalLengths[0] : 4.75f;
             float zoom = 1.0f;
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 Float zr = result.get(CaptureResult.CONTROL_ZOOM_RATIO);
@@ -1478,8 +1474,8 @@ public class CameraFragment extends Fragment {
                     zoom = (float) activeArray.width() / crop.width();
                 }
             }
-            if (lens35mm > 0f) {
-                eqFocalLength = Math.round(lens35mm * zoom);
+            if (sensorSize != null && sensorSize.getWidth() > 0) {
+                eqFocalLength = Math.round((36.0f / sensorSize.getWidth()) * fl * zoom);
             }
 
             Float apVal = result.get(CaptureResult.LENS_APERTURE);
@@ -1577,74 +1573,6 @@ public class CameraFragment extends Fragment {
         // Trigger live scope sampling if mode 2 (histogram) or 4 (waveform) is active
         if (afDataMode == 2 || afDataMode == 4) {
             requestLiveScope(afDataMode);
-        }
-    }
-
-    /**
-     * 35mm-equivalent focal length of the active lens. Prefers the lens record
-     * used by the pill (which carries the correction for ISZ virtual lenses and
-     * logical members); falls back to the live characteristics when unavailable.
-     */
-    private float activeLens35mm(CameraCharacteristics chars) {
-        float cached = mActiveLens35mm;
-        if (cached > 0f) {
-            return cached;
-        }
-        return equivalent35mmFromCharacteristics(chars);
-    }
-
-    /**
-     * Resolves and caches the active lens's 35mm equivalent whenever the pill's
-     * lens set or selection changes, keeping the HUD math binder-free per frame.
-     */
-    private void updateActiveLens35mm() {
-        mActiveLens35mm = 0f;
-        try {
-            String activeId = captureController != null
-                    ? captureController.getActiveLogicalMemberId() : null;
-            if (activeId == null) {
-                activeId = PreferenceKeys.getCameraID();
-            }
-            float resolved = 0f;
-            if (activeId != null && mVideoLogicalMembers != null) {
-                for (LogicalCameraResolver.Member member : mVideoLogicalMembers) {
-                    if (activeId.equals(member.memberId)) {
-                        resolved = member.focal35mm;
-                        break;
-                    }
-                }
-            }
-            if (resolved <= 0f && activeId != null && mCameraLensDataMap != null) {
-                CameraLensData lens = mCameraLensDataMap.get(activeId);
-                if (lens != null) {
-                    resolved = lens.getCamera35mmFocalLength();
-                }
-            }
-            if (resolved > 0f) {
-                mActiveLens35mm = resolved;
-            }
-        } catch (Exception ignored) {
-        }
-    }
-
-    private static float equivalent35mmFromCharacteristics(CameraCharacteristics chars) {
-        if (chars == null) return 0f;
-        try {
-            float[] focalLengths = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_FOCAL_LENGTHS);
-            SizeF sensorSize = chars.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE);
-            if (focalLengths == null || focalLengths.length == 0 || sensorSize == null) {
-                return 0f;
-            }
-            Rect activeArray = chars.get(CameraCharacteristics.SENSOR_INFO_ACTIVE_ARRAY_SIZE);
-            Size pixelArray = chars.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
-            return FocalEquivalence.equivalent35mm(focalLengths[0],
-                    sensorSize.getWidth(), sensorSize.getHeight(),
-                    activeArray != null ? activeArray.width() : 0,
-                    activeArray != null ? activeArray.height() : 0,
-                    pixelArray != null ? pixelArray.getWidth() : 0,
-                    pixelArray != null ? pixelArray.getHeight() : 0);
-        } catch (Exception e) {
-            return 0f;
         }
     }
 
@@ -2172,7 +2100,6 @@ public class CameraFragment extends Fragment {
             if (memberId != null) {
                 auxButtonsViewModel.setActiveId(memberId);
             }
-            updateActiveLens35mm();
             Vibration vibration = PhotonCamera.getVibration();
             if (vibration != null) vibration.lensSwitch();
         }
@@ -2382,7 +2309,6 @@ public class CameraFragment extends Fragment {
             if (!mVideoLogicalMembers.isEmpty()) {
                 String anchor = captureController.configureLogicalZoomLenses(mVideoLogicalMembers);
                 auxButtonsViewModel.setActiveId(anchor);
-                updateActiveLens35mm();
                 return;
             }
             CameraLensData active = mCameraLensDataMap.get(PreferenceKeys.getCameraID());
@@ -2391,7 +2317,6 @@ public class CameraFragment extends Fragment {
                     : CameraCharacteristics.LENS_FACING_BACK;
             captureController.configureZoomLenses(mCameraLensDataMap, facing);
             auxButtonsViewModel.setActiveId(PreferenceKeys.getCameraID());
-            updateActiveLens35mm();
         }
 
         @Override

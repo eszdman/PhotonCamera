@@ -34,10 +34,8 @@ import androidx.dynamicanimation.animation.SpringForce;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
-import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.binding.CustomBinding;
 import com.particlesdevs.photoncamera.ui.camera.data.CameraLensData;
-import com.particlesdevs.photoncamera.ui.camera.data.LensLabelFormatter;
 import com.particlesdevs.photoncamera.ui.camera.model.AuxButtonsModel;
 import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
 
@@ -45,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Container for multi-camera buttons.
@@ -88,6 +87,10 @@ public class AuxButtonsLayout extends SelectorPillLayout {
             setListenerAndSelected("0");
             updateVisibility();
         }
+    }
+
+    private static String getAuxButtonName(float zoomFactor) {
+        return String.format(Locale.US, "%.1fx", zoomFactor).replace(".0", "");
     }
 
     public void setAuxButtonsModel(AuxButtonsModel auxButtonsModel) {
@@ -143,7 +146,6 @@ public class AuxButtonsLayout extends SelectorPillLayout {
             ordered = new ArrayList<>(cameraLensDataList);
             Collections.reverse(ordered);
         }
-        boolean mmEquivalent = PreferenceKeys.isLensMmEquivalentOn();
         // Reuse the existing buttons instead of recreating them: inflating a
         // styled Button per lens mid-animation (the lens set changes between a
         // logical video id and the physical photo lenses) drops frames for
@@ -162,23 +164,13 @@ public class AuxButtonsLayout extends SelectorPillLayout {
             CameraLensData cameraLensData = ordered.get(i);
             Button button = (Button) getChildAt(i);
             auxButtonsMap.put(button.getId(), cameraLensData.getCameraId());
-            String label = LensLabelFormatter.format(cameraLensData, mmEquivalent);
+            String label = getAuxButtonName(cameraLensData.getZoomFactor());
             if (!label.contentEquals(button.getText())) {
                 button.setText(label);
             }
         }
         setListenerAndSelected(activeId);
         updateVisibility();
-    }
-
-    /**
-     * Rebuilds the buttons with the current label mode. Called when the camera
-     * resumes so a Lens Labels settings change applies without reopening the camera.
-     */
-    public void refresh() {
-        if (activeCameraId != null) {
-            refresh(activeCameraId);
-        }
     }
 
     private void setListenerAndSelected(String activeId) {

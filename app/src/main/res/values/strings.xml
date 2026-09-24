@@ -38,8 +38,6 @@
     <string name="lens_bar_position_right">Right</string>
     <string name="lens_bar_position_center">Center</string>
     <string name="lens_bar_position_left">Left</string>
-    <string name="lenses_as_mm_equivalent">Lenses as mm equivalent</string>
-    <string name="lenses_as_mm_equivalent_summary">Show lens buttons as 35mm-equivalent focal lengths</string>
     <string name="noise_reduction_str">Noise Reduction Strength</string>
     <string name="noise_merge_str">Noise Merge Strength</string>
     <string name="raw">Save</string>
