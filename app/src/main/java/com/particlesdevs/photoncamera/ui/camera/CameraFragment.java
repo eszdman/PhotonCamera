@@ -495,6 +495,7 @@ public class CameraFragment extends Fragment {
         view.post(this::applyManualDomeHeight);
         textureView.postOnAnimation(panelBlurTracker);
         view.getViewTreeObserver().addOnPreDrawListener(lensOffsetCorrection);
+        view.getViewTreeObserver().addOnPreDrawListener(manualOpenerClearance);
         initSettingsBar();
         applySecureSessionUI();
     }
@@ -801,6 +802,76 @@ public class CameraFragment extends Fragment {
                     return true;
                 }
             };
+
+    /** Distance from the opener's bottom to the shutter's top in 4:3. */
+    private static final float OPENER_GAP_DP = 24f;
+    /** 16:9 pulls the opener closer to the shutter. */
+    private static final float OPENER_GAP_169_SCALE = 0.1f;
+    /** The bar content's top sits this far above the shutter's top. */
+    private static final float CONTENT_TOP_TO_SHUTTER_DP = 16f;
+    private static final float CONTENT_TOP_169_SHUTTER_DP = 4f;
+    /** Margin the pass last applied; -1 until the first placement. */
+    private int manualOpenerMargin = -1;
+
+    /**
+     * Keeps the manual opener a set gap above the shutter: a constant 24dp in
+     * 4:3 and none in 16:9. The opener is a direct child of the camera
+     * container (so no ancestor can clip it) and its bottom margin is measured
+     * from the bottom bar's content, which is the shutter row, so it moves with
+     * the chrome. Pure layout coordinates: the mode-switch FLIP's own entry
+     * glides any change instead of this animating anything.
+     */
+    private final ViewTreeObserver.OnPreDrawListener manualOpenerClearance =
+            new ViewTreeObserver.OnPreDrawListener() {
+                @Override
+                public boolean onPreDraw() {
+                    syncManualOpenerMargin();
+                    return true;
+                }
+            };
+
+    private void syncManualOpenerMargin() {
+        View root = getView();
+        if (root == null || cameraFragmentBinding == null) {
+            return;
+        }
+        View container = root.findViewById(R.id.camera_container);
+        View opener = root.findViewById(R.id.open_close_manual);
+        View content = root.findViewById(R.id.bottombar_content);
+        View bar = cameraFragmentBinding.layoutBottombar.getRoot();
+        if (container == null || opener == null || content == null || bar == null
+                || !(opener.getLayoutParams() instanceof ConstraintLayout.LayoutParams)) {
+            return;
+        }
+        // The visible gap is measured to the shutter, not to the bar content: the
+        // content's top sits CONTENT_TOP_TO_SHUTTER_DP above the shutter's top.
+        // 16:9 pulls the opener closer; the frame's ratio flips at the mode
+        // switch (before the stretch), so this is a discrete step that the
+        // mode-switch FLIP glides.
+        ViewfinderFrameView frame = cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
+        boolean sixteenNine = frame != null && frame.getRatioWidth() > 0
+                && frame.getRatioHeight() > frame.getRatioWidth() * 1.5f;
+        float density = getResources().getDisplayMetrics().density;
+        float visibleGapDp = (sixteenNine ? 0 : OPENER_GAP_DP);
+	float topGapDp = (sixteenNine ? CONTENT_TOP_169_SHUTTER_DP : CONTENT_TOP_TO_SHUTTER_DP);
+        int gapPx = Math.max(0, Math.round((visibleGapDp - topGapDp) * density));
+        // Both the bar and its content are in the container's coordinates, and
+        // the opener's bottom is anchored to the container's bottom.
+        int contentTop = bar.getTop() + content.getTop();
+        int containerHeight = container.getHeight();
+        if (contentTop <= 0 || containerHeight <= 0) {
+            return;
+        }
+        int required = containerHeight - contentTop + gapPx;
+        if (required == manualOpenerMargin) {
+            return;
+        }
+        manualOpenerMargin = required;
+        ConstraintLayout.LayoutParams params = (ConstraintLayout.LayoutParams) opener.getLayoutParams();
+        params.bottomMargin = required;
+        opener.setLayoutParams(params);
+    }
+
     /** Scratch/applied spec lists so the renderer only receives real changes. */
     private final List<MainRenderer.PanelBlurSpec> scratchBlurSpecs = new ArrayList<>(8);
     private List<MainRenderer.PanelBlurSpec> appliedBlurSpecs;
@@ -1239,6 +1310,7 @@ public class CameraFragment extends Fragment {
         }
         if (getView() != null) {
             getView().getViewTreeObserver().removeOnPreDrawListener(lensOffsetCorrection);
+            getView().getViewTreeObserver().removeOnPreDrawListener(manualOpenerClearance);
         }
         super.onDestroyView();
     }
