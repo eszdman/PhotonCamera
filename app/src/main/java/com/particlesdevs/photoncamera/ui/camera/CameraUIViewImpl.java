@@ -28,8 +28,7 @@ import com.particlesdevs.photoncamera.settings.TunableInjector;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView;
-import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
-import com.particlesdevs.photoncamera.ui.widget.RecordButtonDrawable;
+import com.particlesdevs.photoncamera.ui.widget.ShutterFaceDrawable;
 import com.particlesdevs.photoncamera.util.Utilities;
 
 import java.util.ArrayList;
@@ -62,8 +61,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private final ProgressBar mProcessingProgressBar;
     private final HorizontalPicker mModePicker;
     private final TextView mVideoRecordingInfo;
-    private final MorphShapeDrawable mShutterMorph;
-    private final RecordButtonDrawable mRecordDrawable;
+    private final ShutterFaceDrawable mShutterFace;
     private LayoutMainTopbarBinding topbar;
     private LayoutBottombuttonsBinding bottombuttons;
     private CameraUIEventsListener uiEventsListener;
@@ -77,8 +75,8 @@ public class CameraUIViewImpl implements CameraUIView {
         this.mCaptureProgressBar = cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar;
         this.mProcessingProgressBar = bottombuttons.processingProgressBar;
         this.mShutterButton = bottombuttons.shutterButton;
-        this.mShutterMorph = MorphShapeDrawable.shutter(cameraFragment.requireContext());
-        this.mRecordDrawable = new RecordButtonDrawable(cameraFragment.requireContext());
+        this.mShutterFace = new ShutterFaceDrawable(cameraFragment.requireContext());
+        this.mShutterButton.setBackground(mShutterFace);
         this.mModePicker = cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
         this.mVideoRecordingInfo = cameraFragment.cameraFragmentBinding.getRoot().findViewById(R.id.video_recording_info);
         this.initListeners();
@@ -181,8 +179,8 @@ public class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void setShutterRecording(boolean recording) {
-        if (mRecordDrawable != null) {
-            mRecordDrawable.setRecording(recording);
+        if (mShutterFace != null) {
+            mShutterFace.setRecording(recording);
         }
         if (mShutterButton != null) {
             mShutterButton.post(() -> mShutterButton.setContentDescription(
@@ -193,16 +191,14 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     /**
-     * Attaches the shared record-button drawable (popping the dot in on
-     * first attach) and syncs it with the live capture state so refreshes
-     * during a recording don't reset it to idle.
+     * Switches the shared shutter face to the record design (video, unlimited
+     * and RAW video modes) and syncs it with the live capture state so refreshes
+     * during a recording don't reset it to idle. The face is never swapped as a
+     * background: it morphs, so the photo/video change animates.
      */
-    private void attachRecordButton() {
-        if (mShutterButton.getBackground() != mRecordDrawable) {
-            mShutterButton.setBackground(mRecordDrawable);
-            mRecordDrawable.rewindEntry();
-        }
-        mRecordDrawable.refreshColors(cameraFragment.requireContext());
+    private void syncShutterFace() {
+        mShutterFace.refreshColors(cameraFragment.requireContext());
+        mShutterFace.setMode(true);
         boolean recording = cameraFragment.captureController != null
                 && (cameraFragment.captureController.mIsRecordingVideo
                         || cameraFragment.captureController.onUnlimited);
@@ -614,7 +610,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.GONE);
-            attachRecordButton();
+            syncShutterFace();
             // VIDEO has its own REC badge (video_recording_info); the photo
             // countdown timer and burst progress ring do not apply here.
             cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
@@ -643,7 +639,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
-            attachRecordButton();
+            syncShutterFace();
             if (mode == CameraMode.RAWVIDEO) {
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.GONE);
@@ -685,7 +681,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackground(mShutterMorph);
+            mShutterFace.setMode(false);
             //cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
             //cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
@@ -727,7 +723,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackground(mShutterMorph);
+            mShutterFace.setMode(false);
             if(PhotonCamera.getSettings().aspect169) {
                 // Set the dummy view's aspect ratio to 16:9
                 if(cameraFragment.displayAspectRatio <= 16f / 9f)
