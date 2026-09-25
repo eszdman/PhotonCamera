@@ -73,6 +73,13 @@
                 android:summary="@string/save_location_summary"
                 android:icon="@drawable/ic_location_on"
                 />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_always_show_zoom_bar_key"
+                android:defaultValue="@bool/pref_always_show_zoom_bar_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/always_show_zoom_bar"
+                android:summary="@string/always_show_zoom_bar_summary"
+                android:icon="@drawable/ic_zoom_slider" />
         <ListPreference
                 android:key="@string/pref_lens_bar_position_key"
                 android:defaultValue="@string/pref_lens_bar_position_default"

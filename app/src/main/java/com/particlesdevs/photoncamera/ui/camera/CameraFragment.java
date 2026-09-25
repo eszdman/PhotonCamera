@@ -660,8 +660,11 @@ public class CameraFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        lensZoomBarController.onResume();
         updateSettingsBar();
         lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
+        lensZoomBarController.setAlwaysShowZoomBar(
+                PreferenceKeys.isAlwaysShowZoomBarOn(), true);
         edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
         textureView.setRoundCorners(PreferenceKeys.isRoundEdgeOn());
         mSwipe.init();

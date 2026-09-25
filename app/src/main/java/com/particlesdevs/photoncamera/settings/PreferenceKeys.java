@@ -52,6 +52,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_THEME_ACCENT.mValue);
         COMMON_KEYS.add(Key.KEY_THEME.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_GRID.mValue);
+        COMMON_KEYS.add(Key.KEY_ALWAYS_SHOW_ZOOM_BAR.mValue);
         COMMON_KEYS.add(Key.KEY_LENS_BAR_POSITION.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
@@ -145,6 +146,7 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_BITRATE, resources.getString(R.string.audio_bitrate_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, resources.getString(R.string.audio_source_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR, resources.getBoolean(R.bool.pref_always_show_zoom_bar_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, resources.getString(R.string.pref_lens_bar_position_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
@@ -442,6 +444,17 @@ public class PreferenceKeys {
 
     public static void setGridValue(int value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SHOW_GRID, value);
+    }
+
+    /** True when the zoom slider should remain visible without interaction. */
+    public static boolean isAlwaysShowZoomBarOn() {
+        return preferenceKeys.settingsManager.getBoolean(
+                SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR);
+    }
+
+    public static void setAlwaysShowZoomBar(boolean value) {
+        preferenceKeys.settingsManager.set(
+                SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR, value);
     }
 
     /**
@@ -1077,6 +1090,7 @@ public class PreferenceKeys {
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
+        KEY_ALWAYS_SHOW_ZOOM_BAR(R.string.pref_always_show_zoom_bar_key),
         KEY_LENS_BAR_POSITION(R.string.pref_lens_bar_position_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
         KEY_HAPTICS(R.string.pref_haptics_key),

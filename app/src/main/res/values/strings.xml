@@ -34,6 +34,8 @@
     <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
+    <string name="always_show_zoom_bar">Always show zoom bar</string>
+    <string name="always_show_zoom_bar_summary">Keep the zoom slider visible instead of hiding it after inactivity</string>
     <string name="lens_bar_position">Lens Bar Position</string>
     <string name="lens_bar_position_right">Right</string>
     <string name="lens_bar_position_center">Center</string>
