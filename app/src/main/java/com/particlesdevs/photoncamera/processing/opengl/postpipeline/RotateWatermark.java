@@ -22,7 +22,10 @@ import static android.opengl.GLES20.GL_NEAREST;
 import static android.opengl.GLES20.GL_REPEAT;
 
 public class RotateWatermark extends Node {
-    private int rotate;
+    // Rotation in degrees (0/90/180/270) as the pipeline selected it. Package
+    // visibility: the fused-tail gate reads it before bindShot (which derives
+    // tileRot from it).
+    int rotate;
     private boolean watermarkNeeded;
     private GLImage watermark;
     private GLImage noise;

@@ -40,6 +40,13 @@ public class CaptureSharpening extends Node {
         Log.d(Name,"CaptureSharpening specific:"+basePipeline.mParameters.sensorSpecifics);
         csActive = false;
         PostPipeline pp = (PostPipeline) basePipeline;
+        if (pp.tailFusedSink) {
+            // T4b fused: LocalLaplacian2 already streamed its finest bands
+            // through this segment straight into the sink.
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
         if (pp.tailTiled && pp.mParameters.sensorSpecifics != null) {
             // T4 production path: render the segment in bands (see
             // TileDriver.runTailTiled), then return without legacy draws.

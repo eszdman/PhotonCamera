@@ -215,6 +215,9 @@ public class PostPipeline extends GLBasePipeline {
     )
     boolean tiledTailProduce = true;
 
+    @Tunable(title = "Tiled fused Laplacian tail", category = "Post", description = "Fuse the LocalLaplacian's finest reconstruction into the tiled tail: while the pyramid is alive, its bands stream straight into the sink instead of materializing a full output/entry (~1.15 GB at a 144 MP output). Bit-exact by construction (the Laplacian's finest oracle); falls back to the legacy full-frame path on any failure or non-row rotation", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean tiledFuseLaplacian = true;
+
     // T4 engage flag, computed once per shot below: true only when the proven
     // segment will actually render (capture active, correcting passthrough).
     // Assigned every shot (never stale); nodes read it, only the fallback

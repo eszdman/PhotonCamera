@@ -1083,4 +1083,156 @@ public final class TileDriver {
                 + " fused to sink rot=" + rot.tileRot + " (no compares)");
         return bandCount;
     }
+
+    /**
+     * Supplies one band of a stage's output as a fresh tile: image rows
+     * [{@code w0}, {@code w1}) stored at tile rows [0, w1-w0). The driver
+     * closes the returned tile.
+     */
+    public interface BandSource {
+        /**
+         * One band of the source's output: image rows [{@code w0}, {@code w1})
+         * for {@code columns == false}, image columns [{@code w0}, {@code w1})
+         * at full height for {@code columns == true}. The tile starts at its
+         * origin in both cases; the driver closes it.
+         */
+        GLTexture produce(int w0, int w1, boolean columns);
+    }
+
+    /**
+     * Fused tail produce: like {@link #runTailProduce}, but the capture's
+     * input comes from {@code source} per band instead of a full-size entry.
+     * {@code LocalLaplacian2} uses it to render its finest reconstruction
+     * band while the pyramid is still alive, so the full output/entry texture
+     * never exists - the last full-frame allocation before the sink.
+     *
+     * <p>Rows only: the source produces row bands, so a transposed (90/270)
+     * rotation cannot use it. The source tile is read tile-relative by the
+     * capture ({@code u_inOrigin = 0}), unlike the full-entry path which
+     * offsets by the window origin.</p>
+     */
+    public static int runTailProduceFused(CaptureSharpening cap, Sharpen2 shp,
+                                          RotateWatermark rot, BandSource source,
+                                          GLTexture placeholder, int imgW, int imgH,
+                                          GLCoreBlockProcessing glproc,
+                                          java.nio.ByteBuffer wrapped,
+                                          boolean logBindState) {
+        String tag = "TiledHarness";
+        if (cap == null || shp == null || rot == null || source == null) {
+            throw new IllegalStateException("fused tail produce without segment/source");
+        }
+        if (glproc == null || wrapped == null) {
+            throw new IllegalStateException("fused tail produce without sink");
+        }
+        if (rot.watermarkTex == null || rot.noiseTex == null) {
+            throw new IllegalStateException("fused tail produce without rotate samplers");
+        }
+        GLFormat float4 = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
+        int hCap = cap.halo();
+        int hShp = shp.halo();
+        GLTexture.logLive(tag, "tail-fused-base");
+        int bandCount = 0;
+        boolean columns = rot.tileRot == 1 || rot.tileRot == 3;
+        boolean mirror = rot.tileRot == 2 || rot.tileRot == 1;
+        int outH = columns ? imgW : imgH;
+        int outW = columns ? imgH : imgW;
+        int wLen = columns ? imgW : imgH;
+        for (int[] band : computeBands(outH, TAIL_TILE_ROWS)) {
+            int b0 = band[0], b1 = band[1];
+            int wb0 = mirror ? wLen - b1 : b0;
+            int wb1 = mirror ? wLen - b0 : b1;
+            int[] wc = expandWindow(wb0, wb1, wLen, hShp + hCap);
+            int[] we = expandWindow(wc[0], wc[1], wLen, hCap);
+            int[] ws = expandWindow(wb0, wb1, wLen, hShp);
+            int off = ws[0] - we[0];
+            int take = ws[1] - ws[0];
+            if (off < 0 || off + take > (we[1] - we[0])) {
+                throw new IllegalStateException("fused tail produce window mismatch off=" + off
+                        + " take=" + take + " in=" + (we[1] - we[0]));
+            }
+            GLTexture srcTile = null;
+            GLTexture capTile = null;
+            GLTexture sharpTile = null;
+            try {
+                srcTile = source.produce(we[0], we[1], columns);
+                boolean srcOk = srcTile != null && (columns
+                        ? (srcTile.mSize.x == (we[1] - we[0]) && srcTile.mSize.y == imgH)
+                        : (srcTile.mSize.x == imgW && srcTile.mSize.y == (we[1] - we[0])));
+                if (!srcOk) {
+                    throw new IllegalStateException("fused tail source band "
+                            + (srcTile == null ? "null"
+                            : (srcTile.mSize.x + "x" + srcTile.mSize.y))
+                            + " expected " + (columns ? (we[1] - we[0]) + "x" + imgH
+                            : imgW + "x" + (we[1] - we[0])));
+                }
+                cap.glProg.rebindProgram(cap.tileProgram);
+                capTile = columns ? newTile(we[1] - we[0], imgH, float4)
+                        : newTile(imgW, we[1] - we[0], float4);
+                // Source tile holds image rows [we0, we1) at row 0: the
+                // capture samples it tile-relative (origin 0).
+                cap.renderTile(srcTile, capTile, 0, 0);
+                if (logBindState) {
+                    logProgramState(tag, "cap-band" + b0, cap.glProg,
+                            "InputBuffer", cap.tileProgram);
+                }
+                shp.glProg.rebindProgram(shp.tileProgram);
+                sharpTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
+                        : newTile(imgW, ws[1] - ws[0], float4);
+                if (b0 == 0) {
+                    GLTexture.logLive(tag, "tail-fused-peak");
+                }
+                shp.renderTile(capTile, sharpTile, columns ? off : 0, columns ? 0 : off);
+                if (logBindState) {
+                    logProgramState(tag, "shp-band" + b0, shp.glProg,
+                            "InputBuffer", shp.tileProgram);
+                }
+                rot.glProg.rebindProgram(rot.tileProgram);
+                rot.glProg.setTexture("InputBuffer", sharpTile);
+                rot.glProg.setTexture("Watermark", rot.watermarkTex);
+                rot.glProg.setTexture("Noise", rot.noiseTex);
+                int yOff;
+                if (rot.tileRot == 0 || rot.tileRot == 3) {
+                    // Buffer-relative (buffer cell 0 holds image cell ws0):
+                    // rows for rot 0, columns for rot 3.
+                    yOff = b0 - ws[0];
+                } else if (rot.tileRot == 2) {
+                    yOff = b0 + ws[1] - imgH + 1;
+                } else {
+                    yOff = b0 - (imgW - ws[1]);
+                }
+                rot.glProg.setVar("yOffset", yOff);
+                if (logBindState) {
+                    logProgramState(tag, "rot-band" + b0, rot.glProg,
+                            "InputBuffer", rot.tileProgram);
+                }
+                glproc.streamBandAsync(b0, b1 - b0, wrapped, outW * 4);
+                bandCount++;
+            } catch (Throwable t) {
+                try {
+                    glproc.finishStreamedBands();
+                } catch (Throwable ignored) {
+                }
+                throw new IllegalStateException(
+                        "fused tail produce band [" + b0 + "," + (b1 - b0) + ") failed", t);
+            } finally {
+                closeQuietly(srcTile);
+                closeQuietly(capTile);
+                closeQuietly(sharpTile);
+            }
+        }
+        // Collect the trailing band transfers while the sink is still locked.
+        glproc.finishStreamedBands();
+        // Restore nodes to valid placeholders (same post-state convention as
+        // runTailProduce; the true output lives in the sink bitmap now).
+        GLTexture ph = placeholder;
+        cap.WorkingTexture = ph;
+        cap.glProg.setTexture("InputBuffer", ph);
+        shp.WorkingTexture = ph;
+        shp.glProg.setTexture("InputBuffer", ph);
+        shp.glProg.setTexture("BlurBuffer", ph);
+        rot.glProg.setTexture("InputBuffer", ph);
+        Log.d(tag, "tail fused produce bands=" + bandCount + " rows=" + outH
+                + " rot=" + rot.tileRot + " (no compares)");
+        return bandCount;
+    }
 }
