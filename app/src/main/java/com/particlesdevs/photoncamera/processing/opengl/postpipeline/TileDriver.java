@@ -1264,11 +1264,13 @@ public final class TileDriver {
         // runTailProduce; the true output lives in the sink bitmap now).
         GLTexture ph = placeholder;
         cap.WorkingTexture = ph;
-        cap.glProg.setTexture("InputBuffer", ph);
         shp.WorkingTexture = ph;
-        shp.glProg.setTexture("InputBuffer", ph);
-        shp.glProg.setTexture("BlurBuffer", ph);
-        rot.glProg.setTexture("InputBuffer", ph);
+        if (ph != null) {
+            cap.glProg.setTexture("InputBuffer", ph);
+            shp.glProg.setTexture("InputBuffer", ph);
+            shp.glProg.setTexture("BlurBuffer", ph);
+            rot.glProg.setTexture("InputBuffer", ph);
+        }
         Log.d(tag, "tail fused produce bands=" + bandCount + " rows=" + outH
                 + " rot=" + rot.tileRot + " (no compares)");
         return bandCount;
