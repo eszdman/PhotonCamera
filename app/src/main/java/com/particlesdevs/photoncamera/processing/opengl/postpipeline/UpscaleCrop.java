@@ -86,28 +86,65 @@ public final class UpscaleCrop extends Node {
     }
 
     /**
-     * Downstream nodes (LocalLaplacian, CaptureSharpening, CorrectingFlow,
-     * Sharpen2) draw into the pipeline's main ping-pong textures, which
-     * Bayer2Float created at crop size. Once the crop has been expanded to
-     * the full-frame output size, those targets must be rebuilt to match.
+     * Output-sized draw target from the main ping-pong: the main that is not
+     * the input, rebuilt at {@code size} up-front. The old shape drew into a
+     * fresh texture and then rebuilt both mains in resizeMainTextures, so
+     * three output-sized allocations were live at once (the fresh output
+     * plus both mains - ~3.5 GB at a 144 MP output) and the fresh texture
+     * was never closed, so it rode the whole post. The other main is exactly
+     * what the downstream nodes ping-pong into; the input slot is rebuilt by
+     * {@link #rebuildPartnerMain} after the draw, keeping the toggle
+     * coherent (the next drawing node's getMain() returns the input slot).
      */
-    private void resizeMainTextures(Point size) {
-        GLFormat fmt = new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim);
-        GLTexture[] mains = {basePipeline.main1, basePipeline.main2, basePipeline.main3};
-        for (int i = 0; i < mains.length; i++) {
-            if (mains[i] != null) {
-                mains[i].close();
-            }
-            // main3 is demand-allocated and dead past the demosaic stage:
-            // never resurrect it here (getMain3 re-creates on demand).
-            if (i == 2 && mains[i] == null) {
-                continue;
-            }
-            mains[i] = new GLTexture(size, fmt, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+    private GLTexture takeOutputMain(GLTexture input, Point size) {
+        GLTexture out = basePipeline.getMain();
+        if (out == input) {
+            // Never draw over the input: take the other slot explicitly and
+            // keep texnum pointing at the input so the next getMain() hands
+            // the rebuilt input slot to the next drawing node.
+            out = (input == basePipeline.main1) ? basePipeline.main2 : basePipeline.main1;
+            basePipeline.texnum = (out == basePipeline.main2) ? 2 : 1;
         }
-        basePipeline.main1 = mains[0];
-        basePipeline.main2 = mains[1];
-        basePipeline.main3 = mains[2];
+        if (out == null) {
+            // No ping-pong slot (Bayer2Float normally creates both).
+            return new GLTexture(size, input.mFormat, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
+        if (size.equals(out.mSize)) {
+            return out;
+        }
+        GLTexture fresh = new GLTexture(size, input.mFormat, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        if (out == basePipeline.main1) {
+            basePipeline.main1 = fresh;
+        } else if (out == basePipeline.main2) {
+            basePipeline.main2 = fresh;
+        }
+        out.close();
+        return fresh;
+    }
+
+    /**
+     * Rebuilds the crop-sized partner main slot at the output size after the
+     * draw. The input is dead here in every production path (this node was
+     * its last reader), and the downstream ping-pong must never draw into a
+     * stale-size main. If the input was not one of the mains, the idle
+     * partner slot is rebuilt instead and the input is left alone.
+     */
+    private void rebuildPartnerMain(GLTexture input, GLTexture out, Point size) {
+        GLTexture stale = (input == basePipeline.main1 || input == basePipeline.main2)
+                ? input
+                : ((out == basePipeline.main1) ? basePipeline.main2 : basePipeline.main1);
+        if (stale == null || stale == out) {
+            return;
+        }
+        GLTexture fresh = new GLTexture(size,
+                new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),
+                null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        if (stale == basePipeline.main1) {
+            basePipeline.main1 = fresh;
+        } else if (stale == basePipeline.main2) {
+            basePipeline.main2 = fresh;
+        }
+        stale.close();
     }
 
     /** Frees a malloc-backed result buffer exactly once; null/view-safe. */
@@ -286,6 +323,10 @@ public final class UpscaleCrop extends Node {
             }
         }
 
+        // Output-sized draw target from the main ping-pong (see
+        // takeOutputMain): chosen before the draw so no fresh output
+        // texture ever coexists with the rebuilt mains.
+        GLTexture out = takeOutputMain(input, target);
         if (hasParams) {
             kernelsMapTex = new GLTexture(paramsSize,
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
@@ -317,7 +358,6 @@ public final class UpscaleCrop extends Node {
             float minX = Math.min(Math.max(absMinPx, outFloorPx * zoomX), sigmaMaxPx);
             float minY = Math.min(Math.max(absMinPx, outFloorPx * zoomY), sigmaMaxPx);
 
-            GLTexture out = new GLTexture(target, input.mFormat);
             glProg.useAssetProgram("upscalecrop/anisoupscale");
             anisoDone = true;
             anisoTarget = target;
@@ -333,8 +373,15 @@ public final class UpscaleCrop extends Node {
                 verifyAnisoRegions(input);
             }
         } else {
-            WorkingTexture = glUtils.interpolate(input, target);
+            WorkingTexture = glUtils.interpolate(input, out);
         }
+
+        // The crop-sized input (a main in every production path) is dead
+        // past the draw above: this node was its last reader. Rebuild the
+        // slot at the output size for the downstream ping-pong. Replaces
+        // the old resizeMainTextures call, which rebuilt both slots and
+        // would now close this node's output.
+        rebuildPartnerMain(input, out, target);
 
         // CPU copies served their purpose (params now on GPU, or unused on
         // the bicubic path): release so the ~128 MB result (50 MP) doesn't
@@ -354,7 +401,6 @@ public final class UpscaleCrop extends Node {
          * intentionally keeps the crop-region size: RotateWatermark sizes its
          * sampling from its actual input texture now.)
          */
-        resizeMainTextures(target);
         basePipeline.workSize = new Point(target);
     }
 
