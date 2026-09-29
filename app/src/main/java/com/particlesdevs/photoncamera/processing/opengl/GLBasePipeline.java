@@ -67,34 +67,32 @@ public class GLBasePipeline implements AutoCloseable {
     public GLTexture getMain(){
         if(texnum == 1) {
             texnum = 2;
-            main2 = ensureMainAlive(main2);
+            if (main2 == null) main2 = freshMain();
             return main2;
         } else {
             texnum = 1;
-            main1 = ensureMainAlive(main1);
+            if (main1 == null) main1 = freshMain();
             return main1;
         }
     }
 
     /**
-     * Re-creates a main slot whose texture was released after its last
-     * reader (see TileDriver.releaseConsumedInput): the tone nodes free the
-     * head output once their draw consumed it, and legacy fallback paths
-     * (Laplacian legacy reconstruction, the tail's non-tiled body) still call
-     * getMain() - drawing into a deleted name would render nowhere. Size and
-     * format follow getMain3's contract (workSize, RGBA16F).
+     * Re-creates a main slot released after its last reader (see
+     * TileDriver.releaseConsumedInput, which nulls the slot before closing).
+     * Legacy fallback paths - LocalLaplacian2's non-fused reconstruction, the
+     * tail's non-tiled body, CaptureSharpening's legacy body - still call
+     * getMain() for an output slot, and a null slot must not become a null
+     * draw target. The null slot itself is the release marker: probing
+     * liveness from the GL name registry is unsound, because names get
+     * recycled and a closed wrapper can be re-registered by an unrelated
+     * texture, making it look live. Size and format follow getMain3's
+     * contract.
      */
-    private GLTexture ensureMainAlive(GLTexture main) {
-        if (main != null && main.isLive()) {
-            return main;
-        }
+    private GLTexture freshMain() {
         Point size = workSize != null ? workSize
                 : (mParameters != null ? mParameters.rawSize : null);
-        if (size == null && main != null) {
-            size = main.mSize;
-        }
         if (size == null) {
-            return main;
+            return null;
         }
         return new GLTexture(new Point(size),
                 new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),

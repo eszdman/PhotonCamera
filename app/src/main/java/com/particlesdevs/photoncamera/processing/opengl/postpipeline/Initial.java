@@ -467,7 +467,7 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         // The draw consumed the input; nothing downstream reads it (the next
         // node reads this node's output). A free main here would otherwise
         // ride the Laplacian, tail and encode (~1.16 GB at a 144.5 MP output).
-        TileDriver.releaseConsumedInput(super.previousNode.WorkingTexture, WorkingTexture);
+        TileDriver.releaseConsumedInput(basePipeline, super.previousNode.WorkingTexture, WorkingTexture);
     }
 
     /**

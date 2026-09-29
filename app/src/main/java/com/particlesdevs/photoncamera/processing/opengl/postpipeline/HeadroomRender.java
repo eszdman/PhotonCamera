@@ -150,7 +150,7 @@ public class HeadroomRender extends Node {
         // The draw consumed the input; nothing downstream reads it (the next
         // node reads this node's output). See TileDriver.releaseConsumedInput
         // (~1.16 GB at a 144.5 MP output).
-        TileDriver.releaseConsumedInput(super.previousNode.WorkingTexture, WorkingTexture);
+        TileDriver.releaseConsumedInput(basePipeline, super.previousNode.WorkingTexture, WorkingTexture);
     }
 
     /**

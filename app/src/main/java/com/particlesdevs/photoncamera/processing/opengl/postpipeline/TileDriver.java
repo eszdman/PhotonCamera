@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Point;
 
+import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
@@ -688,17 +689,31 @@ public final class TileDriver {
      * would otherwise hold the input until the tail's idle-main sweep. At a
      * 144.5 MP output (13872x10416 RGBA16F) that is ~1.16 GB of dead bytes
      * riding the Laplacian, the tail and encode - exactly the window where
-     * the >100 MP LMK kills were observed. Idempotent, null-safe, no-op for
-     * passthroughs (input == output). Callers skip it under the oracle
-     * harness, which reads previousNode.WorkingTexture after the draw.
+     * the >100 MP LMK kills were observed.
+     *
+     * The pipeline slot is nulled before the close: getMain() then re-creates
+     * it explicitly for legacy fallbacks. Inferring liveness from the GL name
+     * registry instead is unsound - names get recycled, so a closed wrapper
+     * can be re-registered by an unrelated texture and look live, which made
+     * the non-fused Laplacian/tail draw into a deleted (or foreign) texture
+     * and produce black frames. Idempotent, null-safe, no-op for passthroughs
+     * (input == output). Callers skip it under the oracle harness, which
+     * reads previousNode.WorkingTexture after the draw.
      */
-    public static void releaseConsumedInput(GLTexture input, GLTexture output) {
+    public static void releaseConsumedInput(GLBasePipeline bp, GLTexture input, GLTexture output) {
         if (input == null || output == null || input == output) {
             return;
         }
         try {
             Log.d("TiledHarness", "tone input released " + input.mSize.x + "x" + input.mSize.y
                     + " " + (input.getByteCount() / (1024 * 1024)) + " MB");
+            if (bp != null) {
+                if (bp.main1 == input) {
+                    bp.main1 = null;
+                } else if (bp.main2 == input) {
+                    bp.main2 = null;
+                }
+            }
             input.close();
         } catch (Throwable ignored) {
         }

@@ -125,7 +125,7 @@ public class ModernInitial extends Node {
         // downstream reads it (see TileDriver.releaseConsumedInput; ~1.16 GB
         // at a 144.5 MP output).
         if (!((PostPipeline) basePipeline).debugTiledCompare) {
-            TileDriver.releaseConsumedInput(super.previousNode.WorkingTexture, WorkingTexture);
+            TileDriver.releaseConsumedInput(basePipeline, super.previousNode.WorkingTexture, WorkingTexture);
         }
     }
 }
