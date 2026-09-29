@@ -1315,6 +1315,16 @@ public class ESD4D extends GLOneScript {
                 flowTex = flowNetAlignment.computeFlow(ind);
             }
 
+            // This frame's only native reads are the two synchronous uploads
+            // above: merge00's alterTarget (line above) and, on the FlowNet
+            // path, inputAlter inside computeFlow. Everything below runs on
+            // GPU textures plus scalar pair metadata, so release the f16
+            // buffer now instead of after combine: the burst drains one frame
+            // earlier, off the merge's peak (all 8 f16 frames are live when
+            // the loop starts). close() is idempotent, so HdrxProcessor's
+            // post-merge loop stays a safe net.
+            frame.close();
+
             // Convert inputAlter to alter (vec4 format)
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
@@ -1430,13 +1440,6 @@ public class ESD4D extends GLOneScript {
             glProg.computeAuto(mergeAcc.mSize, 1);
             gpuSyncProfile();
             Log.d("ESD4D", "Stage[merge:combine] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
-            // This frame's pixels are on the GPU now: inputAlter.loadData()
-            // (and FlowNet's computeFlow()) upload synchronously, and
-            // everything above only touches GPU textures plus scalar pair
-            // metadata afterwards. Release the native copy so peak memory no
-            // longer holds the whole burst through the merge. close() is
-            // idempotent, so HdrxProcessor's post-merge loop stays a safe net.
-            images.get(ind).close();
             endT();
         }
         Log.d("ESD4D", "Stage[merge-loop] elapsed:" + (System.currentTimeMillis() - mergeLoopT) + " ms");
