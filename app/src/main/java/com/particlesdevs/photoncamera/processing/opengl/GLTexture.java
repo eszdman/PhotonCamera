@@ -577,4 +577,13 @@ public class GLTexture implements AutoCloseable {
         // call silently leaked one FBO per texture that ever rendered.
         if(isBuffered) glDeleteFramebuffers(1,new int[]{mBuffer},0);
     }
+
+    /**
+     * True while this texture's GL name is still registered, i.e. close() has
+     * not run (or ran with a stale entry). Used by GLBasePipeline.getMain to
+     * re-create a main slot freed after its last reader.
+     */
+    boolean isLive() {
+        return sNames.contains(mTextureID);
+    }
 }

@@ -118,4 +118,14 @@ public class ModernInitial extends Node {
         // future driver treats it uniformly (LUT render, halo 0).
         WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
     }
+
+    @Override
+    public void postDrawOracle() {
+        // Deferred draw, no oracle: the draw consumed the input, and nothing
+        // downstream reads it (see TileDriver.releaseConsumedInput; ~1.16 GB
+        // at a 144.5 MP output).
+        if (!((PostPipeline) basePipeline).debugTiledCompare) {
+            TileDriver.releaseConsumedInput(super.previousNode.WorkingTexture, WorkingTexture);
+        }
+    }
 }

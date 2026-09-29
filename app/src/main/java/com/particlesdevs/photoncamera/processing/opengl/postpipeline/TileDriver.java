@@ -681,6 +681,29 @@ public final class TileDriver {
                 new GLFormat(fmt), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
     }
 
+    /**
+     * Releases a node's input texture once its draw has consumed it and the
+     * draw went into a different texture: that node was the input's last
+     * reader (the next node reads this node's output), and the pipeline
+     * would otherwise hold the input until the tail's idle-main sweep. At a
+     * 144.5 MP output (13872x10416 RGBA16F) that is ~1.16 GB of dead bytes
+     * riding the Laplacian, the tail and encode - exactly the window where
+     * the >100 MP LMK kills were observed. Idempotent, null-safe, no-op for
+     * passthroughs (input == output). Callers skip it under the oracle
+     * harness, which reads previousNode.WorkingTexture after the draw.
+     */
+    public static void releaseConsumedInput(GLTexture input, GLTexture output) {
+        if (input == null || output == null || input == output) {
+            return;
+        }
+        try {
+            Log.d("TiledHarness", "tone input released " + input.mSize.x + "x" + input.mSize.y
+                    + " " + (input.getByteCount() / (1024 * 1024)) + " MB");
+            input.close();
+        } catch (Throwable ignored) {
+        }
+    }
+
     /** Production tail band height (T4): halo overhead per band is constant,
      * so wide bands minimize recompute; 512 also divides every target cleanly. */
     public static final int TAIL_TILE_ROWS = 512;

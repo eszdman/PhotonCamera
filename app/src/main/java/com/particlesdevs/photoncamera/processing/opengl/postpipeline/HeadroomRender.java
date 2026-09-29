@@ -145,7 +145,12 @@ public class HeadroomRender extends Node {
         // Deferred-draw node: see Initial (same stale-texture hazard).
         if (((PostPipeline) basePipeline).debugTiledCompare) {
             verifyRegions();
+            return;
         }
+        // The draw consumed the input; nothing downstream reads it (the next
+        // node reads this node's output). See TileDriver.releaseConsumedInput
+        // (~1.16 GB at a 144.5 MP output).
+        TileDriver.releaseConsumedInput(super.previousNode.WorkingTexture, WorkingTexture);
     }
 
     /**
