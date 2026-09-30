@@ -407,31 +407,21 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     /**
-     * Bottom chrome for 16:9/video layouts: no scrim behind the button row
-     * so the viewfinder shows through between the buttons; the mode
-     * selector's own background follows the viewfinder background option
-     * (black for none, theme gradient for gradient, transparent for blurred
-     * edges). Photo 4:3 layouts clear the selector and float over the themed
-     * root instead.
+     * The bottom chrome carries no background of its own in any layout: the
+     * button row and the mode selector both float over the viewfinder, so the
+     * viewfinder background - or the preview itself, where the 16:9 finder
+     * reaches behind the bar - shows through between the controls.
+     * <p>
+     * The viewfinder background option owns the root's background, which is
+     * the one place it can render continuously; a copy of it behind the mode
+     * selector restarts the gradient inside the selector's bounds and reads as
+     * a band.
      */
-    private void applyBottomChrome(boolean scrimmed) {
-        android.view.View buttons =
-                cameraFragment.cameraFragmentBinding.layoutBottombar.bottomButtons.getRoot();
-        android.view.View selector =
-                cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.getRoot();
-        buttons.setBackground(null);
-        if (scrimmed) {
-            String bg = PreferenceKeys.getViewfinderBackground();
-            if (PreferenceKeys.VIEWFINDER_BACKGROUND_GRADIENT.equals(bg)) {
-                selector.setBackgroundResource(R.drawable.gradient_vector);
-            } else if (PreferenceKeys.VIEWFINDER_BACKGROUND_BLUR.equals(bg)) {
-                selector.setBackground(null);
-            } else {
-                selector.setBackgroundColor(0xFF000000);
-            }
-        } else {
-            selector.setBackground(null);
-        }
+    private void clearBottomChrome() {
+        cameraFragment.cameraFragmentBinding.layoutBottombar.bottomButtons.getRoot()
+                .setBackground(null);
+        cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.getRoot()
+                .setBackground(null);
     }
 
     /**
@@ -625,8 +615,8 @@ public class CameraUIViewImpl implements CameraUIView {
             // Anchor the bottom bar below the 16:9 finder (same layout as the
             // aspect169 photo mode); see setVideoDummyAspect().
             setVideoDummyAspect();
-            applyBottomChrome(true);
-            animateRootBackground(R.drawable.gradient_vector_video);
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
             cameraFragment.reassertManualPanelState();
@@ -657,13 +647,12 @@ public class CameraUIViewImpl implements CameraUIView {
             if(PhotonCamera.getSettings().aspect169 || mode == CameraMode.RAWVIDEO) {
                 // 16:9 video-style layout; see setVideoDummyAspect().
                 setVideoDummyAspect();
-                applyBottomChrome(true);
-                animateRootBackground(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
+
             toggleConstraints(mode);
             cameraFragment.reassertManualPanelState();
         }
@@ -700,13 +689,11 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                applyBottomChrome(true);
-                animateRootBackground(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
             cameraFragment.reassertManualPanelState();
@@ -739,13 +726,11 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                applyBottomChrome(true);
-                animateRootBackground(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
             cameraFragment.reassertManualPanelState();
