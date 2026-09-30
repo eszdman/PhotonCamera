@@ -44,8 +44,6 @@ import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.views.CustomSSIV;
 import com.particlesdevs.photoncamera.util.Log;
 
-import org.apache.commons.io.FileUtils;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.List;
@@ -111,6 +109,8 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final LruCache<Integer, Bitmap> previewCache = new LruCache<>(PREVIEW_WINDOW_ENTRIES);
     private final LruCache<Integer, Point> dimsCache = new LruCache<>(PREVIEW_WINDOW_ENTRIES);
     private static final int PREVIEW_SIDE = 360;
+    /** Placeholder frame ceiling for video pages (the player takes over on play). */
+    private static final int VIDEO_THUMBNAIL_MAX_PX = 1280;
     // Phase1: DNG viewport cache for mixed scrolling OOM fix.
     // Full-res SIZE_ORIGINAL (50MP 8192x6144×4=192MB) OOMs with 2 entries (384MB).
     // Viewport 1080×1920×4≈8.3MB or 1920×1440×4≈11MB → 4-16× saving, still sharp at 1×,
@@ -212,7 +212,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /** File extension of a position, or "" when unknown. */
     private String extensionAt(int position) {
         try {
-            return FileUtils.getExtension(galleryItemList.get(position).getFile().getDisplayName());
+            return galleryItemList.get(position).getFile().getExtension();
         } catch (Exception ignored) {
             return "";
         }
@@ -251,10 +251,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void setHdrStateListener(HdrStateListener l) { this.hdrStateListener = l; }
     public void setImageViewClickListener(ImageViewClickListener l) { this.imageViewClickListener = l; }
 
-    public int getSsivId(int position) {
-        return ViewGroup.generateViewId();
-    }
-
     public boolean isVideoPosition(int position) {
         return inBounds(position) && galleryItemList.get(position).isVideo();
     }
@@ -274,6 +270,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         }
         CustomSSIV ssiv = new CustomSSIV(parent.getContext());
         ssiv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        // Assign the id once per holder: regenerating it on every bind churns
+        // view ids (and the compare view's id-based sync).
+        ssiv.setId(ViewGroup.generateViewId());
         return new Holder(ssiv);
     }
 
@@ -286,9 +285,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         Holder imageHolder = (Holder) holder;
         GalleryItem item = galleryItemList.get(position);
         CustomSSIV ssiv = imageHolder.ssiv;
-        String ext = "";
-        try { ext = FileUtils.getExtension(item.getFile().getDisplayName()); } catch (Exception ignored) {}
-        boolean isDng = "dng".equalsIgnoreCase(ext);
+        boolean isDng = "dng".equalsIgnoreCase(item.getFile().getExtension());
         // Fast-path for DNG memory cache: if we already have full-res bitmap, show instantly
         // without blanking/recycling. This fixes subsequent swipes staying low quality/rotated.
         if (isDng) {
@@ -308,7 +305,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     if (prev != null) try { Glide.with(ssiv.getContext()).clear(prev); } catch (Exception ignored) {}
                 } catch (Exception ignored) {}
                 ssiv.setTag(position);
-                ssiv.setId(ViewGroup.generateViewId());
                 if (imageViewClickListener != null) ssiv.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
                 if (ssivListener != null) { ssiv.setOnStateChangedListener(ssivListener); ssiv.setTouchCallBack(ssivListener); }
                 ssiv.setOnImageEventListener(imageEventListener);
@@ -342,7 +338,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 // Show preview instantly while full-res loads – avoids black flash and gives upright orientation via preview
                 // Preview was decoded via decodePreview which already respects sampling; use it as placeholder
                 ssiv.setTag(position);
-                ssiv.setId(ViewGroup.generateViewId());
                 if (imageViewClickListener != null) ssiv.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
                 if (ssivListener != null) { ssiv.setOnStateChangedListener(ssivListener); ssiv.setTouchCallBack(ssivListener); }
                 ssiv.setOnImageEventListener(imageEventListener);
@@ -356,7 +351,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 // don't flash before DNG Glide finishes. Use blank until correct bitmap arrives.
                 ssiv.recycleIfNeeded();
                 ssiv.setTag(position);
-                ssiv.setId(ViewGroup.generateViewId());
                 if (imageViewClickListener != null) ssiv.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
                 if (ssivListener != null) { ssiv.setOnStateChangedListener(ssivListener); ssiv.setTouchCallBack(ssivListener); }
                 ssiv.setOnImageEventListener(imageEventListener);
@@ -366,13 +360,12 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         } else {
             ssiv.recycleIfNeeded();
             ssiv.setTag(position);
-            ssiv.setId(ViewGroup.generateViewId());
             if (imageViewClickListener != null) ssiv.setOnClickListener(v -> imageViewClickListener.onImageViewClicked(v));
             if (ssivListener != null) { ssiv.setOnStateChangedListener(ssivListener); ssiv.setTouchCallBack(ssivListener); }
             ssiv.setOnImageEventListener(imageEventListener);
         }
 
-        if ("dng".equalsIgnoreCase(ext)) {
+        if (isDng) {
             // Phase1: DNG viewport single bitmap (≈8-12MB) vs SIZE_ORIGINAL 192MB for 50MP.
             // Gives O(viewport) memory like JPEG tiling (~12MB), sharp at 1×, soft >2× zoom
             // (Phase2 native DngTiledRegionDecoder will give true tiles). Avoids mixed scroll OOM.
@@ -617,9 +610,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private void preloadDngFull(int position) {
         if (position < 0 || position >= galleryItemList.size()) return;
         GalleryItem item = galleryItemList.get(position);
-        String ext = "";
-        try { ext = FileUtils.getExtension(item.getFile().getDisplayName()); } catch (Exception ignored) {}
-        if (!"dng".equalsIgnoreCase(ext)) return;
+        if (!"dng".equalsIgnoreCase(item.getFile().getExtension())) return;
         if (dngBitmapCache.get(position) != null) return;
         if (dngTargets.containsKey(position)) return;
         try {
@@ -694,10 +685,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (appContext == null) return;
         if (isVideoPosition(position)) return;
         // DNG never uses tiling preview – avoid clobbering full-res cachedBitmap with 360px tile
-        try {
-            String ext = FileUtils.getExtension(galleryItemList.get(position).getFile().getDisplayName());
-            if ("dng".equalsIgnoreCase(ext)) return;
-        } catch (Exception ignored) {}
+        if ("dng".equalsIgnoreCase(extensionAt(position))) return;
         if (previewCache.get(position) != null || dimsCache.get(position) != null) return;
         if (pendingPreviewTasks.containsKey(position)) return;
         GalleryItem item = galleryItemList.get(position);
@@ -835,7 +823,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 if (t != null) try { Glide.with(ssiv.getContext()).clear(t); } catch (Exception ignored) {}
             }
         } catch (Exception ignored) {}
-        try { Glide.with(holder.itemView.getContext()).clear(ssiv); } catch (Exception ignored) {}
         try { Glide.with(ssiv.getContext()).clear(ssiv); } catch (Exception ignored) {}
         Object tag = ssiv.getTag();
         if (tag instanceof Integer) {
@@ -1017,10 +1004,14 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             GalleryItem item = galleryItemList.get(position);
             if (item.getFile() != null && item.getFile().getFileUri() != null) {
                 try {
+                    // The thumbnail only stands in until playback starts: cap it
+                    // at screen-ish size instead of decoding a full frame.
+                    int side = Math.min(VIDEO_THUMBNAIL_MAX_PX, getViewportSize().x);
                     Glide.with(holder.thumbnail)
                             .asBitmap()
                             .load(item.getFile().getFileUri())
                             .apply(new RequestOptions()
+                                    .override(side, side)
                                     .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
                                     .signature(new ObjectKey(item.getFile().getDisplayName()
                                             + item.getFile().getLastModified())))

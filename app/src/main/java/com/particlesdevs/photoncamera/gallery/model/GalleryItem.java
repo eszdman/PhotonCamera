@@ -5,8 +5,6 @@ import android.widget.Checkable;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.files.MediaFile;
 
-import org.apache.commons.io.FileUtils;
-
 import java.util.ArrayList;
 import java.util.Locale;
 
@@ -22,7 +20,8 @@ public class GalleryItem implements Checkable {
 
     public GalleryItem(MediaFile file) {
         this.file = file;
-        this.mediaTypeTag = getTagName(file.getDisplayName());
+        String extension = file != null ? file.getExtension() : "";
+        this.mediaTypeTag = getTagName(extension);
         this.displayName = file.getDisplayName();
     }
     public static GalleryItem createEmpty(){
@@ -33,34 +32,19 @@ public class GalleryItem implements Checkable {
         return mediaTypeTag;
     }
 
-    private String getTagName(String fileName) {
-        String ext = FileUtils.getExtension(fileName);
+    private String getTagName(String ext) {
         if (ext.equalsIgnoreCase("dng")) {
             return "RAW";
         } else if (ext.equalsIgnoreCase("jpg") || ext.equalsIgnoreCase("jpeg")) {
             return "";
-        } else if (isVideoExtension(ext)) {
+        } else if (MediaFile.isVideoExtension(ext)) {
             return "MP4";
         }
         return ext.toUpperCase(Locale.ROOT);
     }
 
     public boolean isVideo() {
-        if (file == null) return false;
-        try {
-            return isVideoExtension(FileUtils.getExtension(file.getDisplayName()));
-        } catch (Exception e) {
-            return false;
-        }
-    }
-
-    public static boolean isVideoExtension(String ext) {
-        return ext != null && (ext.equalsIgnoreCase("mp4")
-                || ext.equalsIgnoreCase("3gp")
-                || ext.equalsIgnoreCase("mkv")
-                || ext.equalsIgnoreCase("webm")
-                || ext.equalsIgnoreCase("mov")
-                || ext.equalsIgnoreCase("m4v"));
+        return file != null && file.isVideo();
     }
 
     public MediaFile getFile() {
