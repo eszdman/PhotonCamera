@@ -9,6 +9,8 @@ import android.graphics.Point;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.LruCache;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -99,6 +101,8 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
     // Application context used to decode previews independent of view attach state (fixes first-bind).
     private Context appContext;
+    /** State updates from header scans always land on the main thread. */
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
     // C: small preview + native dimensions per position – shown immediately under tiles so no black flash.
     // Capped to 3 entries and 360px to keep baseline low on 4GB devices (was 6×480px ~9 MB -> now 3×360px ~1.5 MB).
     private final LruCache<Integer, Bitmap> previewCache = new LruCache<>(3);
@@ -165,9 +169,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         int end = Math.min(galleryItemList.size() - 1, centerPos + 2);
         for (int i = start; i <= end; i++) {
             if (hdrChecked[i] || hdrRequested[i] || hdrAvailable[i]) continue;
-            String ext = "";
-            try { ext = FileUtils.getExtension(galleryItemList.get(i).getFile().getDisplayName()); } catch (Exception ignored) {}
-            if ("dng".equalsIgnoreCase(ext)) {
+            String ext = extensionAt(i);
+            if ("dng".equalsIgnoreCase(ext) || isSdrOnlyExtension(ext)) {
+                // Raw and formats that cannot carry a gain map need no scan at all.
                 hdrChecked[i] = true;
                 continue;
             }
@@ -176,7 +180,6 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (existing != null && !existing.isDone()) continue;
             Future<?> f = GALLERY_EXECUTOR.submit(() -> {
                 boolean candidate = UltraHdrGalleryUtil.isUltraHdrImage(context.getApplicationContext(), galleryItemList.get(pos).getFile().getFileUri());
-                CustomSSIV view = activeViews.get(pos);
                 Runnable update = () -> {
                     pendingHeaderTasks.remove(pos);
                     hdrChecked[pos] = true;
@@ -195,11 +198,36 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                         }
                     }
                 };
-                if (view != null) view.post(update);
-                else update.run();
+                // Always publish on the main thread: hdrChecked/hdrAvailable are
+                // read there, and a view (if any) must be touched there.
+                mainHandler.post(update);
             });
             pendingHeaderTasks.put(pos, f);
         }
+    }
+
+    /** File extension of a position, or "" when unknown. */
+    private String extensionAt(int position) {
+        try {
+            return FileUtils.getExtension(galleryItemList.get(position).getFile().getDisplayName());
+        } catch (Exception ignored) {
+            return "";
+        }
+    }
+
+    /**
+     * Extensions that can never carry an Ultra HDR gain map, safe to decode
+     * with the platform's tiled Skia decoder from the first bind.
+     */
+    private static boolean isSdrOnlyExtension(String ext) {
+        return "png".equalsIgnoreCase(ext) || "webp".equalsIgnoreCase(ext)
+                || "gif".equalsIgnoreCase(ext) || "bmp".equalsIgnoreCase(ext);
+    }
+
+    /** HEIF container extensions (HEIC/HIF still images). */
+    private static boolean isHeifExtension(String ext) {
+        return "heic".equalsIgnoreCase(ext) || "heif".equalsIgnoreCase(ext)
+                || "hif".equalsIgnoreCase(ext);
     }
 
     @Override
@@ -516,14 +544,22 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
      * Skia decoder, unknown -> optimistic tonemapped to avoid a clipped flash
      * on HDR images. All keep native dimensions for full pan / O(viewport)
      * memory.
+     *
+     * <p>HEIF files keep the ImageDecoder path even once known SDR: their
+     * region decode through {@code BitmapRegionDecoder} is version-dependent
+     * across the platform levels this app supports, while ImageDecoder's HEIF
+     * crop decode is known-good from API 28.
      */
     private void applyDecoder(CustomSSIV ssiv, int position) {
         if (!inBounds(position)) return;
+        String ext = extensionAt(position);
         if (hdrActive[position]) {
             ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(true));
         } else if (hdrAvailable[position]) {
             ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
-        } else if (hdrChecked[position]) {
+        } else if (isSdrOnlyExtension(ext)) {
+            ssiv.setRegionDecoderClass(SkiaPooledImageRegionDecoder.class);
+        } else if (hdrChecked[position] && !isHeifExtension(ext)) {
             ssiv.setRegionDecoderClass(SkiaPooledImageRegionDecoder.class);
         } else {
             ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
@@ -555,11 +591,14 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
      * Also preloads DNG full-res for neighbors (fixes first swipe low quality: ViewPager2 animates
      * neighboring holder before Glide finishes; with preload the full-res is already in dngBitmapCache
      * and onBind shows high quality instantly).
+     * Finally it resolves the Ultra HDR header state of the whole window, so a page binds with its
+     * final decoder instead of being decoded optimistically and re-decoded when the scan lands.
      */
     public void preloadPreviews(int centerPos) {
         if (appContext == null) return;
         int start = Math.max(0, centerPos - 2);
         int end = Math.min(galleryItemList.size() - 1, centerPos + 2);
+        prefetchHdrHeaders(appContext, centerPos);
         for (int i = start; i <= end; i++) {
             ensurePreview(i);
             preloadDngFull(i);
@@ -825,9 +864,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (hdrRequested[position] || hdrActive[position]) return;
         Context ctx = scaleImageView.getContext();
         if (!UltraHdrGalleryUtil.isDeviceHdrCapable(ctx)) return;
-        String ext = "";
-        try { ext = FileUtils.getExtension(galleryItemList.get(position).getFile().getDisplayName()); } catch (Exception ignored) {}
-        if ("dng".equalsIgnoreCase(ext)) return;
+        String ext = extensionAt(position);
+        // Raw and formats without a gain map have nothing to toggle.
+        if ("dng".equalsIgnoreCase(ext) || isSdrOnlyExtension(ext)) return;
         hdrRequested[position] = true;
         if (hdrChecked[position] && hdrAvailable[position]) {
             activateHdr(scaleImageView, position);
