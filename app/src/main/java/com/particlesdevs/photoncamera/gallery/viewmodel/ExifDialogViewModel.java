@@ -11,7 +11,6 @@ import android.os.Handler;
 import android.os.Looper;
 import android.util.Rational;
 
-import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.lifecycle.AndroidViewModel;
