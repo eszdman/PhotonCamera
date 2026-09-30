@@ -38,6 +38,7 @@ import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.davemorrissey.labs.subscaleview.decoder.SkiaPooledImageRegionDecoder;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
+import com.particlesdevs.photoncamera.gallery.helper.GalleryExecutors;
 import com.particlesdevs.photoncamera.gallery.helper.HdrTiledRegionDecoder;
 import com.particlesdevs.photoncamera.gallery.helper.UltraHdrGalleryUtil;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
@@ -49,8 +50,6 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
 /**
@@ -65,12 +64,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private static final String TAG = "ImageAdapter";
     public static final int VIEW_TYPE_IMAGE = 0;
     public static final int VIEW_TYPE_VIDEO = 1;
-    // C: single shared pool (2 threads) vs 2×2 pools before — saves ~2 thread stacks (~2 MB) baseline and caps concurrency.
-    private static final ExecutorService GALLERY_EXECUTOR = Executors.newFixedThreadPool(2, r -> {
-        Thread t = new Thread(r, "GalleryBg");
-        t.setPriority(Thread.NORM_PRIORITY - 1);
-        return t;
-    });
+    // Header scans and preview/DNG decodes run on separate shared queues
+    // (GalleryExecutors) so a 64 KB scan for a neighbour cannot delay the
+    // decode of the page being shown.
 
     private final List<GalleryItem> galleryItemList;
     private final boolean[] hdrRequested;
@@ -181,7 +177,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             final int pos = i;
             Future<?> existing = pendingHeaderTasks.get(pos);
             if (existing != null && !existing.isDone()) continue;
-            Future<?> f = GALLERY_EXECUTOR.submit(() -> {
+            Future<?> f = GalleryExecutors.headers().submit(() -> {
                 boolean candidate = UltraHdrGalleryUtil.isUltraHdrImage(context.getApplicationContext(), galleryItemList.get(pos).getFile().getFileUri());
                 Runnable update = () -> {
                     pendingHeaderTasks.remove(pos);
@@ -689,7 +685,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         if (previewCache.get(position) != null || dimsCache.get(position) != null) return;
         if (pendingPreviewTasks.containsKey(position)) return;
         GalleryItem item = galleryItemList.get(position);
-        Future<?> f = GALLERY_EXECUTOR.submit(() -> {
+        Future<?> f = GalleryExecutors.decode().submit(() -> {
             try {
                 ContentResolver cr = appContext.getContentResolver();
                 Point dims = decodeBounds(cr, item.getFile().getFileUri());
@@ -873,7 +869,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             if (hdrStateListener != null) hdrStateListener.onHdrAvailabilityChanged(position, false);
             return;
         }
-        Future<?> f = GALLERY_EXECUTOR.submit(() -> {
+        Future<?> f = GalleryExecutors.headers().submit(() -> {
             boolean candidate = UltraHdrGalleryUtil.isUltraHdrImage(ctx, galleryItemList.get(position).getFile().getFileUri());
             scaleImageView.post(() -> {
                 if (!hdrRequested[position] || !inBounds(position)) return;

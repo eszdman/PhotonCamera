@@ -13,6 +13,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
+import com.particlesdevs.photoncamera.gallery.helper.GalleryExecutors;
 
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.DOUBLE_TAP_ZOOM_DURATION_MS;
 
@@ -53,6 +54,9 @@ public class CustomSSIV extends SubsamplingScaleImageView {
         DisplayMetrics metrics = getResources().getDisplayMetrics();
         int averageDpi = Math.round((metrics.xdpi + metrics.ydpi) / 2f);
         setMinimumTileDpi(Math.min(MAX_TILE_DPI, Math.max(1, averageDpi)));
+        // Decode region tiles on the gallery's bounded tile queue instead of the
+        // process-wide AsyncTask pool (whose core size is the CPU count).
+        setExecutor(GalleryExecutors.tiles());
     }
 
     /**
