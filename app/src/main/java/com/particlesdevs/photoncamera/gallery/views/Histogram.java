@@ -5,6 +5,7 @@ import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
+import android.graphics.ColorSpace;
 import android.graphics.ImageDecoder;
 import android.graphics.Paint;
 import android.graphics.Path;
@@ -22,6 +23,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import com.particlesdevs.photoncamera.processing.opengl.GLImage;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.GLHistogram;
 
 import java.io.InputStream;
@@ -42,11 +44,13 @@ public class Histogram extends View {
     /** Bins of the histogram (matches the GL shader's HISTSIZE). */
     private static final int HISTOGRAM_SIZE = 256;
     /**
-     * Longest side the histogram source is decoded to. 256 bins over a 320 px
-     * source is statistically identical to the old 800 px decode for a 100 MP
-     * file, at a fraction of the decode cost.
+     * Longest side the histogram source is decoded to. This is the previous
+     * Glide decode's target ({@code override(800)} + fitCenter): the GL
+     * shader samples a lattice of the source, so the sample count - and with it
+     * how smooth the bars look - scales with this. Shrinking it makes the
+     * histogram visibly noisy.
      */
-    private static final int SOURCE_SIZE = 320;
+    private static final int SOURCE_SIZE = 800;
 
     private final Paint wallPaint;
     private final PorterDuffXfermode porterDuffXfermode = new PorterDuffXfermode(PorterDuff.Mode.ADD);
@@ -101,7 +105,21 @@ public class Histogram extends View {
                 if (source == null) return;
                 if (glHistogram == null) glHistogram = new GLHistogram(HISTOGRAM_SIZE);
                 glHistogram.Ac = false;
-                HistogramModel model = buildModel(glHistogram.Compute(new GLImage(source)));
+                HistogramModel model;
+                GLImage glImage = new GLImage(source);
+                try {
+                    GLTexture texture = new GLTexture(glImage);
+                    try {
+                        model = buildModel(glHistogram.Compute(texture));
+                    } finally {
+                        // Compute(GLTexture) leaves the source texture alive;
+                        // with the reused context it must be deleted here or
+                        // every analysis leaks an RGBA8 texture (and its FBO).
+                        texture.close();
+                    }
+                } finally {
+                    glImage.close();
+                }
                 if (model == null) return;
                 mainHandler.post(() -> {
                     if (!closed) listener.onHistogramReady(model);
@@ -148,26 +166,25 @@ public class Histogram extends View {
 
     @Nullable
     private Bitmap decodeSource(ContentResolver resolver, Uri uri, int maxSize) {
+        // BitmapFactory first: inPreferredConfig ARGB_8888 is the pixel format
+        // the GL pipeline requires (GLImage derives SIMPLE_8 x 4 from the byte
+        // count, and the shader samples the texture normalized to 0..1). This is
+        // also what the previous (Glide) decode produced, so the bars match it.
+        Bitmap decoded = decodeWithBitmapFactory(resolver, uri, maxSize);
+        if (decoded != null) return decoded;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            try {
-                ImageDecoder.Source src = ImageDecoder.createSource(resolver, uri);
-                Bitmap decoded = ImageDecoder.decodeBitmap(src, (decoder, info, source) -> {
-                    int w = info.getSize().getWidth();
-                    int h = info.getSize().getHeight();
-                    int max = Math.max(w, h);
-                    if (max > maxSize) {
-                        float ratio = (float) maxSize / max;
-                        decoder.setTargetSize(Math.max(1, Math.round(w * ratio)),
-                                Math.max(1, Math.round(h * ratio)));
-                    }
-                    decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
-                    decoder.setUnpremultipliedRequired(false);
-                });
-                if (decoded != null) return decoded;
-            } catch (Throwable ignored) {
-                // Fall through to BitmapFactory (formats ImageDecoder rejects).
-            }
+            return decodeWithImageDecoder(resolver, uri, maxSize);
         }
+        return null;
+    }
+
+    /**
+     * Sampled decode to {@code maxSize} on the longest side, in ARGB_8888:
+     * the inSampleSize pass lands at or above the target, then an exact scale
+     * brings it down to the size the histogram was tuned for.
+     */
+    @Nullable
+    private Bitmap decodeWithBitmapFactory(ContentResolver resolver, Uri uri, int maxSize) {
         try (InputStream is = resolver.openInputStream(uri)) {
             if (is == null) return null;
             BitmapFactory.Options bounds = new BitmapFactory.Options();
@@ -182,8 +199,51 @@ public class Histogram extends View {
                 BitmapFactory.Options opts = new BitmapFactory.Options();
                 opts.inSampleSize = sample;
                 opts.inPreferredConfig = Bitmap.Config.ARGB_8888;
-                return BitmapFactory.decodeStream(is2, null, opts);
+                Bitmap sampled = BitmapFactory.decodeStream(is2, null, opts);
+                if (sampled == null) return null;
+                int sampledMax = Math.max(sampled.getWidth(), sampled.getHeight());
+                if (sampledMax <= maxSize || sampledMax <= 0) return sampled;
+                float ratio = (float) maxSize / sampledMax;
+                int width = Math.max(1, Math.round(sampled.getWidth() * ratio));
+                int height = Math.max(1, Math.round(sampled.getHeight() * ratio));
+                Bitmap scaled = Bitmap.createScaledBitmap(sampled, width, height, true);
+                if (scaled != sampled) sampled.recycle();
+                return scaled;
             }
+        } catch (Throwable ignored) {
+            return null;
+        }
+    }
+
+    /**
+     * Fallback for sources BitmapFactory cannot open (HEIC before API 28,
+     * rejected subsampling). ImageDecoder may hand back HDR/wide-gamut pixel
+     * formats - RGBA_F16, or RGBA_1010102 packed into four bytes - which the GL
+     * pipeline would misread, so decode into sRGB and convert anything that is
+     * not ARGB_8888.
+     */
+    private Bitmap decodeWithImageDecoder(ContentResolver resolver, Uri uri, int maxSize) {
+        try {
+            ImageDecoder.Source src = ImageDecoder.createSource(resolver, uri);
+            Bitmap decoded = ImageDecoder.decodeBitmap(src, (decoder, info, source) -> {
+                int w = info.getSize().getWidth();
+                int h = info.getSize().getHeight();
+                int max = Math.max(w, h);
+                if (max > maxSize) {
+                    float ratio = (float) maxSize / max;
+                    decoder.setTargetSize(Math.max(1, Math.round(w * ratio)),
+                            Math.max(1, Math.round(h * ratio)));
+                }
+                decoder.setAllocator(ImageDecoder.ALLOCATOR_SOFTWARE);
+                decoder.setUnpremultipliedRequired(false);
+                decoder.setTargetColorSpace(ColorSpace.get(ColorSpace.Named.SRGB));
+            });
+            if (decoded == null) return null;
+            if (decoded.getConfig() == Bitmap.Config.ARGB_8888) return decoded;
+            Bitmap converted = decoded.copy(Bitmap.Config.ARGB_8888, false);
+            if (converted == null) return decoded;
+            if (converted != decoded) decoded.recycle();
+            return converted;
         } catch (Throwable ignored) {
             return null;
         }
