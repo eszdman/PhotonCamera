@@ -37,6 +37,12 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
     private static final int ANIMATE_RADIUS = Utilities.dpToPx(20);
     private static final int SELECTION_STROKE_WIDTH = Utilities.dpToPx(2);
     private static final float SELECTION_SCALE_DOWN_FACTOR = 0.8f;
+    /**
+     * Payload for {@link #notifyItemChanged(int, Object)} when only the
+     * selection state changed: the payload rebind touches the selection circle
+     * and skips the DataBinding pass, so no thumbnail is requested again.
+     */
+    private static final String PAYLOAD_SELECTION = "gallery_selection";
     private final ArrayList<View> selectedViews = new ArrayList<>();
     private final SelectionHelper<GalleryItem> selectionHelper = new SelectionHelper<>();
     private final int itemType;
@@ -111,7 +117,7 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
                 @Override
                 public void onItemClicked(View view, GalleryItem galleryItem) {
                     if (selectionHelper.isSelectionStarted() && itemType == Constants.GALLERY_ITEM_TYPE_GRID) {
-                        selectGalleryItem(view,galleryItem);
+                        selectGalleryItem(view, galleryItem, holder.getBindingAdapterPosition());
                     } else {
                         gridAdapterCallback.onItemClicked(holder.getAbsoluteAdapterPosition(), view, galleryItem);
                     }
@@ -125,46 +131,77 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         }
     }
 
-    private void selectView(View view) {
+    @Override
+    public void onBindViewHolder(@NonNull GridItemViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads.contains(PAYLOAD_SELECTION)) {
+            // Selection-only change: refresh the circle without re-running the
+            // DataBinding executes, which would re-request every thumbnail.
+            if (holder.binding instanceof ThumbnailSquareImageViewBinding) {
+                ThumbnailSquareImageViewBinding binding = (ThumbnailSquareImageViewBinding) holder.binding;
+                GalleryItem item = position >= 0 && position < galleryItemList.size()
+                        ? galleryItemList.get(position) : null;
+                binding.selectionCircle.setVisibility(selectionHelper.isSelectionStarted() ? View.VISIBLE : View.GONE);
+                binding.selectionCircle.setSelected(item != null && item.isChecked());
+            }
+            return;
+        }
+        super.onBindViewHolder(holder, position, payloads);
+    }
+
+    private void selectView(View view, int position) {
         selectedViews.add(view);
         animatedSelect(view, true);
         Vibration vibration = PhotonCamera.getVibration();
         if (vibration != null) vibration.select();
         if (gridAdapterCallback != null) gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
-        // Minimal invalidation - selection circle is bound per item; payload could be used but keep cheap
-        // Avoid full notifyDataSetChanged which rebinds all thumbnails and triggers Glide reloads
-        int pos = findPositionForView(view);
-        if (pos != RecyclerView.NO_POSITION) notifyItemChanged(pos);
-        else notifyDataSetChanged();
+        if (selectedViews.size() == 1) {
+            // Selection just started: every cell shows its (empty) circle, so
+            // the whole grid must be invalidated - with the selection payload
+            // only, so no thumbnail is re-requested.
+            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
+        } else {
+            notifySelectionChanged(position);
+        }
     }
 
-    private void deselectView(View view) {
+    private void deselectView(View view, int position) {
         selectedViews.remove(view);
         animatedSelect(view, false);
         Vibration vibration = PhotonCamera.getVibration();
         if (vibration != null) vibration.deselect();
         if (selectionHelper.isEmpty()) {
+            // Last item deselected: reset the selection state and hide every
+            // circle. onImageSelectionStopped() then sees an idle adapter and
+            // only restores the chrome.
+            selectionHelper.deselectAll();
             if (gridAdapterCallback != null) gridAdapterCallback.onImageSelectionStopped();
+            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
         } else {
             if (gridAdapterCallback != null) gridAdapterCallback.onImageSelectionChanged(selectedViews.size());
+            notifySelectionChanged(position);
         }
-        int pos = findPositionForView(view);
-        if (pos != RecyclerView.NO_POSITION) notifyItemChanged(pos);
-        else notifyDataSetChanged();
+    }
+
+    private void notifySelectionChanged(int position) {
+        if (position >= 0 && position < getItemCount()) {
+            notifyItemChanged(position, PAYLOAD_SELECTION);
+        } else {
+            // Position unknown: still avoid a full rebind, the payload pass is
+            // limited to the selection circle.
+            notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
+        }
     }
 
     public void deselectAll() {
+        if (selectedViews.isEmpty() && selectionHelper.isEmpty() && !selectionHelper.isSelectionStarted()) {
+            // Nothing is selected: called on every navigation change, don't
+            // invalidate the grid for a no-op.
+            return;
+        }
         selectionHelper.deselectAll();
         for (View view : selectedViews) animatedSelect(view, false);
         selectedViews.clear();
-        notifyDataSetChanged();
-    }
-
-    private int findPositionForView(View view) {
-        // View is the MaterialCardView (image_card); its parent holder's adapter position is not directly known here.
-        // Caller passes the view from selectGalleryItem via onBind holder - we can resolve via traversal if needed.
-        // For now, trigger full sync via data set change - the cost is one layout pass, still cheaper than per-item reload storm.
-        return RecyclerView.NO_POSITION;
+        notifyItemRangeChanged(0, getItemCount(), PAYLOAD_SELECTION);
     }
 
     @Override
@@ -191,12 +228,12 @@ public class ImageGridAdapter extends RecyclerView.Adapter<ImageGridAdapter.Grid
         return itemType;
     }
 
-    public boolean selectGalleryItem(View view, GalleryItem item) {
+    public boolean selectGalleryItem(View view, GalleryItem item, int position) {
         if (itemType == Constants.GALLERY_ITEM_TYPE_GRID) {
             if (selectionHelper.toggleSelection(item)) {
-                selectView(view);
+                selectView(view, position);
             } else {
-                deselectView(view);
+                deselectView(view, position);
             }
             return true;
         }

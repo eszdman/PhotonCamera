@@ -44,6 +44,7 @@ import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 import org.apache.commons.io.FileUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -122,7 +123,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
             private void select(RecyclerView.ViewHolder holder, int position) {
                 ImageGridAdapter.GridItemViewHolder gridHolder = ((ImageGridAdapter.GridItemViewHolder) holder);
                 ThumbnailSquareImageViewBinding binding = (ThumbnailSquareImageViewBinding) gridHolder.getBinding();
-                imageGridAdapter.selectGalleryItem(binding.imageCard, galleryItems.get(position));
+                imageGridAdapter.selectGalleryItem(binding.imageCard, galleryItems.get(position), position);
             }
         }));
         observeAllMediaFiles();
@@ -350,10 +351,18 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
             String numOfFiles = String.valueOf(filesToDelete.size());
             String totalFileSize = FileUtils.byteCountToDisplaySize((int) filesToDelete.stream().mapToLong(value -> value.getFile().getSize()).sum());
+            // Remove by position so only the affected cells move; a full
+            // notification here would reload every visible thumbnail.
+            List<Integer> removedPositions = new ArrayList<>(filesToDelete.size());
+            for (GalleryItem item : filesToDelete) {
+                int index = galleryItems.indexOf(item);
+                if (index >= 0) removedPositions.add(index);
+            }
+            removedPositions.sort(Collections.reverseOrder());
             galleryItems.removeAll(filesToDelete);
-            if(!galleryItems.isEmpty()) {
-                imageGridAdapter.setGalleryItemList(galleryItems);
-                imageGridAdapter.notifyItemRangeChanged(0, imageGridAdapter.getItemCount());
+            imageGridAdapter.setGalleryItemList(galleryItems);
+            for (int position : removedPositions) {
+                imageGridAdapter.notifyItemRemoved(position);
             }
             onImageSelectionStopped();
             if(galleryItems.isEmpty()) {
