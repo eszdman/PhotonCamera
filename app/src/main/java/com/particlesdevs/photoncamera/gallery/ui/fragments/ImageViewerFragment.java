@@ -819,81 +819,24 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (galleryItems != null && !galleryItems.isEmpty() && position < galleryItems.size()) {
             GalleryItem galleryItem = galleryItems.get(position);
             if (galleryItem.isVideo()) {
-                updateVideoModel(galleryItem);
+                exifDialogViewModel.updateVideoModel(galleryItem.getFile(), this::syncDescriptionToggle);
             } else {
-                exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile());
+                // Parsed on the gallery IO thread; the description toggle is
+                // synced once the model actually holds this file's data.
+                exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile(),
+                        getCachedDimensions(position), this::syncDescriptionToggle);
                 if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
                     exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
                 }
             }
         }
-        syncDescriptionToggle();
         syncExifBlur();
     }
 
-    /**
-     * EXIF panel content for videos (no EXIF tags to read): file identity,
-     * size and duration instead of exposure metadata.
-     */
-    private void updateVideoModel(GalleryItem galleryItem) {
-        if (exifDialogViewModel == null || galleryItem.getFile() == null) return;
-        com.particlesdevs.photoncamera.gallery.model.ExifDialogModel model =
-                exifDialogViewModel.getExifDataModel();
-        String duration = "";
-        try {
-            android.media.MediaMetadataRetriever retriever = new android.media.MediaMetadataRetriever();
-            try {
-                retriever.setDataSource(requireContext(), galleryItem.getFile().getFileUri());
-                String ms = retriever.extractMetadata(
-                        android.media.MediaMetadataRetriever.METADATA_KEY_DURATION);
-                if (ms != null) {
-                    long totalSeconds = Long.parseLong(ms) / 1000;
-                    duration = String.format(java.util.Locale.US, "%02d:%02d",
-                            totalSeconds / 60, totalSeconds % 60);
-                }
-                String w = retriever.extractMetadata(
-                        android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH);
-                String h = retriever.extractMetadata(
-                        android.media.MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT);
-                if (w != null && h != null) {
-                    model.setRes(h + "x" + w);
-                    try {
-                        double mp = Double.parseDouble(w) * Double.parseDouble(h) / 1E6;
-                        model.setRes_mp(String.format(java.util.Locale.US, "%.1f MP", mp));
-                    } catch (Exception ignored) {
-                        model.setRes_mp("");
-                    }
-                } else {
-                    model.setRes("");
-                    model.setRes_mp("");
-                }
-            } finally {
-                try {
-                    retriever.release();
-                } catch (Exception ignored) {}
-            }
-        } catch (Exception ignored) {
-            model.setRes("");
-            model.setRes_mp("");
-        }
-        model.setTitle(galleryItem.getFile().getAbsolutePath());
-        model.setDevice("");
-        model.setDate("");
-        model.setExposure(duration);
-        model.setIso("");
-        model.setFnum("");
-        model.setFocal("");
-        try {
-            model.setFile_size(org.apache.commons.io.FileUtils.byteCountToDisplaySize(
-                    (int) galleryItem.getFile().getSize()));
-        } catch (Exception ignored) {
-            model.setFile_size("");
-        }
-        model.setDescription("");
-        String mini = galleryItem.getFile().getDisplayName() + "\nVideo"
-                + (duration.isEmpty() ? "" : " | " + duration);
-        model.setMiniText(mini);
-        model.notifyChange();
+    /** Dimensions the viewer already decoded for a position, when known. */
+    @Nullable
+    private android.graphics.Point getCachedDimensions(int position) {
+        return adapter != null ? adapter.getCachedDimensions(position) : null;
     }
 
     /**

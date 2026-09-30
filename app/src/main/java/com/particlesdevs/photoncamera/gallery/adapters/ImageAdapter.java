@@ -502,6 +502,15 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     }
 
     /**
+     * Native dimensions already decoded for a position, when known (used by
+     * the EXIF panel so it does not have to decode bounds itself).
+     */
+    @Nullable
+    public android.graphics.Point getCachedDimensions(int position) {
+        return dimsCache.get(position);
+    }
+
+    /**
      * Region decoder for a position: HDR active -> hardware gain-map tiles,
      * HDR available -> software (tonemapped) tiles, known SDR -> the library's
      * Skia decoder, unknown -> optimistic tonemapped to avoid a clipped flash
