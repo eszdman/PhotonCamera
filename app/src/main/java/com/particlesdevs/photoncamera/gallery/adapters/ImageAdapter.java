@@ -104,9 +104,12 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     /** State updates from header scans always land on the main thread. */
     private final Handler mainHandler = new Handler(Looper.getMainLooper());
     // C: small preview + native dimensions per position – shown immediately under tiles so no black flash.
-    // Capped to 3 entries and 360px to keep baseline low on 4GB devices (was 6×480px ~9 MB -> now 3×360px ~1.5 MB).
-    private final LruCache<Integer, Bitmap> previewCache = new LruCache<>(3);
-    private final LruCache<Integer, Point> dimsCache = new LruCache<>(3);
+    // Sized for the preload window (center ±2, so 5 live positions): a 3-entry
+    // cache evicted the entries the window had just decoded, forcing every swipe
+    // to re-decode them. 6 x 360px is ~2.2 MB.
+    private static final int PREVIEW_WINDOW_ENTRIES = 6;
+    private final LruCache<Integer, Bitmap> previewCache = new LruCache<>(PREVIEW_WINDOW_ENTRIES);
+    private final LruCache<Integer, Point> dimsCache = new LruCache<>(PREVIEW_WINDOW_ENTRIES);
     private static final int PREVIEW_SIDE = 360;
     // Phase1: DNG viewport cache for mixed scrolling OOM fix.
     // Full-res SIZE_ORIGINAL (50MP 8192x6144×4=192MB) OOMs with 2 entries (384MB).
@@ -601,6 +604,12 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         prefetchHdrHeaders(appContext, centerPos);
         for (int i = start; i <= end; i++) {
             ensurePreview(i);
+        }
+        // The DNG viewport cache holds two entries: warm only the immediate
+        // neighbours, a wider range would evict itself.
+        int dngStart = Math.max(0, centerPos - 1);
+        int dngEnd = Math.min(galleryItemList.size() - 1, centerPos + 1);
+        for (int i = dngStart; i <= dngEnd; i++) {
             preloadDngFull(i);
         }
     }
