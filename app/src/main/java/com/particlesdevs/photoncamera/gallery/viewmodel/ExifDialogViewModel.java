@@ -4,24 +4,12 @@ package com.particlesdevs.photoncamera.gallery.viewmodel;
 import android.annotation.SuppressLint;
 import android.app.Application;
 import android.content.ContentResolver;
-import android.graphics.Bitmap;
-import android.graphics.drawable.Drawable;
-import android.os.Handler;
-import android.os.Looper;
-import android.util.AttributeSet;
 import android.util.Rational;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.exifinterface.media.ExifInterface;
 import androidx.lifecycle.AndroidViewModel;
 
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.engine.DiskCacheStrategy;
-import com.bumptech.glide.request.RequestOptions;
-import com.bumptech.glide.request.target.CustomTarget;
-import com.bumptech.glide.request.transition.Transition;
-import com.bumptech.glide.signature.ObjectKey;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.files.MediaFile;
@@ -44,15 +32,13 @@ import java.util.Locale;
 public class ExifDialogViewModel extends AndroidViewModel {
     private static final String TAG = ExifDialogViewModel.class.getSimpleName();
     private final ExifDialogModel exifDialogModel;
-    private final Handler histoHandler = new Handler(Looper.getMainLooper());
-    private Runnable histoRunnable;
-    // Request currently owned by the histogram view; replaced on every image
-    // change so a slow decode of a previous image cannot overwrite the
-    // histogram of the image on screen (fast cache hits made that race
-    // permanent: the stale result landed last and won).
-    private CustomTarget<Bitmap> histoTarget;
-    // One compute helper for the ViewModel's lifetime: each request used to
-    // build a new Histogram, leaking a worker thread + EGL context per open.
+    /**
+     * Guards histogram loads against swipe races: each request bumps the
+     * generation and only the latest generation may publish its model, so a
+     * slow load for a previous image can never overwrite the current one.
+     */
+    private int histogramGeneration;
+    /** Single histogram computer for this ViewModel; owns its GL context. */
     private Histogram histogram;
 
     public ExifDialogViewModel(Application application) {
@@ -152,57 +138,29 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(ImageFile imageFile) {
-        if (histogram == null) {
-            histogram = new Histogram(getApplication().getBaseContext(), null);
-        }
-        if (histoRunnable != null) {
-            histoHandler.removeCallbacks(histoRunnable);
-        }
-        histoHandler.post(histoRunnable = () -> {
-            cancelHistogramRequest();
-            CustomTarget<Bitmap> target = new CustomTarget<Bitmap>() {
-                @Override
-                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                    if (histoTarget != this) return; // superseded by a newer image, drop the stale result
-                    exifDialogModel.setHistogramModel(histogram.analyze(resource));
-                }
-
-                @Override
-                public void onLoadCleared(@Nullable Drawable placeholder) {
-
-                }
-
-                @Override
-                public void onLoadFailed(@Nullable Drawable errorDrawable) {
-                    // Undecodable source (e.g. DNG without a RAW decoder): clear
-                    // the view instead of leaving the previous image's histogram.
-                    if (histoTarget == this) {
-                        histoTarget = null;
-                        exifDialogModel.setHistogramModel(null);
-                    }
-                }
-            };
-            histoTarget = target;
-            Glide.with(getApplication())
-                    .asBitmap()
-                    .load(imageFile.getFileUri())
-                    .apply(new RequestOptions()
-                            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                            .signature(new ObjectKey("hist" + imageFile.getDisplayName() + imageFile.getLastModified()))
-                            .override(800) //800*800
-                            .fitCenter().useUnlimitedSourceGeneratorsPool(true))
-                    .into(target);
+        // Clear the bars immediately so stale data is never shown while the new
+        // analysis runs, and bump the generation so only the latest request may
+        // publish its model.
+        exifDialogModel.setHistogramModel(null);
+        final int generation = ++histogramGeneration;
+        histogram().analyzeAsync(getApplication().getContentResolver(), imageFile.getFileUri(), model -> {
+            if (generation != histogramGeneration) {
+                return;
+            }
+            exifDialogModel.setHistogramModel(model);
         });
     }
 
-    private void cancelHistogramRequest() {
-        if (histoTarget != null) {
-            try {
-                Glide.with(getApplication()).clear(histoTarget);
-            } catch (Exception ignored) {
-            }
-            histoTarget = null;
+    /**
+     * The histogram computer is reused for the ViewModel's lifetime so its GL
+     * context is created (and later destroyed) exactly once, instead of once
+     * per image.
+     */
+    private Histogram histogram() {
+        if (histogram == null) {
+            histogram = new Histogram(getApplication(), null);
         }
+        return histogram;
     }
 
     private String getDateText(String savedDate) {
@@ -220,10 +178,10 @@ public class ExifDialogViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
-        if (histoRunnable != null) {
-            histoHandler.removeCallbacks(histoRunnable);
-            histoRunnable = null;
+        histogramGeneration++;
+        if (histogram != null) {
+            histogram.close();
+            histogram = null;
         }
-        cancelHistogramRequest();
     }
 }

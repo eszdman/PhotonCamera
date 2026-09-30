@@ -140,6 +140,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private int exifPanelH;
     private final int[] exifPanelLocation = new int[2];
     private final int[] exifSsivLocation = new int[2];
+    private final Handler histogramHandler = new Handler(Looper.getMainLooper());
     private String mode;
     private int seek_position = 0;
     private int lastHdrPosition = -1;
@@ -1230,7 +1231,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void isHistogramLoading(boolean loading) {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        histogramHandler.post(() -> {
             if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
             if (loading) fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.VISIBLE);
             else fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.INVISIBLE);
