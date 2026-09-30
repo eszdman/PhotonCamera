@@ -598,10 +598,13 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 if (vibration != null) vibration.confirm();
                 String savedFilePath = data.getData().getPath();
                 Toast.makeText(getContext(), "Saved : " + savedFilePath, Toast.LENGTH_LONG).show();
-                viewModel.fetchAllMedia();
-                initImageAdapter(viewModel.getCurrentFolderImages().getValue());
-                refreshLinearGridAdapter(viewModel.getCurrentFolderImages().getValue());
-                updateExif();
+                // Re-enumerate in the background, then rebuild the adapter with
+                // the fresh list on the main thread.
+                viewModel.fetchAllMedia(() -> {
+                    initImageAdapter(viewModel.getCurrentFolderImages().getValue());
+                    refreshLinearGridAdapter(viewModel.getCurrentFolderImages().getValue());
+                    updateExif();
+                });
             }
         }
     }

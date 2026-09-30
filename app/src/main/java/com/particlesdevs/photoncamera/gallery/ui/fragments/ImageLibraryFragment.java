@@ -164,9 +164,12 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
 
     private void onUpdatePending(Boolean pending) {
         if (pending) {
-            viewModel.fetchAllMedia();
-            viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue());
-            viewModel.setUpdatePending(false);
+            // Re-enumerate off the main thread; the current folder follows once
+            // the fresh folder lists have been published.
+            viewModel.fetchAllMedia(() -> {
+                viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue());
+                viewModel.setUpdatePending(false);
+            });
         }
     }
 
