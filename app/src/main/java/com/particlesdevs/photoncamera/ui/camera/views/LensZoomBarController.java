@@ -379,6 +379,9 @@ public class LensZoomBarController implements Swipe.ZoomGestureListener {
     /** Marks the controller active; CameraFragment reapplies the preference afterward. */
     public void onResume() {
         resumed = true;
+        // Settings can change while the camera is paused; re-evaluate the
+        // effective lock before the camera model is used again.
+        syncEffectiveLockState();
     }
 
     public void onPause() {
@@ -610,14 +613,18 @@ public class LensZoomBarController implements Swipe.ZoomGestureListener {
     }
 
     /**
-     * Effective zoom-lock state: locked when the auto-switch setting is off
-     * or the pill lock is on. Re-read on every open so Settings changes
-     * apply without restart.
+     * Effective zoom-lock state. The photo-mode auto-switch/lock preferences
+     * apply to physical lens switches, but video logical members switch on the
+     * already-open logical device; locking them would make the pill and the
+     * logical zoom range unreachable. Re-read on every open so Settings and
+     * mode changes apply without a restart.
      */
     private void syncEffectiveLockState() {
         try {
-            captureController.setLensSwitchLocked(
-                    !PreferenceKeys.isAutoZoomSwitchOn() || PreferenceKeys.isZoomLockOn());
+            captureController.setLensSwitchLocked(LensSwitchLockPolicy.isLocked(
+                    PreferenceKeys.isAutoZoomSwitchOn(),
+                    PreferenceKeys.isZoomLockOn(),
+                    isVideoLogicalActive()));
         } catch (Exception e) {
             // Controller not ready; init/refresh paths retry later.
         }
