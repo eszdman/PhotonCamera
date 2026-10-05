@@ -35,6 +35,12 @@ import java.util.ArrayList;
 
 public class PostPipeline extends GLBasePipeline {
     public ByteBuffer stackFrame;
+    /**
+     * Set by {@link SRPreResolve} when it folded the merge's full-SR drizzle
+     * into the crop image this shot: the full-SR segment is live, and the
+     * head driver may stream it.
+     */
+    public boolean srFullInjected = false;
     /** Set once the merged raw has been freed by its last GL consumer. */
     private boolean stackFrameReleased;
     public ByteBuffer lowFrame;
@@ -70,6 +76,18 @@ public class PostPipeline extends GLBasePipeline {
      * curve on the same divided domain.
      */
     public float adaptiveWhitePoint = 1.0f;
+    /**
+     * Scene metrics measured by {@link AutoExposureCurve} for the adaptive LLF
+     * detail ({@link LlfAdaptiveDetail}) and reset every shot. Spreads are the
+     * display-domain p2/p5..p98 channel crossing; -1 = unmeasured (no AE this
+     * pipeline, or a failed measurement) and the LLF falls back to its floor.
+     */
+    public float sceneSpread = -1f;
+    public float sceneSpreadRobust = -1f;
+    /** Fraction of the AE response above display white; 0 = neutral. */
+    public float sceneClippedFrac = 0f;
+    /** Fraction of samples carrying local detail; -1 = unmeasured. */
+    public float sceneDetailDensity = -1f;
     /**
      * Effective clip level of the CFA buffer produced by Bayer2Float: 1.0
      * when nothing is reconstructed, otherwise the white-balanced clip
@@ -184,14 +202,106 @@ public class PostPipeline extends GLBasePipeline {
 
     @Tunable(
         title = "Upscale sharpen scale",
-        description = "Scales Sharpen2 and CaptureSharpening strength for cropped (upscaled) captures; unsharp masks tuned for native detail overshoot on interpolated pixels, while the kernelnet reconstruction provides structure-aware acutance",
+        description = "Reference tail-sharpen scale applied at 2x upscale; smaller/larger upscales interpolate as scale*sqrt(2/zoom) (1.0 when not upscaled, clamped to [0.2, 1]). Unsharp masks tuned for native detail overshoot on interpolated pixels, while the kernelnet reconstruction provides structure-aware acutance",
         category = "Upscale",
         min = 0.0f,
-        max = 1.0f,
-        defaultValue = 0.4f,
+        max = 1.25f,
+        defaultValue = 1.0f,
         step = 0.05f
     )
-    float upscaleSharpenScale = 0.4f;
+    float upscaleSharpenScale = 1.0f;
+
+    /**
+     * Factor-aware tail-sharpen scale for CaptureSharpening/Sharpen2: 1.0
+     * when the shot was not upscaled (native or downscaled output), otherwise
+     * {@code upscaleSharpenScale * sqrt(2/zoomMax)} clamped to [0.2, 1.25],
+     * where zoomMax is the largest axis ratio of output (workSize) to
+     * pre-resize (cropSize) size. Mild upscales may exceed native strength
+     * slightly to reach MTF parity; extreme ones fall off toward 0.2.
+     *
+     * <p>The earlier extra 1/sqrt(zoom) cap for interpolated content is gone:
+     * it guarded against sharpening the resampling image band, but the
+     * upscaled content is now the demosaiced aniso reconstruction (whose
+     * interpolator is smooth, so its image band is small) plus the resolve's
+     * cored luma detail, and the cap cost in-band sharpening on both. Full-SR
+     * content is no longer special-cased.</p>
+     */
+    public float tailSharpenScale() {
+        try {
+            if (cropSize == null || workSize == null) return 1.0f;
+            if (cropSize.x <= 0 || cropSize.y <= 0 || workSize.x <= 0 || workSize.y <= 0) return 1.0f;
+            float zx = workSize.x / (float) cropSize.x;
+            float zy = workSize.y / (float) cropSize.y;
+            float zm = Math.max(zx, zy);
+            if (zm <= 1.0f + 1e-4f) return 1.0f;
+            float s = upscaleSharpenScale * (float) Math.sqrt(2.0 / zm);
+            if (s > 1.25f) s = 1.25f;
+            if (s < 0.2f) s = 0.2f;
+            return s;
+        } catch (Exception ignored) {
+            return 1.0f;
+        }
+    }
+
+    /**
+     * Normalized crop footprint inside the full-frame lens-shading map, as
+     * (minX, minY, maxX, maxY) for the tone/sceneluma {@code u_gainMin} /
+     * {@code u_gainMax} uniforms. A zoom crop must sample its own footprint
+     * (usually central, small gains) instead of the full map stretched over
+     * it (full-frame edge lift on every edge). Uncropped shots return the
+     * identity (0,0,1,1), for which mix() reproduces the legacy fetch
+     * bit-exactly.
+     */
+    public float[] gainFootprint() {
+        float minX = 0f, minY = 0f, maxX = 1f, maxY = 1f;
+        try {
+            if (mParameters != null && mParameters.isCropped
+                    && mParameters.cropOrigin != null && mParameters.fullRawSize != null
+                    && mParameters.fullRawSize.x > 0 && mParameters.fullRawSize.y > 0) {
+                int fw = mParameters.fullRawSize.x, fh = mParameters.fullRawSize.y;
+                int cw = mParameters.rawSize != null && mParameters.rawSize.x > 0
+                        ? mParameters.rawSize.x : fw;
+                int ch = mParameters.rawSize != null && mParameters.rawSize.y > 0
+                        ? mParameters.rawSize.y : fh;
+                minX = mParameters.cropOrigin.x / (float) fw;
+                minY = mParameters.cropOrigin.y / (float) fh;
+                maxX = (mParameters.cropOrigin.x + cw) / (float) fw;
+                maxY = (mParameters.cropOrigin.y + ch) / (float) fh;
+            }
+        } catch (Exception ignored) {
+        }
+        return new float[]{minX, minY, maxX, maxY};
+    }
+
+    /**
+     * Sensor-pixel bounds for the tone shaders' {@code mirrorCoords} fold,
+     * rescaled into the given input-texture domain as (x0, y0, x1, y1).
+     *
+     * <p>The fold operates on output coordinates, but {@code sensorPix} stays
+     * in the base (sensor) domain while the draw/input textures are
+     * target-size after a resize (zoom expand and/or per-sensor factor, now
+     * placed before tonemap). Unscaled bounds fold every coordinate past the
+     * base extents back with mirroring, so resized frames come out as
+     * mirrored/tiled copies. Identity when the input matches rawSize, i.e.
+     * zero behavior change on the native path.
+     */
+    public int[] activeSizeForDomain(Point inputSize) {
+        int w = 0, h = 0;
+        if (mParameters != null && mParameters.sensorPix != null) {
+            w = mParameters.sensorPix.right - mParameters.sensorPix.left;
+            h = mParameters.sensorPix.bottom - mParameters.sensorPix.top;
+        }
+        float sx = 1f, sy = 1f;
+        if (mParameters != null && mParameters.rawSize != null && inputSize != null
+                && mParameters.rawSize.x > 0 && mParameters.rawSize.y > 0) {
+            sx = inputSize.x / (float) mParameters.rawSize.x;
+            sy = inputSize.y / (float) mParameters.rawSize.y;
+        }
+        if (w <= 0 && inputSize != null) w = inputSize.x;
+        if (h <= 0 && inputSize != null) h = inputSize.y;
+        return new int[]{Math.round(2 * sx), Math.round(2 * sy),
+                Math.max(1, Math.round((w - 2) * sx)), Math.max(1, Math.round((h - 2) * sy))};
+    }
 
     @Tunable(
         title = "Tiled Compare Harness",
@@ -217,6 +327,9 @@ public class PostPipeline extends GLBasePipeline {
 
     @Tunable(title = "Tiled fused Laplacian tail", category = "Post", description = "Fuse the LocalLaplacian's finest reconstruction into the tiled tail: while the pyramid is alive, its bands stream straight into the sink instead of materializing a full output/entry (~1.15 GB at a 144 MP output). Bit-exact by construction (the Laplacian's finest oracle); falls back to the legacy full-frame path on any failure or non-row rotation", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean tiledFuseLaplacian = true;
+
+    @Tunable(title = "Tiled head production", category = "Post", description = "Stream the crop->aniso head segment in bands straight into one output-sized main, so the output-sized ping-pong mains never coexist with the crop input (at a 144 MP output: 2.9 GB -> ~1.9 GB off the post's LMK peak). Bit-exact per stage contract; falls back to the legacy full-frame chain on any failure", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean tiledHeadProduce = true;
 
     // T4 engage flag, computed once per shot below: true only when the proven
     // segment will actually render (capture active, correcting passthrough).
@@ -249,6 +362,13 @@ public class PostPipeline extends GLBasePipeline {
         noiseO /= 3.f;
         double noisempy = Math.pow(2.0, mSettings.noiseRstr + constShift);
         Log.d("PostPipeline", "noisempy:" + noisempy);
+        // Pre-inflation copy: the SR pre-resolve's fused luma averages raw
+        // per-frame data, so its noise does not scale with the denoise slider
+        // (the same reason the merge's trust band uses the pre-inflation
+        // model). Without this the slider would modulate the injection's
+        // shrinkage and suppress real fine texture at high denoise settings.
+        noiseS0 = noiseS;
+        noiseO0 = noiseO;
         noiseS *= noisempy;
         noiseO *= noisempy;
         Log.d("PostPipeline", "NoiseS:" + noiseS + "\n" + "NoiseO:" + noiseO);
@@ -336,6 +456,7 @@ public class PostPipeline extends GLBasePipeline {
         tailTiled = false;
         tailFusedSink = false;
         sinkBitmap = null;
+        srFullInjected = false;
         mSettings = PhotonCamera.getSettings();
         Point rawSliced = parameters.rawSize;
         cropSize = new Point(parameters.rawSize);
@@ -360,10 +481,11 @@ public class PostPipeline extends GLBasePipeline {
         adaptiveWhitePoint = 1.0f;
         rawClipLevel = 1.0f;
         exposureCurve = null;
-        Point targetSliced = new Point(rawSliced.x, rawSliced.y);
-        if (parameters.fullRawSize != null && parameters.isCropped) {
-            targetSliced = new Point(parameters.fullRawSize.x & ~3, parameters.fullRawSize.y & ~3);
-        }
+        sceneSpread = -1f;
+        sceneSpreadRobust = -1f;
+        sceneClippedFrac = 0f;
+        sceneDetailDensity = -1f;
+        Point targetSliced = Parameters.computeResizedTarget(parameters, rawSliced);
         Point rotatedSize = getRotatedCoords(targetSliced);
         captureOutputSize = new Point(rotatedSize);
         if (PhotonCamera.getSettings().energySaving || mParameters.rawSize.x * mParameters.rawSize.y < ResolutionSolution.smallRes) {
@@ -376,7 +498,7 @@ public class PostPipeline extends GLBasePipeline {
         // straight into its pixels: no intermediate full-frame native buffer
         // (~258 MB at 64 MP) and no extra copies.
         Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y, Bitmap.Config.ARGB_8888);
-        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None);
+        GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None, shareContext);
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
         stackFrameReleased = false;
@@ -442,6 +564,54 @@ public class PostPipeline extends GLBasePipeline {
     /** Result of the single-frame KernelNet inference; null until/unless it completes successfully. */
     public java.util.concurrent.atomic.AtomicReference<com.particlesdevs.photoncamera.processing.ml.KernelNetResult> kernelNetSingleResult =
             new java.util.concurrent.atomic.AtomicReference<>();
+    /** Fused low-band lattice (raw grid RGBA16F: luma, weight); consumed by {@link SRPreResolve}. */
+    public java.nio.ShortBuffer srLatticeCPU;
+    /** Size of {@link #srLatticeCPU} (raw grid). */
+    public android.graphics.Point srLatticeSize;
+    /**
+     * Base direct buffer behind {@link #srLatticeCPU}; freed explicitly after
+     * the GPU upload, mirroring the KernelNet params ferry.
+     */
+    public java.nio.ByteBuffer srLatticeBase;
+    /** Restored high band + confidence (target R32UI packed half2); consumed by {@link SRBandApply}. */
+    public java.nio.ShortBuffer srBandCPU;
+    /** Size of {@link #srBandCPU} (target grid). */
+    public android.graphics.Point srBandSize;
+    /** Base direct buffer behind {@link #srBandCPU}; freed explicitly after the GPU upload. */
+    public java.nio.ByteBuffer srBandBase;
+    /**
+     * Shared-group handoff: texture names of the merge's prepared lattice and
+     * band (0 = use the CPU ferries). Set when the post's context is created
+     * in the merge's EGL group; the SR nodes consume them directly.
+     */
+    public int srLatticeTexID = 0;
+    public int srBandTexID = 0;
+    /**
+     * True when the SR post reconstructs from the output-grid drizzle: the
+     * drizzle already carries the above-raw-Nyquist content, so the separate
+     * band layer is redundant and - since its stored band is the DoG of the
+     * RAW deposit while the layer computes the DoG of the now-smoothed
+     * reconstruction - it would re-inject the deposit's splat grid.
+     */
+    public boolean srDrizzlePath = false;
+    /** EGL context the post's context shares (null = unshared). */
+    public android.opengl.EGLContext shareContext = null;
+
+    /**
+     * Per-channel ABLC black levels applied to this render's post image (null
+     * when ABLC is off). The SR resolve needs them: its reference is this
+     * post-ABLC image while the drizzle's fused luma is in the pre-ABLC
+     * packed domain.
+     */
+    public float[] ablcBlack;
+
+    /**
+     * Noise model before the denoise-slider inflation, for the SR resolve's
+     * shrinkage. The fused luma averages raw per-frame data, so its noise
+     * does not scale with that slider.
+     */
+    public float noiseS0;
+    public float noiseO0;
 
     /** Called from Initial/ModernInitial/LinearExposure (first pass) to keep the linear scene. */
     public void captureDemosaicLinear(GLTexture tex) {
@@ -509,14 +679,15 @@ public class PostPipeline extends GLBasePipeline {
                         BufferUtils.getFrom(new float[]{1f, 1f, 1f, 1f}), GL_LINEAR, GL_CLAMP_TO_EDGE);
             }
             GLTexture input = tex;
-            if (mParameters.fullRawSize != null && mParameters.isCropped) {
-                Point linTarget = new Point(
-                        mParameters.fullRawSize.x & ~3,
-                        mParameters.fullRawSize.y & ~3);
-                if (!linTarget.equals(tex.mSize)) {
-                    linFull = glint.glUtils.interpolate(tex, linTarget);
-                    input = linFull;
-                }
+            // Target derived from the pre-resize base (cropSize field still
+            // holds rawSliced here; tex itself is already post-upscale since
+            // the linear-domain move). Deriving from tex would apply the
+            // factor twice (0.5x -> 0.25x scene, 2x -> 4x scene/OOM).
+            Point baseSize = cropSize != null ? cropSize : tex.mSize;
+            Point linTarget = Parameters.computeResizedTarget(mParameters, baseSize);
+            if (!linTarget.equals(tex.mSize)) {
+                linFull = glint.glUtils.interpolate(tex, linTarget);
+                input = linFull;
             }
             GLProg prog = glint.glProgram;
             bindSceneluma(prog, gainTex, captureOutputSize, gw, gh, input.mSize);
@@ -574,9 +745,15 @@ public class PostPipeline extends GLBasePipeline {
         // Prefer the async PBO transfer: it overlaps the rest of the render
         // and is completed at Run end. Bytes are identical on success; any
         // failure falls through to the synchronous path below. Skipped when
-        // cropped: UpscaleCrop closes and recreates the mains mid-flight,
+        // resized: UpscaleCrop closes and recreates the mains mid-flight,
         // which may delete the source texture before the fence signals.
-        GLTexture.AsyncRead async = (mParameters == null || mParameters.isCropped)
+        boolean willResize = false;
+        try {
+            Point resizeTarget = Parameters.computeResizedTarget(mParameters, new Point(tex.mSize));
+            willResize = resizeTarget != null && !resizeTarget.equals(tex.mSize);
+        } catch (Exception ignored) {
+        }
+        GLTexture.AsyncRead async = (mParameters == null || willResize)
                 ? null : tex.beginAsyncHalfFloatRead();
         if (async != null) {
             pendingSnapshotRead = async;
@@ -692,10 +869,7 @@ public class PostPipeline extends GLBasePipeline {
         workSize = new Point(cropSize.x, cropSize.y);
         computeNoise(parameters);
         captureDemosaic = false;
-        Point targetSliced = new Point(rawSliced.x, rawSliced.y);
-        if (parameters.fullRawSize != null && parameters.isCropped) {
-            targetSliced = new Point(parameters.fullRawSize.x & ~3, parameters.fullRawSize.y & ~3);
-        }
+        Point targetSliced = Parameters.computeResizedTarget(parameters, rawSliced);
         Point rotatedSize = getRotatedCoords(targetSliced);
         // The gain map must be pixel-aligned with the stored SDR base; any
         // size/orientation mismatch displaces the boost field from the scene.
@@ -729,11 +903,13 @@ public class PostPipeline extends GLBasePipeline {
         glint = new GLInterface(glproc);
         glint.parameters = parameters;
 
-        // Defensive: the measured linear buffer must match the pipeline input size,
-        // otherwise the scene sampling is out of bounds and the gain map is garbage.
+        // Defensive: the measured linear buffer must match the pipeline
+        // output size (post-upscale, since the snapshot is captured after
+        // the linear-domain resize), otherwise the scene sampling is out of
+        // bounds and the gain map is garbage.
         // The P3-I grid path has no snapshot, so this check only applies to it.
         if (demosaicLinearSize != null
-                && (demosaicLinearSize.x != workSize.x || demosaicLinearSize.y != workSize.y)) {
+                && (demosaicLinearSize.x != targetSliced.x || demosaicLinearSize.y != targetSliced.y)) {
             throw new IllegalStateException("Linear buffer size " + demosaicLinearSize
                     + " does not match workSize " + workSize
                     + "; cannot measure scene plane");
@@ -754,11 +930,13 @@ public class PostPipeline extends GLBasePipeline {
 
             Point linearSize = demosaicLinearSize != null ? new Point(demosaicLinearSize) : null;
             // Banded sceneluma (P3-B) streams the snapshot in bands and never
-            // materializes a full linTex; cropped shots (interpolate) and the
-            // rare float32 snapshot keep the legacy full path. The snapshot
-            // is freed after the sceneluma section in both paths.
+            // materializes a full linTex; resized shots (zoom expand or
+            // explicit per-sensor factor, detected via target vs work size)
+            // and the rare float32 snapshot keep the legacy full path. The
+            // snapshot is freed after the sceneluma section in both paths.
+            boolean resized = !targetSliced.equals(workSize);
             boolean needFullLin = linearSize != null
-                    && ((parameters.fullRawSize != null && parameters.isCropped)
+                    && (resized
                     || !demosaicLinearHalfFloat);
 
             // sdrTex upload moved below the sceneluma section (P3-C: peaks
@@ -1243,8 +1421,37 @@ public class PostPipeline extends GLBasePipeline {
         prog.setTexture("GainMap", gainTex);
         prog.setVar("rotate", rotationIndex());
         prog.setVar("mirror", mParameters.mirror ? 1 : 0);
-        prog.setVar("cropSize", cropSize);
-        prog.setVar("rawSize", mParameters.rawSize);
+        // Geometry uniforms follow the resized input domain (see
+        // activeSizeForDomain): the resize factor must be uniform, so it is
+        // accepted only on an exact target match. Aspect169 slices one axis
+        // without resizing, which would otherwise derive a distorting
+        // non-uniform scale; it keeps base-domain bounds instead.
+        Point scaledCrop = cropSize;
+        Point scaledRaw = mParameters != null ? mParameters.rawSize : null;
+        try {
+            if (cropSize != null && inFull != null && mParameters != null
+                    && cropSize.x > 0 && cropSize.y > 0 && inFull.x > 0 && inFull.y > 0) {
+                Point expected = Parameters.computeResizedTarget(mParameters, new Point(cropSize));
+                if (expected != null && expected.equals(inFull)) {
+                    float fx = inFull.x / (float) cropSize.x;
+                    float fy = inFull.y / (float) cropSize.y;
+                    Point raw = mParameters.rawSize;
+                    scaledCrop = new Point(inFull);
+                    if (raw != null && raw.x > 0 && raw.y > 0) {
+                        scaledRaw = new Point(Math.max(1, Math.round(raw.x * fx)),
+                                Math.max(1, Math.round(raw.y * fy)));
+                    } else {
+                        scaledRaw = new Point(inFull);
+                    }
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        prog.setVar("cropSize", scaledCrop);
+        prog.setVar("rawSize", scaledRaw);
+        float[] fp = gainFootprint();
+        prog.setVar("u_gainMin", fp[0], fp[1]);
+        prog.setVar("u_gainMax", fp[2], fp[3]);
         prog.setVar("uLinFullSize", sdrSize.x, sdrSize.y);
         prog.setVar("uLinGridSize", gw, gh);
         prog.setVar("uInFull", inFull);
@@ -1273,15 +1480,14 @@ public class PostPipeline extends GLBasePipeline {
                     demosaicLinear);
         }
         try {
-            if (mParameters.fullRawSize != null && mParameters.isCropped) {
-                Point linTarget = new Point(
-                        mParameters.fullRawSize.x & ~3,
-                        mParameters.fullRawSize.y & ~3);
-                if (!linTarget.equals(linearSize)) {
-                    GLTexture linFull = glint.glUtils.interpolate(linTex, linTarget);
-                    linTex.close();
-                    linTex = linFull;
-                }
+            // Target from the pre-resize base (workSize still holds it in
+            // this pass); the snapshot itself is already post-upscale, so
+            // deriving from linearSize would apply the factor twice.
+            Point linTarget = Parameters.computeResizedTarget(mParameters, workSize);
+            if (!linTarget.equals(linearSize)) {
+                GLTexture linFull = glint.glUtils.interpolate(linTex, linTarget);
+                linTex.close();
+                linTex = linFull;
             }
             GLProg prog = glint.glProgram;
             bindSceneluma(prog, gainTex, sdrSize, gw, gh, linTex.mSize);
@@ -1383,6 +1589,20 @@ public class PostPipeline extends GLBasePipeline {
         }
         kernelParams = null;
         kernelParamsSize = null;
+        // Same safety net for the SR ferries (the SR nodes free them once
+        // adopted or ignored).
+        if (srLatticeBase != null) {
+            Allocator.free(srLatticeBase);
+            srLatticeBase = null;
+        }
+        srLatticeCPU = null;
+        srLatticeSize = null;
+        if (srBandBase != null) {
+            Allocator.free(srBandBase);
+            srBandBase = null;
+        }
+        srBandCPU = null;
+        srBandSize = null;
         super.close();
     }
 
@@ -1519,6 +1739,27 @@ public class PostPipeline extends GLBasePipeline {
             }
         }
         add(new ABLC());
+        // Full-SR pre-resolve: folds the merge-stage drizzle's multi-frame
+        // luma into the demosaiced image BEFORE the reconstruction below, so
+        // the KernelNet/aniso and the whole tail render an SR-corrected input
+        // exactly like a native shot. The SR output is therefore the Disabled
+        // render plus the correction: it can add the multi-frame detail but
+        // never soften the reconstruction, which is what the former
+        // post-aniso luma replacement did at 2x/3x. Null passthrough without
+        // a drizzle ferry.
+        add(new SRPreResolve());
+        // Resizes (zoom expand and/or explicit per-sensor factor) reconstruct
+        // in LINEAR light, right after demosaic/denoise/ABLC: the guided
+        // anisotropic kernels operate on linear RGB, and the tone curve then
+        // adds contrast to real detail instead of interpolating crushed SDR.
+        // Local contrast and sharpening further down still run at output
+        // resolution like any other shot.
+        add(new UpscaleCrop());
+        // Post-aniso band layer: replaces the reconstruction's invented
+        // content in the band the burst's sub-pixel sampling actually
+        // recovered (merge/srrecover -> srpre/band), gate-weighted and an
+        // exact passthrough where the recovery is not confident.
+        add(new SRBandApply());
         if ("off".equals(tonePipeline)) {
             // No tone/color stage: the linear camera RGB passes through
             // untouched. LinearExposure draws nothing but keeps the Ultra HDR
@@ -1540,11 +1781,6 @@ public class PostPipeline extends GLBasePipeline {
                 add(new Initial());
             }
         }
-        // Crops expand to the full-frame output size BEFORE the local-contrast
-        // and sharpening passes, so those run at output resolution like any
-        // other shot - otherwise their crop-resolution halos get magnified by
-        // the zoom factor and read as pixelation along edges.
-        add(new UpscaleCrop());
         add(new LocalLaplacian2());
         add(new CaptureSharpening());
         add(new CorrectingFlow());

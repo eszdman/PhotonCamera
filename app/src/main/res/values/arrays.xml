@@ -175,10 +175,12 @@
     <string-array name="video_hdr_transfer_entries">
         <item>HLG</item>
         <item>PQ</item>
+        <item>HDR10+</item>
     </string-array>
     <string-array name="video_hdr_transfer_entryvalues">
         <item>hlg</item>
         <item>pq</item>
+        <item>hdr10plus</item>
     </string-array>
     <string-array name="video_color_range_entries">
         <item>Limited</item>

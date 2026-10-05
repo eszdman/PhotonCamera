@@ -96,11 +96,10 @@ public class Sharpen2 extends Node {
         glProg.useAssetProgram("sharpening/lsharpening3");
         tileProgram = glProg.mCurrentProgramActive;
         float sharpness = Math.max(PreferenceKeys.getSharpnessValue(), 0.0f);
-        if (basePipeline.mParameters.isCropped) {
-            // Unsharp masks tuned for native detail overshoot on interpolated
-            // pixels; the kernelnet reconstruction carries the acutance here.
-            sharpness *= ((PostPipeline) basePipeline).upscaleSharpenScale;
-        }
+        // Unsharp masks tuned for native detail overshoot on interpolated
+        // pixels; the kernelnet reconstruction carries the acutance here.
+        // Factor-aware: full strength when not upscaled, falling with zoom.
+        sharpness *= ((PostPipeline) basePipeline).tailSharpenScale();
         appliedStrength = sharpness;
     }
 

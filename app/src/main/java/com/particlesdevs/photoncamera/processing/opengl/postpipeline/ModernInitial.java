@@ -60,9 +60,9 @@ public class ModernInitial extends Node {
     }
 
     public void Run() {
-        // Cheap-pass support: keep the linear buffer (Initial's input = post
-        // demosaic/denoise/ABLC) so the Ultra HDR gain-map pass can measure
-        // the pre-local-tone-map scene.
+        // Cheap-pass support: keep the linear buffer (post
+        // demosaic/denoise/ABLC/resize) so the Ultra HDR gain-map pass can
+        // measure the pre-local-tone-map scene at output size.
         if (((PostPipeline) basePipeline).captureDemosaic) {
             ((PostPipeline) basePipeline).captureDemosaicLinear(super.previousNode.WorkingTexture);
         }
@@ -95,8 +95,17 @@ public class ModernInitial extends Node {
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
         glProg.setVar("intermediateToSRGB",cct);
-        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
-                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
+        // Bounds rescaled into the input (draw-target) domain (see
+        // PostPipeline.activeSizeForDomain): sensorPix stays base-domain
+        // while this node now runs at target size after a resize.
+        com.particlesdevs.photoncamera.processing.opengl.GLTexture modInput =
+                super.previousNode.WorkingTexture;
+        int[] modActive = ((PostPipeline)basePipeline).activeSizeForDomain(
+                modInput != null ? modInput.mSize : null);
+        glProg.setVar("activeSize",modActive[0],modActive[1],modActive[2],modActive[3]);
+        float[] modGainFp = ((PostPipeline)basePipeline).gainFootprint();
+        glProg.setVar("u_gainMin", modGainFp[0], modGainFp[1]);
+        glProg.setVar("u_gainMax", modGainFp[2], modGainFp[3]);
         glProg.setTexture("InputBuffer",super.previousNode.WorkingTexture);
         glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         //setVar resolves locations on the active program: only valid after

@@ -32,6 +32,9 @@ uniform ivec4 activeSize;
 // input size for map UVs. (0,0)+input size on the legacy path: identical.
 uniform ivec2 u_tileOrigin;
 uniform vec2 u_fullSize;
+// Crop footprint inside the full-frame gain map, normalized (see initial.glsl).
+uniform vec2 u_gainMin;
+uniform vec2 u_gainMax;
 
 #define NEUTRALPOINT 0.0,0.0,0.0
 #define FUSION 0
@@ -183,7 +186,7 @@ void main() {
     tonemapGain=clamp(tonemapGain,0.0,3.0);
 
     /* Lens shading gain: same bicubic sampling as the previous Initial stage. */
-    vec4 gains=textureBicubicHardware(GainMap,(vec2(xy)+vec2(u_tileOrigin))/u_fullSize);
+    vec4 gains=textureBicubicHardware(GainMap,mix(u_gainMin, u_gainMax, (vec2(xy)+vec2(u_tileOrigin))/u_fullSize));
     gains.rgb=vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal=dot(gains.rgb,vec3(1.0/3.0));
 

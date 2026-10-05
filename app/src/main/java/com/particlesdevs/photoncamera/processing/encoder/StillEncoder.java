@@ -128,19 +128,9 @@ public final class StillEncoder {
             notifyHeicFallback();
             return encodeJpegSibling(dest, sdr, gain, exif);
         }
-        // The SDR base encode does not depend on the gain map, so start it on
-        // a worker before the gain-map normalization passes and join it at the
-        // mux. Saves ~130 ms of serial encode time per show.
-        UltraHdrHeicEncoder.BaseEncodeJob baseJob = null;
-        boolean ultraHdrHeic = wantUhdr && HeicSupport.isUltraHdrHeicSupported();
-        if (ultraHdrHeic) {
-            try {
-                baseJob = UltraHdrHeicEncoder.startBaseEncode(sdr);
-            } catch (Throwable t) {
-                Log.e(TAG, "SDR base pre-encode failed to start, encoding in order", t);
-                baseJob = null;
-            }
-        }
+        // Serial: normalize the gain map first, then start the SDR base
+        // encode. Overlapping them saved ~130 ms but held a full codec
+        // session plus ForkJoin row buffers simultaneously at 100MP+.
         GainMapComputer.Result res = null;
         if (wantUhdr) {
             try {
@@ -148,6 +138,16 @@ public final class StillEncoder {
             } catch (Exception e) {
                 Log.e(TAG, "GainMapComputer failed, SDR HEIC fallback", e);
                 res = null;
+            }
+        }
+        UltraHdrHeicEncoder.BaseEncodeJob baseJob = null;
+        boolean ultraHdrHeic = wantUhdr && HeicSupport.isUltraHdrHeicSupported();
+        if (ultraHdrHeic && res != null) {
+            try {
+                baseJob = UltraHdrHeicEncoder.startBaseEncode(sdr);
+            } catch (Throwable t) {
+                Log.e(TAG, "SDR base pre-encode failed to start, encoding in order", t);
+                baseJob = null;
             }
         }
         if (res != null && baseJob != null) {

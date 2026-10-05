@@ -3329,6 +3329,21 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     allowHdr = false;
                     Log.w(TAG, "no 10-bit dynamic range profile, recording SDR");
                     showToast("HDR not available on this camera, recording SDR");
+                } else {
+                    String transfer = "";
+                    try {
+                        transfer = String.valueOf(PreferenceKeys.getVideoHdrTransfer());
+                    } catch (Exception ignored) {
+                    }
+                    boolean wantHdr10Plus = "hdr10plus".equalsIgnoreCase(transfer)
+                            || "hdr10_plus".equalsIgnoreCase(transfer)
+                            || "hdr10+".equalsIgnoreCase(transfer);
+                    if (wantHdr10Plus && mPendingVideoDynamicRange
+                            != android.hardware.camera2.params.DynamicRangeProfiles.HDR10_PLUS) {
+                        Log.w(TAG, "HDR10+ profile unavailable, recording HDR10/HLG base layer instead"
+                                + " (picked=" + mPendingVideoDynamicRange + ")");
+                        showToast("HDR10+ not available, recording HDR base layer");
+                    }
                 }
             }
             setUpMediaRecorder(allowHdr);
@@ -5146,8 +5161,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     /**
      * Best-effort 10-bit dynamic-range profile for the video session (API 33+).
-     * HLG transfer maps to HLG10, PQ maps to HDR10. Falls back to the other
-     * 10-bit profile when only one is advertised, else STANDARD (SDR).
+     * HLG transfer maps to HLG10, PQ maps to HDR10, HDR10+ maps to
+     * HDR10_PLUS with cascade HDR10_PLUS -&gt; HDR10 -&gt; HLG10. Each step
+     * falls back to the next advertised 10-bit profile, else STANDARD (SDR).
+     * HDR10+ shares the PQ transfer, so an HDR10 base layer still plays as
+     * HDR10 where dynamic SEI passthrough is unavailable.
      */
     private long resolveVideoDynamicRangeProfile() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -5202,18 +5220,28 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             java.util.Set<Long> supported = profiles.getSupportedProfiles();
             Log.d(TAG, "video HDR supported profiles=" + supported);
-            boolean wantPq = "pq".equalsIgnoreCase(PreferenceKeys.getVideoHdrTransfer());
+            String transfer = PreferenceKeys.getVideoHdrTransfer();
+            boolean wantHdr10Plus = "hdr10plus".equalsIgnoreCase(transfer)
+                    || "hdr10_plus".equalsIgnoreCase(transfer)
+                    || "hdr10+".equalsIgnoreCase(transfer);
+            boolean wantPq = wantHdr10Plus || "pq".equalsIgnoreCase(transfer);
             long hlg10 = android.hardware.camera2.params.DynamicRangeProfiles.HLG10;
             long hdr10 = android.hardware.camera2.params.DynamicRangeProfiles.HDR10;
+            long hdr10Plus = android.hardware.camera2.params.DynamicRangeProfiles.HDR10_PLUS;
             long picked = android.hardware.camera2.params.DynamicRangeProfiles.STANDARD;
-            if (wantPq) {
+            if (wantHdr10Plus) {
+                if (supported.contains(hdr10Plus)) picked = hdr10Plus;
+                else if (supported.contains(hdr10)) picked = hdr10;
+                else if (supported.contains(hlg10)) picked = hlg10;
+            } else if (wantPq) {
                 if (supported.contains(hdr10)) picked = hdr10;
                 else if (supported.contains(hlg10)) picked = hlg10;
             } else {
                 if (supported.contains(hlg10)) picked = hlg10;
                 else if (supported.contains(hdr10)) picked = hdr10;
             }
-            Log.d(TAG, "video HDR picked profile=" + picked + " (wantPq=" + wantPq + ")");
+            Log.d(TAG, "video HDR picked profile=" + picked + " (transfer=" + transfer
+                    + " wantHdr10Plus=" + wantHdr10Plus + " wantPq=" + wantPq + ")");
             return picked;
         } catch (Exception e) {
             Log.w(TAG, "resolveVideoDynamicRangeProfile failed", e);
@@ -5248,6 +5276,23 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     && com.particlesdevs.photoncamera.processing.encoder.VideoCodecSupport.isHdrVideoSupported();
         } catch (Exception e) {
             Log.w(TAG, "video HDR pref check failed, using SDR", e);
+            return false;
+        }
+    }
+
+    /**
+     * True when the HDR transfer uses the PQ electro-optical transfer
+     * function. HDR10 and HDR10+ share ST 2084 PQ (colr transfer 16, VUI
+     * transfer 16); HLG uses ARIB STD-B67 (transfer 18).
+     */
+    private static boolean isPqVideoTransfer() {
+        try {
+            String transfer = PreferenceKeys.getVideoHdrTransfer();
+            return "pq".equalsIgnoreCase(transfer)
+                    || "hdr10plus".equalsIgnoreCase(transfer)
+                    || "hdr10_plus".equalsIgnoreCase(transfer)
+                    || "hdr10+".equalsIgnoreCase(transfer);
+        } catch (Exception e) {
             return false;
         }
     }
@@ -5381,7 +5426,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     }
                     mMediaRecorder.setVideoEncodingProfileLevel(
                             android.media.MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10, level);
-                    Log.d(TAG, "video HDR10-bit Main10 requested, transfer=" + PreferenceKeys.getVideoHdrTransfer());
+                    Log.d(TAG, "video HDR10-bit Main10 requested, transfer="
+                            + PreferenceKeys.getVideoHdrTransfer()
+                            + " dynamicRange=" + mPendingVideoDynamicRange);
                 } catch (Exception e) {
                     Log.w(TAG, "HDR Main10 profile level not accepted, falling back to SDR HEVC", e);
                     wantHdr = false;
@@ -5511,8 +5558,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             try {
                 com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange.Result colorRange =
                         com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange
-                                .applyFullRange(vid,
-                                        "pq".equalsIgnoreCase(PreferenceKeys.getVideoHdrTransfer()));
+                                .applyFullRange(vid, isPqVideoTransfer());
                 Log.d(TAG, "video color range: " + colorRange);
             } catch (Exception e) {
                 Log.w(TAG, "video color range patch failed", e);

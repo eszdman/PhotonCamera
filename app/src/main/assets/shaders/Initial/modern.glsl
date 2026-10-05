@@ -14,6 +14,9 @@ uniform float adaptiveWhitePoint;
 uniform mat3 sensorToIntermediate; // Camera RGB to a wide-gamut colorspace (white balance baked in)
 uniform mat3 intermediateToSRGB; // Wide-gamut colorspace to sRGB
 uniform ivec4 activeSize;
+// Crop footprint inside the full-frame gain map, normalized (see initial.glsl).
+uniform vec2 u_gainMin;
+uniform vec2 u_gainMax;
 out vec3 Output;
 
 #define EXPOCURVE 0
@@ -115,7 +118,7 @@ void main() {
     sRGB.rgb *= br2;
     #endif
     //Lens-shading gain map -> Reinhard white point (>= 1.0)
-    vec4 gains = textureBicubicHardware(GainMap, vec2(xy)/vec2(textureSize(InputBuffer, 0)));
+    vec4 gains = textureBicubicHardware(GainMap, mix(u_gainMin, u_gainMax, vec2(xy)/vec2(textureSize(InputBuffer, 0))));
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     float gainsVal = max(dot(gains.rgb,vec3(1.0/3.0))*HIGHLIGHTRANGE,1.0);
 

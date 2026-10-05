@@ -329,6 +329,9 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         android.graphics.Point fullSize = basePipeline.workSize != null
                 ? basePipeline.workSize : super.previousNode.WorkingTexture.mSize;
         glProg.setVar("u_fullSize", (float) fullSize.x, (float) fullSize.y);
+        float[] gainFp = ((PostPipeline)basePipeline).gainFootprint();
+        glProg.setVar("u_gainMin", gainFp[0], gainFp[1]);
+        glProg.setVar("u_gainMax", gainFp[2], gainFp[3]);
         glProg.setTexture("IntenseCurve",interpolatedCurve);
         glProg.setTexture("GainMap", ((PostPipeline)basePipeline).GainMap);
         glProg.setVar("toneMapCoeffs", -2.f+2.f*toneMix, 3.f-3.f*toneMix, toneMix, 0.f);
@@ -342,15 +345,19 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
             glProg.setVar("adaptiveWhitePoint", ((PostPipeline)basePipeline).adaptiveWhitePoint);
         }
         Log.d(Name,"SensorPix:"+basePipeline.mParameters.sensorPix);
-        glProg.setVar("activeSize",2,2,basePipeline.mParameters.sensorPix.right-basePipeline.mParameters.sensorPix.left-2,
-                basePipeline.mParameters.sensorPix.bottom-basePipeline.mParameters.sensorPix.top-2);
+        // Bounds rescaled into the input (draw-target) domain: sensorPix
+        // stays base-domain while this node now runs at target size after a
+        // resize (see PostPipeline.activeSizeForDomain).
+        int[] active = ((PostPipeline)basePipeline).activeSizeForDomain(
+                input != null ? input.mSize : null);
+        glProg.setVar("activeSize",active[0],active[1],active[2],active[3]);
         WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
     }
 
     public void Run() {
-        // Cheap-pass support: keep the linear buffer (Initial's input = post
-        // demosaic/denoise/ABLC) so the Ultra HDR gain-map pass can measure
-        // the pre-local-tone-map scene.
+        // Cheap-pass support: keep the linear buffer (post
+        // demosaic/denoise/ABLC/resize) so the Ultra HDR gain-map pass can
+        // measure the pre-local-tone-map scene at output size.
         if (((PostPipeline) basePipeline).captureDemosaic) {
             ((PostPipeline) basePipeline).captureDemosaicLinear(super.previousNode.WorkingTexture);
         }

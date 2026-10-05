@@ -197,6 +197,15 @@ public class UnlimitedProcessor extends ProcessorBase {
                     + "ms PeakVram=" + parameters.peakVramMB
                     + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
         }
+        // Free EGL/VRAM before the encode peak: the SDR bitmap plus gain map
+        // (800MB at 100MP UltraHDR, 400MB SDR) plus JPEG/HEIC encoder buffers
+        // must not compete with live GL textures. Bitmaps are CPU-side and
+        // survive pipeline.close().
+        try {
+            pipeline.close();
+        } catch (Exception ignored) {
+        }
+        System.gc();
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
                 imageFile, bitmap, gm, exifData, useHeic);
@@ -204,8 +213,6 @@ public class UnlimitedProcessor extends ProcessorBase {
         imageFile = still.file;
 
         processingEventsListener.notifyImageSavedStatus(imageSaved, imageFile);
-
-        pipeline.close();
 
         Allocator.logStage(TAG, "unlimited-end");
         callback.onFinished();

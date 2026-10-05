@@ -229,6 +229,23 @@ public class GLTexture implements AutoCloseable {
         }
     }
 
+    /**
+     * Adopts an existing texture name (shared-context handoff): the object was
+     * allocated in another context of the same EGL share group, so nothing is
+     * allocated here - only registered, so close()/closeAll() delete the
+     * shared object in whichever context runs while it is still current.
+     */
+    public GLTexture(int textureID, Point size, GLFormat glFormat) {
+        mFormat = glFormat;
+        this.mSize = size;
+        this.mGLFormat = glFormat.getGLFormatInternal();
+        mTextureID = textureID;
+        sNames.add(textureID);
+        if (PhotonCamera.DEBUG) {
+            sLive.put(this, getByteCount());
+        }
+    }
+
     public void loadData(Buffer pixels){
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), mFormat.getGLType(), pixels);
@@ -241,6 +258,31 @@ public class GLTexture implements AutoCloseable {
     public void loadRawHalf(ByteBuffer pixels){
         glBindTexture(GL_TEXTURE_2D, mTextureID);
         glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), GL_HALF_FLOAT, pixels);
+    }
+
+    /** Full-texture readback for integer (uint) textures: R32UI packings. */
+    public ByteBuffer textureBufferUintNative() {
+        int bytes = mSize.x * mSize.y * mFormat.mChannels * 4;
+        ByteBuffer buffer = Allocator.allocate(bytes);
+        if (buffer == null) return null;
+        while (GLES30.glGetError() != GLES30.GL_NO_ERROR) {} // clear stale errors
+        glReadPixels(0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(),
+                GLES30.GL_UNSIGNED_INT, buffer);
+        int err = GLES30.glGetError();
+        if (err != GLES30.GL_NO_ERROR) {
+            Log.d("GLTexture", "native UNSIGNED_INT readback failed: 0x"
+                    + Integer.toHexString(err));
+            Allocator.free(buffer);
+            return null;
+        }
+        buffer.rewind();
+        return buffer;
+    }
+
+    /** Full-texture upload for integer (uint) textures: R32UI packings. */
+    public void loadRawUint(ByteBuffer pixels) {
+        glBindTexture(GL_TEXTURE_2D, mTextureID);
+        glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, mSize.x, mSize.y, mFormat.getGLFormatExternal(), GLES30.GL_UNSIGNED_INT, pixels);
     }
 
     /** Sub-rect upload for banded streaming (e.g. gain map rows). */

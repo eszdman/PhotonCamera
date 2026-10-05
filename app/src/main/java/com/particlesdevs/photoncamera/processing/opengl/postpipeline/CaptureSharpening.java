@@ -174,9 +174,7 @@ public class CaptureSharpening extends Node {
         float str = (0.2f + Math.min(PreferenceKeys.getSharpnessValue(), 0.0f))/0.2f;
         float size = basePipeline.mParameters.sensorSpecifics.captureSharpeningS;
         float strength = basePipeline.mParameters.sensorSpecifics.captureSharpeningIntense*str;
-        if (basePipeline.mParameters.isCropped) {
-            strength *= ((PostPipeline) basePipeline).upscaleSharpenScale;
-        }
+        strength *= ((PostPipeline) basePipeline).tailSharpenScale();
         glProg.setDefine("SHARPSTR",strength);
         glProg.setDefine("SHARPSIZEKER",size);
         glProg.setDefine("INSIZE",basePipeline.workSize);

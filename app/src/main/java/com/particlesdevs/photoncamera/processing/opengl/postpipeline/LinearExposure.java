@@ -49,7 +49,7 @@ public class LinearExposure extends Node {
     public void Run() {
         PostPipeline pipeline = (PostPipeline) basePipeline;
         // Keep the linear scene snapshot for the Ultra HDR gain-map pass
-        // (this buffer is the post-demosaic/ABLC input Initial used to see).
+        // (post-demosaic/ABLC/resize buffer, at output size).
         if (pipeline.captureDemosaic) {
             pipeline.captureDemosaicLinear(previousNode.WorkingTexture);
         }

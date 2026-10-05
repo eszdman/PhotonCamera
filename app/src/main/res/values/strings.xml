@@ -232,7 +232,7 @@
     <string name="video_save_storage">Save storage (HEVC/H.265)</string>
     <string name="video_save_storage_summary">Uses HEVC/H.265 instead of AVC/H.264 for smaller files at the same quality. Must be enabled for HDR or 10-bit video.</string>
     <string name="video_hdr">HDR video</string>
-    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video. Requires Save storage (HEVC).</string>
+    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video (HLG / PQ / HDR10+). Requires Save storage (HEVC).</string>
     <string name="video_hdr_transfer">HDR Transfer</string>
     <string name="video_hdr_transfer_default" translatable="false">hlg</string>
     <string name="video_color_range">Color range</string>

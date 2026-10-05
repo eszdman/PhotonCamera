@@ -25,6 +25,8 @@ void main() {
     // rel < cfaShift and rel > rawSize-1 and are simply never read here;
     // cfaShift is zero for RGGB/BGGR, so this is the identity for them).
     ivec2 rel = xy + cfaShift;
-    vec4 bayer = texelFetch(inTexture, rel / TILE, 0);
-    Output = clamp(bayer[(rel.x & 1) + (rel.y & 1) * TILE], 0.0, 1.0);
+    ivec2 pq = rel / TILE;
+    vec4 bayer = texelFetch(inTexture, pq, 0);
+    int ch = (rel.x & 1) + (rel.y & 1) * TILE;
+    Output = clamp(bayer[ch], 0.0, 1.0);
 }

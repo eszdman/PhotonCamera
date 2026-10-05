@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.opengl.EGLContext;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
 
@@ -87,6 +88,13 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         allocation = alloc;
         mOut = out;
     }
+    /** As the four-arg form, but in {@code shareWith}'s EGL group: textures
+     *  created here are visible to every context that shares the group. */
+    public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat, GLDrawParams.Allocate alloc, EGLContext shareWith) {
+        this(size, glFormat, alloc, shareWith);
+        allocation = alloc;
+        mOut = out;
+    }
     public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat) {
         this(size, glFormat, GLDrawParams.Allocate.Direct);
         mOut = out;
@@ -95,7 +103,10 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         this(size,glFormat, GLDrawParams.Allocate.Direct);
     }
     public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc) {
-        super(size.x, GLDrawParams.TileSize);
+        this(size, glFormat, alloc, null);
+    }
+    public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc, EGLContext shareWith) {
+        super(size.x, GLDrawParams.TileSize, shareWith);
         mTileSize = GLDrawParams.TileSize;
         allocation = alloc;
         mglFormat = glFormat;

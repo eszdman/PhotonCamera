@@ -325,11 +325,20 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "Stage[esd4d-init] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
             esdT = System.currentTimeMillis();
             esd4d.parameters = processingParameters;
+            // Bayer drizzle feeds scaled/SR DNG saves below; needs the save
+            // decision up-front (saveMode is resolved post-merge from the
+            // same pure inputs, mirrored here).
+            esd4d.saveDngWanted = ImageFormatConfig.savesRaw(ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave())) && alignAlgorithm != 2;
+            // GPU handoff probe (before Run): if this context's textures are
+            // visible to a context created in its EGL share group, the post
+            // consumes the drizzle accumulator as a texture name and the
+            // merge skips its full-size CPU ferry.
+            esd4d.probeGpuHandoff();
             esd4d.Run();
             Log.d(TAG, "Stage[esd4d.Run] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
             esdT = System.currentTimeMillis();
-            esd4d.close();
-            Log.d(TAG, "Stage[esd4d.close] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
+            // esd4d stays alive until the post has consumed the textures it
+            // shares with it (closed after pipeline.Run below).
             output = esd4d.Output;
             long postMergeT = System.currentTimeMillis();
             for (int i = 0; i < images.size(); i++) {
@@ -372,12 +381,125 @@ public class HdrxProcessor extends ProcessorBase {
             // DNG carries uint16 raw counts: re-encode the fp16 merge back to
             // the IncreasedWL scale (FAKE_WL, black 0) just for the save.
             ByteBuffer dngOut = output;
-            if (outputF16) {
+            // Scaled/SR DNG: Bayer drizzle ferry (scalar in .r) compacted to
+            // single-channel halves, re-encoded, and saved under rescaled
+            // geometry (origins even-rounded to preserve Bayer phase;
+            // color matrices are size-independent, the gain map stretches
+            // over the scaled footprint via its bounds). Restored right
+            // after the save so post and EXIF see native geometry.
+            boolean dngRescaled = false;
+            android.graphics.Point dngOldRaw = null;
+            android.graphics.Rect dngOldPix = null;
+            android.graphics.Point dngOldCrop = null;
+            if (esd4d != null && esd4d.srBayerBase != null && esd4d.srBayerCPU != null
+                    && esd4d.srBayerCPUSize != null && esd4d.srBayerCPUSize.x > 0 && esd4d.srBayerCPUSize.y > 0) {
+                try {
+                    int tw = esd4d.srBayerCPUSize.x, th = esd4d.srBayerCPUSize.y;
+                    int tp = tw * th;
+                    ByteBuffer compact = Allocator.allocate(tp * 2);
+                    if (compact != null) {
+                        try {
+                            // Byte views must match the ferry's native order
+                            // or short-level sanitize checks misread halves.
+                            compact.order(java.nio.ByteOrder.nativeOrder());
+                            java.nio.ShortBuffer src = esd4d.srBayerCPU.duplicate();
+                            java.nio.ShortBuffer dst = compact.asShortBuffer();
+                            // A non-finite site carries no information: borrow
+                            // the most recent finite causal neighbor (left,
+                            // else up, else diagonal-up-left - all finite by
+                            // induction from the seeded start). Dense faults
+                            // still fall back below via the fraction gate.
+                            int bad = 0;
+                            for (int i = 0; i < tp; i++) {
+                                short s = src.get(i * 2);
+                                if ((((int) s & 0xFFFF) & 0x7C00) == 0x7C00) {
+                                    bad++;
+                                    s = 0;
+                                    if (i > 0) {
+                                        int n1 = i - 1;
+                                        int v1 = dst.get(n1) & 0xFFFF;
+                                        if ((v1 & 0x7C00) != 0x7C00) {
+                                            s = dst.get(n1);
+                                        } else if (i > tw) {
+                                            int v2 = dst.get(i - tw) & 0xFFFF;
+                                            if ((v2 & 0x7C00) != 0x7C00) {
+                                                s = dst.get(i - tw);
+                                            } else if (i > tw + 1) {
+                                                int v3 = dst.get(i - tw - 1) & 0xFFFF;
+                                                if ((v3 & 0x7C00) != 0x7C00) {
+                                                    s = dst.get(i - tw - 1);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                dst.put(s);
+                            }
+                            ByteBuffer u16 = null;
+                            if ((long) bad * 4L <= (long) tp) {
+                                if (bad > 0) {
+                                    Log.d(TAG, "Scaled DNG sanitized " + bad + " sites of " + tp);
+                                }
+                                u16 = Allocator.createU16FromF16(compact, tw, th,
+                                        processingParameters.whiteLevel, processingParameters.blackLevel);
+                            } else {
+                                Log.e(TAG, "Scaled DNG discarded: " + bad + " non-finite of " + tp);
+                            }
+                            if (u16 != null) {
+                                int fw = processingParameters.rawSize.x;
+                                int fh = processingParameters.rawSize.y;
+                                int ox = 0, oy = 0;
+                                if (processingParameters.isCropped && processingParameters.fullRawSize != null
+                                        && processingParameters.fullRawSize.x > 0 && processingParameters.fullRawSize.y > 0) {
+                                    fw = processingParameters.fullRawSize.x;
+                                    fh = processingParameters.fullRawSize.y;
+                                    if (processingParameters.cropOrigin != null) {
+                                        ox = processingParameters.cropOrigin.x;
+                                        oy = processingParameters.cropOrigin.y;
+                                    }
+                                }
+                                int sox = (int) (Math.round(ox * (tw / (double) fw)) & ~1);
+                                int soy = (int) (Math.round(oy * (th / (double) fh)) & ~1);
+                                dngOldRaw = processingParameters.rawSize;
+                                dngOldPix = processingParameters.sensorPix;
+                                dngOldCrop = processingParameters.cropOrigin;
+                                processingParameters.rawSize = new android.graphics.Point(tw, th);
+                                processingParameters.cropOrigin = new android.graphics.Point(sox, soy);
+                                processingParameters.sensorPix = new android.graphics.Rect(sox, soy, sox + tw, soy + th);
+                                dngOut = u16;
+                                dngRescaled = true;
+                            }
+                        } finally {
+                            Allocator.free(compact);
+                        }
+                    }
+                } catch (Throwable t) {
+                    Log.e(TAG, "Scaled DNG failed, legacy path", t);
+                    dngRescaled = false;
+                } finally {
+                    if (esd4d.srBayerBase != null) {
+                        Allocator.free(esd4d.srBayerBase);
+                        esd4d.srBayerBase = null;
+                    }
+                    esd4d.srBayerCPU = null;
+                    esd4d.srBayerCPUSize = null;
+                }
+            }
+            if (outputF16 && !dngRescaled) {
                 dngOut = Allocator.createU16FromF16(output, width, height,
                         processingParameters.whiteLevel, processingParameters.blackLevel);
             }
-            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, dngOut,
-                    processingParameters);
+            boolean imageSaved;
+            try {
+                imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, dngOut,
+                        processingParameters, dngRescaled);
+            } finally {
+                if (dngRescaled) {
+                    processingParameters.rawSize = dngOldRaw;
+                    processingParameters.sensorPix = dngOldPix;
+                    processingParameters.cropOrigin = dngOldCrop;
+                }
+            }
             if (dngOut != output) Allocator.free(dngOut);
             processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
             if (ImageFormatConfig.isRawOnly(saveMode)) {
@@ -412,10 +534,46 @@ public class HdrxProcessor extends ProcessorBase {
             esd4d.kernelsMapCPUSize = null;
             esd4d.kernelsMapBase = null;
         }
+        pipeline.srLatticeCPU = esd4d != null ? esd4d.srLatticeCPU : null;
+        pipeline.srLatticeSize = esd4d != null ? esd4d.srLatticeSize : null;
+        pipeline.srLatticeBase = esd4d != null ? esd4d.srLatticeBase : null;
+        pipeline.srLatticeTexID = esd4d != null ? esd4d.srLatticeTexID : 0;
+        pipeline.srBandCPU = esd4d != null ? esd4d.srBandCPU : null;
+        pipeline.srBandSize = esd4d != null ? esd4d.srBandSize : null;
+        pipeline.srBandBase = esd4d != null ? esd4d.srBandBase : null;
+        pipeline.srBandTexID = esd4d != null ? esd4d.srBandTexID : 0;
+        // The post's context shares the merge's EGL group, so those texture
+        // names are valid there; null when there is no merge or no sharing.
+        android.opengl.EGLContext srShare = null;
+        try {
+            if (esd4d != null && esd4d.getGLContext() != null) {
+                srShare = esd4d.getGLContext().getEGLContext();
+            }
+        } catch (Exception ignored) {
+        }
+        pipeline.shareContext = srShare;
+        if (esd4d != null) {
+            // Same handoff; the SR nodes free the pipeline side.
+            esd4d.srLatticeCPU = null;
+            esd4d.srLatticeSize = null;
+            esd4d.srLatticeBase = null;
+            esd4d.srLatticeTexID = 0;
+            esd4d.srBandCPU = null;
+            esd4d.srBandSize = null;
+            esd4d.srBandBase = null;
+            esd4d.srBandTexID = 0;
+        }
 
         Bitmap img = pipeline.Run(output, processingParameters);
         Allocator.logStage(TAG, "post-render");
         Allocator.logProc(TAG, "post-render");
+        // The post has consumed everything the merge shared with it (its own
+        // closeAll deleted the shared names in the same EGL group), so the
+        // merge's context can go now; everything else was released in Run.
+        if (esd4d != null) {
+            esd4d.close();
+            esd4d = null;
+        }
         // The merged RAW frame is dead once it has been rendered - free it
         // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
         // PostPipeline frees it as soon as its last GL consumer has uploaded
@@ -442,7 +600,12 @@ public class HdrxProcessor extends ProcessorBase {
         }
         Allocator.logStage(TAG, "post-gainmap");
 
-        img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
+        // Avoid a full-size overlay copy in production: overlay() allocates
+        // another W*H*4 bitmap (400MB at 100MP). Only composite when debug
+        // bitmaps actually exist.
+        if (pipeline.debugData != null && !pipeline.debugData.isEmpty()) {
+            img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
+        }
         // Total processing time: onProcessing start -> onProcessing finished,
         // stopping before encode so the values can go into this shot's EXIF.
         processingParameters.totalProcessingTimeMs = System.currentTimeMillis() - startTime;
@@ -462,6 +625,15 @@ public class HdrxProcessor extends ProcessorBase {
         catch (Exception e){
             Log.d(TAG,"Error in processingEventsListener.onProcessingFinished:"+Log.getStackTraceString(e));
         }
+        // Free EGL/VRAM before the encode peak (see UnlimitedProcessor):
+        // SDR plus gain map plus encoder buffers must not compete with live
+        // GL textures. Bitmaps are CPU-side and survive pipeline.close().
+        try {
+            pipeline.close();
+        } catch (Exception e) {
+            Log.e(TAG, "PostPipeline close failed (non-fatal): " + Log.getStackTraceString(e));
+        }
+        System.gc();
         imageFile = Paths.get(imageFile.toAbsolutePath()
                 + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
@@ -474,12 +646,6 @@ public class HdrxProcessor extends ProcessorBase {
         }
         catch (Exception e){
             Log.d(TAG,"Error in processingEventsListener.notifyImageSavedStatus:"+Log.getStackTraceString(e));
-        }
-
-        try {
-            pipeline.close();
-        } catch (Exception e) {
-            Log.e(TAG, "PostPipeline close failed (non-fatal): " + Log.getStackTraceString(e));
         }
 
 
