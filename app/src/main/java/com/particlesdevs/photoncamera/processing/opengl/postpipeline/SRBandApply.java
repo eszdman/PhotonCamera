@@ -79,16 +79,32 @@ public final class SRBandApply extends Node {
     // See prepare: 0 = replace the reconstruction's band (raw-grid path),
     // 1 = deconvolve the reconstruction's own band (drizzle path).
     private boolean bandModeDeconv;
+    // Set when the tiled head produce already rendered the band inside its
+    // fused pass (it calls prepare/renderTile directly). The node's Run must
+    // then pass through: applying it again would double the deconvolution.
+    private boolean appliedByHead;
 
     @Override
     public void Run() {
         GLTexture input = previousNode.WorkingTexture;
+        if (appliedByHead) {
+            Log.d(Name, "SR band already rendered by the tiled head produce, passing through");
+            appliedByHead = false;
+            WorkingTexture = input;
+            return;
+        }
         if (!prepare(input != null ? input.mSize : null)) {
             return; // passthrough; prepare set WorkingTexture
         }
         renderTile(input, tileActive() ? tileOut : basePipeline.getMain(), 0,
                 tileActive() ? tileY0 : 0);
         glProg.closed = true;
+    }
+
+    /** Called by the head driver once it rendered the band inside its fused
+     * pass; see {@link #appliedByHead}. */
+    void markAppliedByHead() {
+        appliedByHead = true;
     }
 
     /**
@@ -111,6 +127,8 @@ public final class SRBandApply extends Node {
         if (bandTex != null) {
             return true;
         }
+        // Fresh adoption: a new shot's band has not been applied by anyone yet.
+        appliedByHead = false;
         ShortBuffer band = pp.srBandCPU;
         Point bandSize = pp.srBandSize;
         ByteBuffer ownedBase = pp.srBandBase;

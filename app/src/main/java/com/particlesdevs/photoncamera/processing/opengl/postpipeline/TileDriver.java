@@ -1217,6 +1217,11 @@ public final class TileDriver {
                 if (bandTile != null) bandTile.close();
             }
         }
+        if (baActive && bands > 0) {
+            // The band layer rendered inside this fused pass; tell the node so
+            // its own Run does not apply it a second time (double deconv).
+            ba.markAppliedByHead();
+        }
         Log.d("TiledHarness", "head produce bands=" + bands + " out=" + outW + "x" + outH
                 + " in=" + cropIn.mSize.x + "x" + inH + " band=" + baActive);
         return bands > 0;
