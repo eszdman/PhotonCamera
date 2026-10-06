@@ -66,7 +66,7 @@ public final class KernelNetNcnnProcessor {
         return sInstance;
     }
 
-    private KernelNetNcnnProcessor(Context context) {
+    public KernelNetNcnnProcessor(Context context) {
         Context appContext = context.getApplicationContext();
         Thread t = new Thread(() -> backgroundInit(appContext), "kernelnet-ncnn-init");
         t.start();

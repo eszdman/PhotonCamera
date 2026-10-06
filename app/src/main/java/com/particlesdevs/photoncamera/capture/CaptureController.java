@@ -1789,6 +1789,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     }
                                 }
                             }
+                            if(key.getName().contains("raw.size")) {
+                                Object res = characteristics.get(key);
+                                if (res instanceof Size) {
+                                    allTargets.add((Size) res);
+                                    Log.d(TAG, "Added custom raw size(" + key.getName() + "):" + ((Size) res).getWidth() + " " + ((Size) res).getHeight());
+                                }
+                                if(res instanceof int[]) {
+                                    int[] arr = (int[]) res;
+                                    for(int i =0; i< arr.length; i+=2) {
+                                        allTargets.add(new Size(arr[i], arr[i+1]));
+                                        Log.d(TAG, "Added custom raw size(" + key.getName() + "):" + arr[i] + " " + arr[i+1]);
+                                    }
+                                }
+                            }
                         }
                     } catch (Exception ignored) {
                     }

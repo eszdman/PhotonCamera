@@ -33,11 +33,18 @@ import static android.opengl.GLES20.GL_NEAREST;
  * quantization, and a CPU 3x3 median filter of the final vector field that
  * replaces isolated mislocked tiles by their neighborhood median.
  *
- * The atlas is packed on the CPU like alignment/pack.glsl with startLevel =
- * 1: vectors live on the overlapped raw/32 tile grid (min_level = 1, stride
- * 8 texels there) and are broadcast over the 2x2 block of raw/16-grid cells
- * they cover, in alignmentToVec4 encoding - floor(d)/rawHalf in xy,
- * fract(d) in zw, d in raw/2 texel units with alt(p + d) ~= base(p).
+ * The atlas is packed on the CPU like alignment/pack.glsl: vectors live on
+ * the overlapped tile grid of whichever stage produced them and are
+ * broadcast over the raw/16-grid atlas cells they cover, in
+ * alignmentToVec4 encoding - floor(d)/rawHalf in xy, fract(d) in zw, d in
+ * raw/2 texel units with alt(p + d) ~= base(p). With flow refinement
+ * enabled ({@link #refineFlow}, default on) the field is the refined
+ * level-0 grid - one vector per 16 raw px, edge-clamped. Without it the
+ * hierarchical level-1 field is packed 1:1 onto a level-1-sized atlas (one
+ * vector per 32 raw px cell); the caller (ESD4D) sizes
+ * parameters.alignmentSize accordingly and merges with doubled TILE_AL
+ * tiles, so every merge tile consumes exactly one native vector - no 2x2
+ * broadcast.
  *
  * Frames must already be the fp16-normalized buffers produced by
  * Allocator.createF16 (ESD4D does this before alignment runs).
@@ -68,6 +75,19 @@ public class HalideAlignment implements AutoCloseable {
     public Parameters parameters;
     public GLTexture Result;
 
+    /**
+     * Whether every frame's field is refined onto the level-0 (raw/2) grid
+     * (block Lucas-Kanade Gauss-Newton seeded by the median-filtered
+     * hierarchical field) instead of using the plain level-1 field. On =
+     * returned arrays are 2x denser per axis (one vector per 16 raw px);
+     * off = the plain level-1 field (one vector per 32 raw px), packed 1:1
+     * - the caller must size parameters.alignmentSize to that native grid
+     * (ESD4D does) and merge with doubled TILE_AL tiles. Pushed to the
+     * library (before nInit) at the start of {@link #Run()}; set from the
+     * ESD4D "Halide flow refinement" tunable.
+     */
+    public boolean refineFlow = true;
+
     private final ArrayList<ImageFrame> images;
     private final Point size;
     private long ctx;
@@ -84,6 +104,16 @@ public class HalideAlignment implements AutoCloseable {
     private static native float[] nAlignFrame(long ctx, ByteBuffer raw, float white);
     private static native void nRelease(long ctx);
     private static native void nSetThreads(int n);
+
+    /**
+     * Whether this build of the library refines every frame's field onto
+     * the level-0 (raw/2) grid - the returned arrays are then 2x denser per
+     * axis and must be broadcast 1:1 onto the atlas cells instead of 2x2.
+     */
+    private static native boolean nRefineEnabled();
+
+    /** Runtime switch for the flow refinement; call before {@link #nInit}. */
+    private static native void nSetRefineEnabled(boolean on);
 
     public HalideAlignment(Point size, ArrayList<ImageFrame> images) {
         this.size = size;
@@ -110,10 +140,12 @@ public class HalideAlignment implements AutoCloseable {
 
     @SuppressLint("DefaultLocale")
     public void Run() {
-        // The baked kernels match on a 64-raw-px native grid and the pack
-        // loop below broadcasts with a fixed >> 2, so everything here assumes
-        // parameters.tile == 16 (mergeAlign's TILE_AL). Warn loudly rather
-        // than silently landing the vectors on a wrong grid.
+        // The baked kernels match on a 32-raw-px native grid (level-1) or a
+        // 16-raw-px one (level-0 refined), and the pack loop below samples
+        // the field 1:1 onto parameters.alignmentSize, so everything here
+        // assumes that grid matches the selected mode (ESD4D sizes it).
+        // Warn loudly rather than silently landing the vectors on a wrong
+        // grid.
         if (parameters.tile != TILE) {
             Log.w(TAG, "parameters.tile=" + parameters.tile + " but the Halide aligner"
                     + " is baked for a 16-raw-px atlas cell; vectors would land on the"
@@ -123,17 +155,26 @@ public class HalideAlignment implements AutoCloseable {
         final int rawH = parameters.rawSize.y;
         final Point rawHalf = new Point(rawW / 2, rawH / 2);
 
-        // Halide vector grid at MIN_LEVEL (raw/4 image): overlapped 16-texel
-        // tiles with origins every 8 texels (native stride 32 raw px), last
-        // tile ending at the image edge. Must match nInit's formula.
-        int w1 = rawW;
-        int h1 = rawH;
-        for (int i = 0; i < MIN_LEVEL + 1; i++) { w1 /= 2; h1 /= 2; }
-        final int NTX = Math.max(1, (w1 - TILE) / STRIDE + 1);
-        final int NTY = Math.max(1, (h1 - TILE) / STRIDE + 1);
+        // Refined (level-0) or plain (min_level = 1) field for this run:
+        // push the tunable into the library first, then read back the mode
+        // every downstream grid decision agrees with.
+        nSetRefineEnabled(refineFlow);
+        final boolean refine = nRefineEnabled();
+
+        // Halide vector grid: overlapped 16-texel tiles with origins every
+        // 8 texels (native stride 16 raw px at level 0, 32 at level 1),
+        // last tile ending at the image edge. Level-0 image is raw/2,
+        // min_level's is raw/4. Must match nInit's formulas.
+        int gw = rawW, gh = rawH;
+        final int halvings = refine ? 1 : MIN_LEVEL + 1;
+        for (int i = 0; i < halvings; i++) { gw /= 2; gh /= 2; }
+        final int NTX = Math.max(1, (gw - TILE) / STRIDE + 1);
+        final int NTY = Math.max(1, (gh - TILE) / STRIDE + 1);
 
         Log.d(TAG, "raw " + rawW + "x" + rawH + ", " + images.size()
-                + " frames (1 base + " + (images.size() - 1) + " aligned)");
+                + " frames (1 base + " + (images.size() - 1) + " aligned), "
+                + (refine ? "flow-refined L0 field " + NTX + "x" + NTY
+                          : "hierarchical L1 field " + NTX + "x" + NTY));
         try {
             ctx = nInit(rawW, rawH);
         } catch (Throwable t) {
@@ -178,14 +219,19 @@ public class HalideAlignment implements AutoCloseable {
                 Log.d(TAG, sb.toString());
             }
             Point shift = PyramidAlignment.alignmentShift(parameters, f);
-            // Broadcast the raw/32-grid vectors over the raw/16 alignment
-            // grid (pack.glsl's startLevel = 1; values already raw/2 units):
-            // each native vector covers a 2x2 block of atlas cells.
+            // Sample the vector field 1:1 onto the atlas grid (values
+            // already raw/2 units). The grid matches whichever stage
+            // produced the field - refined level-0 tile origins sit at
+            // multiples of 16 raw px, plain level-1 ones at multiples of 32
+            // - both exactly the atlas cell origins of their mode (ESD4D
+            // sizes parameters.alignmentSize and the merge's TILE_AL
+            // accordingly); only the far-edge tail cells clamp to the last
+            // native vector.
             for (int ty = 0; ty < parameters.alignmentSize.y && ty + shift.y < size.y; ty++) {
-                int sy = Math.min(ty >> 1, NTY - 1);
+                int sy = Math.min(ty, NTY - 1);
                 int row = sy * NTX;
                 for (int tx = 0; tx < parameters.alignmentSize.x && tx + shift.x < size.x; tx++) {
-                    int sx = Math.min(tx >> 1, NTX - 1);
+                    int sx = Math.min(tx, NTX - 1);
                     float dx = vecs[row + sx];
                     float dy = vecs[NTX * NTY + row + sx];
                     float fdx = (float) Math.floor(dx);

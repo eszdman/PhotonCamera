@@ -250,9 +250,13 @@ target_link_libraries(
 
 # --- Halide CPU burst alignment (arm64-v8a only) ----------------------------
 # Prebuilt kernels from the halide-align project (stage 1: base pyramid once
-# per burst; stage 2: per-frame tile matching) + the Halide arm64 runtime,
-# wrapped for Java by align_jni.cpp. armeabi-v7a builds skip this library;
-# HalideAlignment.java falls back to the GL pyramid path when it is absent.
+# per burst; stage 2: per-frame tile matching; optional level-0 flow
+# refinement - alignflow_base gprod precompute + alignflow_f16 per-frame
+# Gauss-Newton refinement, linked in and toggled at runtime via
+# nSetRefineEnabled in align_jni.cpp)
+# + the Halide arm64 runtime, wrapped for Java by align_jni.cpp.
+# armeabi-v7a builds skip this library; HalideAlignment.java falls back to
+# the GL pyramid path when it is absent.
 if (${ANDROID_ABI} STREQUAL "arm64-v8a"
         AND EXISTS ${SRC_DIR}/halide/arm64-v8a/libhalide_runtime_android.a)
     add_library(halidealign SHARED ${SRC_DIR}/halide/align_jni.cpp)
@@ -266,12 +270,20 @@ if (${ANDROID_ABI} STREQUAL "arm64-v8a"
     add_library(alignburst_f16 STATIC IMPORTED)
     set_target_properties(alignburst_f16 PROPERTIES
             IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16.a)
+    add_library(alignflow_base STATIC IMPORTED)
+    set_target_properties(alignflow_base PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignflow_base.a)
+    add_library(alignflow_f16 STATIC IMPORTED)
+    set_target_properties(alignflow_f16 PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignflow_f16.a)
     add_library(halide_runtime_android STATIC IMPORTED)
     set_target_properties(halide_runtime_android PROPERTIES
             IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/libhalide_runtime_android.a)
     target_link_libraries(halidealign PRIVATE
             alignburst_base_f16
             alignburst_f16
+            alignflow_base
+            alignflow_f16
             halide_runtime_android
             log
             dl)

@@ -4,10 +4,21 @@
 // effective white in normalized units: 1.0 for the base frame,
 // pair.layerMpy for an alt frame.
 //
+// Optional refinement (halide-align's alignflow kernels): when flow
+// refinement is enabled (nSetRefineEnabled, default on), nBase also
+// computes the per-tile gradient normal-matrix products once per burst
+// (alignflow_base) and every nAlignFrame runs a block Lucas-Kanade
+// Gauss-Newton refinement (alignflow_f16) seeded by the median-filtered
+// stage-2 field. The returned array then holds the level-0 (raw/2) field
+// - 2x denser per axis, tile origins every 16 raw px = 1:1 with the merge
+// atlas cells - instead of the level-1 field. Java picks the grid and
+// broadcast via nRefineEnabled(), so flipping the flag at runtime (no
+// rebuild) is the whole A/B switch.
+//
 // Fault trapping: signals (SIGILL/SIGSEGV/SIGBUS/SIGFPE/SIGABRT) raised by
 // the kernels are caught, logged to logcat with the faulting PC, the raw
-// instruction word at the PC and the nearest symbol, and - when they hit the
-// thread that entered the JNI call - converted into a Java
+// instruction word at the PC and the nearest symbol, and - when they hit
+// the thread that entered the JNI call - converted into a Java
 // IllegalStateException carrying the same text. On a Halide worker thread a
 // longjmp would unwind the wrong stack, so there we log and re-raise for a
 // normal tombstone. The handler uses snprintf/__android_log_print/dladdr,
@@ -38,6 +49,8 @@
 #include "align_pads.h"
 #include "alignburst_base_f16.h"
 #include "alignburst_f16.h"
+#include "alignflow_base.h"
+#include "alignflow_f16.h"
 
 #define TAG "HalideAlignment"
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO, TAG, __VA_ARGS__)
@@ -50,6 +63,16 @@ constexpr int kTile = 16;
 constexpr int kStride = 8;   // 50% tile overlap: origins every 8 texels
 constexpr int kRadius = 4;
 constexpr int kMinLevel = 1;
+
+// Runtime switch for the level-0 flow refinement (see the file header):
+// true = refine every frame's field onto the raw/2 grid (denser,
+// sub-texel-continuous vectors; roughly doubles the alignment cost - gate
+// on phone budget/ISO if needed), false = the plain hierarchical level-1
+// field. Set from Java via nSetRefineEnabled() before nInit (the ESD4D
+// "Halide flow refinement" tunable); nInit snapshots it into the context
+// so a burst runs one consistent mode, and nRefineEnabled() reports it so
+// the Java side picks the matching grid and broadcast.
+bool g_refine_flow = true;
 
 // CPU 3x3 median of the alignment field (per component, edge-replicated) -
 // the stage replaces isolated outlier tiles (confident
@@ -305,8 +328,12 @@ static bool check_input(JNIEnv *env, jobject rawBuf, int rawW, int rawH,
 
 struct AlignCtx {
     Halide::Runtime::Buffer<uint8_t> levels[kMaxLevel + 1];
+    // Flow-refinement precompute (alignflow_base output), once per burst.
+    Halide::Runtime::Buffer<int32_t> gprod;
     int rawW = 0, rawH = 0;
-    int ntx = 0, nty = 0;  // alignment vector grid at kMinLevel
+    int ntx = 0, nty = 0;    // stage-2 (seed) grid at kMinLevel
+    int nt0x = 0, nt0y = 0;  // refined output grid at level 0
+    bool refine = true;      // g_refine_flow snapshot taken by nInit
 };
 
 // Throws IllegalStateException carrying the kernel name, Halide's error code
@@ -335,6 +362,7 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nInit(
     if (ctx == nullptr) return 0;
     ctx->rawW = rawW;
     ctx->rawH = rawH;
+    ctx->refine = g_refine_flow;
 
     const std::vector<int> B = level_paddings();
     for (int l = 0; l <= kMaxLevel; l++) {
@@ -352,6 +380,17 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nInit(
     for (int i = 0; i < kMinLevel; i++) { w1 /= 2; h1 /= 2; }
     ctx->ntx = std::max(1, (w1 - kTile) / kStride + 1);
     ctx->nty = std::max(1, (h1 - kTile) / kStride + 1);
+
+    // Refinement output lives one level finer (raw/2); its grid formula is
+    // the level_tiles convention with level = 0. Allocated here so gprod
+    // and the refined output agree on the extent.
+    ctx->nt0x = std::max(1, (rawW / 2 - kTile) / kStride + 1);
+    ctx->nt0y = std::max(1, (rawH / 2 - kTile) / kStride + 1);
+    if (ctx->refine) {
+        // (3, nt0x, nt0y) int32 - the per-tile Gauss-Newton normal-matrix
+        // products; ~550 KB for a 4000x3000 raw.
+        ctx->gprod = Halide::Runtime::Buffer<int32_t>(3, ctx->nt0x, ctx->nt0y);
+    }
     return reinterpret_cast<jlong>(ctx);
 }
 
@@ -381,7 +420,19 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nBase(
         throw_kernel_error(env, "alignburst_base_f16", err);
         return err;
     }
-    return err;
+    if (ctx->refine) {
+        // Per-tile gradient products at level 0 from the just-realized
+        // base_l0 (central differences reach +-1 texel past the tile; the
+        // existing padding covers it). alignflow_base has no f16 variant:
+        // it reads only the u8 level, so the input flavor is irrelevant.
+        int ferr = alignflow_base(ctx->levels[0].raw_buffer(),
+                                  ctx->gprod.raw_buffer());
+        if (ferr != 0) {
+            throw_kernel_error(env, "alignflow_base", ferr);
+            return ferr;
+        }
+    }
+    return 0;
 }
 
 JNIEXPORT jfloatArray JNICALL
@@ -399,7 +450,10 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nAlignFrame(
         return nullptr;
     }
 
-    const jsize n = 2 * ctx->ntx * ctx->nty;
+    const bool refine = ctx->refine;
+    const int gx = refine ? ctx->nt0x : ctx->ntx;
+    const int gy = refine ? ctx->nt0y : ctx->nty;
+    const jsize n = 2 * gx * gy;
     halide_buffer_t alt;
     halide_dimension_t alt_dims[2];
     make_f16_buffer(pix, ctx->rawW, ctx->rawH, &alt, alt_dims);
@@ -419,19 +473,61 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nAlignFrame(
         return nullptr;
     }
 
+    // out(c, tx, ty) -> flat [c][ty][tx] with tx fastest, matching the
+    // indexing used by HalideAlignment.Run().
+    auto repack = [&](Halide::Runtime::Buffer<float> &buf, int nx, int ny) {
+        std::vector<jfloat> f(2 * (size_t)nx * ny);
+        for (int c = 0; c < 2; c++)
+            for (int ty = 0; ty < ny; ty++)
+                for (int tx = 0; tx < nx; tx++)
+                    f[(size_t)c * nx * ny + (size_t)ty * nx + tx] = buf(c, tx, ty);
+        return f;
+    };
+
+    std::vector<jfloat> flat;
+    if (refine) {
+        // Median the L1 seed BEFORE refinement (the measured order - see
+        // FLOW_REFINEMENT.md section 6 in the halide-align project): the
+        // refinement's travel clamp can never rescue a seed mislocked by
+        // more than max_travel, while the median repairs isolated mislocks
+        // of any magnitude before they seed 4 child L0 tiles each.
+        std::vector<jfloat> seedflat = repack(out, ctx->ntx, ctx->nty);
+        median3x3_2ch(seedflat, ctx->ntx, ctx->nty);
+        Halide::Runtime::Buffer<float> seed(2, ctx->ntx, ctx->nty);
+        for (int c = 0; c < 2; c++)
+            for (int ty = 0; ty < ctx->nty; ty++)
+                for (int tx = 0; tx < ctx->ntx; tx++)
+                    seed(c, tx, ty) =
+                            seedflat[(size_t)c * ctx->ntx * ctx->nty +
+                                     (size_t)ty * ctx->ntx + tx];
+
+        // Refine with the same fp16 alt buffer + effective white the
+        // hierarchical stage just used.
+        Halide::Runtime::Buffer<float> refined(2, ctx->nt0x, ctx->nt0y);
+        int ferr = alignflow_f16(ctx->levels[0].raw_buffer(),
+                                 ctx->gprod.raw_buffer(),
+                                 &alt,
+                                 white,
+                                 seed.raw_buffer(),
+                                 refined.raw_buffer());
+        if (ferr != 0) {
+            throw_kernel_error(env, "alignflow_f16", ferr);
+            return nullptr;
+        }
+        // L0 output median: cheap insurance - after a medianed-seed
+        // refinement only single-digit isolated outliers per frame remain
+        // (drop on phone budgets if every millisecond counts).
+        flat = repack(refined, ctx->nt0x, ctx->nt0y);
+        median3x3_2ch(flat, ctx->nt0x, ctx->nt0y);
+    } else {
+        // Plain path: median the stage-2 field in place (isolated mislocks
+        // -> neighborhood median) before handing it to the atlas packing.
+        flat = repack(out, ctx->ntx, ctx->nty);
+        median3x3_2ch(flat, ctx->ntx, ctx->nty);
+    }
+
     jfloatArray result = env->NewFloatArray(n);
     if (result == nullptr) return nullptr;
-    // out(c, tx, ty) -> flat [c][ty][tx] with tx fastest, matching the
-    // indexing used by HalideAlignment.Run(). Median-filter the field in
-    // place (isolated mislocks -> neighborhood median) before handing it
-    // to the atlas packing.
-    std::vector<jfloat> flat(n);
-    for (int c = 0; c < 2; c++)
-        for (int ty = 0; ty < ctx->nty; ty++)
-            for (int tx = 0; tx < ctx->ntx; tx++)
-                flat[(size_t)c * ctx->ntx * ctx->nty + (size_t)ty * ctx->ntx + tx] =
-                        out(c, tx, ty);
-    median3x3_2ch(flat, ctx->ntx, ctx->nty);
     env->SetFloatArrayRegion(result, 0, n, flat.data());
     return result;
 }
@@ -443,8 +539,27 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nRelease(
     auto *ctx = reinterpret_cast<AlignCtx *>(handle);
     if (ctx != nullptr) {
         for (auto &l : ctx->levels) l.deallocate();
+        if (ctx->refine) ctx->gprod.deallocate();
         delete ctx;
     }
+}
+
+// Lets the Java side pick the vector grid and atlas broadcast for this
+// run of the library: refined arrays are on the level-0 grid (1:1 with
+// atlas cells), plain ones on the level-1 grid (2x2 broadcast).
+JNIEXPORT jboolean JNICALL
+Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nRefineEnabled(
+        JNIEnv *env, jclass clazz) {
+    return g_refine_flow ? JNI_TRUE : JNI_FALSE;
+}
+
+// Runtime A/B switch for the flow refinement (the ESD4D "Halide flow
+// refinement" tunable). Must be called before nInit; nInit snapshots the
+// flag so a whole burst runs one consistent mode.
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetRefineEnabled(
+        JNIEnv *env, jclass clazz, jboolean on) {
+    g_refine_flow = on != JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL

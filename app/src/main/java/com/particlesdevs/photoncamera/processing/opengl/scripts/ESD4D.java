@@ -61,6 +61,12 @@ public class ESD4D extends GLOneScript {
     public void Compile(){}
     private int baseCnt = 0;
 
+    /**
+     * Alternates the combine write target between the two fixed rotation
+     * slots. The caller tracks the running accumulation separately (mergeAcc
+     * in Run()); reassigning base/baseAlter collapses the rotation onto one
+     * texture, making combine read and write it in the same dispatch.
+     */
     private GLTexture getBase(){
         if(baseCnt == 0){
             baseCnt++;
@@ -74,6 +80,8 @@ public class ESD4D extends GLOneScript {
     float noiseO;
     GLBuffer hotPixelBuffer;
     int hotPixelCount;
+    /** Frames averaged into the hot-pixel detection input (buildAveragedFrame). */
+    int hotAvgFrames = 1;
     /** Sensor red-site offset ((cfa%2, cfa/2)); the packed grid is rawHalf + cfaShift. */
     Point cfaShift;
     /** Packed texture size (rawSize/2 + cfaShift) shared by all quad-packed stages. */
@@ -93,6 +101,7 @@ public class ESD4D extends GLOneScript {
      */
     private GLTexture buildAveragedFrame(int tile) {
         int maxFrames = Math.min(10, images.size());
+        hotAvgFrames = maxFrames;
 
         GLTexture avgA     = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
         GLTexture avgB     = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
@@ -148,8 +157,11 @@ public class ESD4D extends GLOneScript {
         GLBuffer res = new GLBuffer(MAX_HOT_PIXELS*4+1, new GLFormat(GLFormat.DataType.UNSIGNED_32));
         glProg.setLayout(8,8,1);
         glProg.useAssetProgram("merge/hotpixeldetect", true);
-        glProg.setVar("noiseS", noiseS);
-        glProg.setVar("noiseO", noiseO);
+        // avgTex averages hotAvgFrames frames, so its noise variance is
+        // (S*b + O)/n: divide both coefficients or the sigma threshold and
+        // z-scores run sqrt(n) (~3.2x at 10 frames) too insensitive.
+        glProg.setVar("noiseS", noiseS / hotAvgFrames);
+        glProg.setVar("noiseO", noiseO / hotAvgFrames);
         glProg.setVar("detectThr", (float) detectThr);
         glProg.setVar("maxCount", MAX_HOT_PIXELS);
         glProg.setTexture("inTexture", avgTex);
@@ -265,6 +277,8 @@ public class ESD4D extends GLOneScript {
 
     GLTexture inputBase;
     GLTexture baseDiff;
+    /** Merge ping-pong rotation slots: fixed after allocation, only getBase()
+     * picks between them; the running accumulation is mergeAcc in Run(). */
     GLTexture base;
     GLTexture baseAlter;
     //GLTexture;
@@ -315,6 +329,9 @@ public class ESD4D extends GLOneScript {
 
     @Tunable(title = "Aligner debug compare", category = "Alignment", description = "1 = when the Halide aligner runs, also run the GL block pyramid and log per-frame vector differences (diagnoses constant biases/shift conventions)", min = 0, max = 1, step = 1, defaultValue = 0)
     int alignDebugCompare;
+
+    @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine every frame's Halide alignment field onto the level-0 (raw/2) grid with a block Lucas-Kanade Gauss-Newton pass: denser sub-texel vectors, one per merge atlas cell, roughly doubling the alignment cost - gate on phone budget/ISO. Off = the plain hierarchical level-1 field broadcast 2x2 over atlas cells. Only applies when the Halide CPU aligner is selected", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean halideRefineFlow;
 
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
@@ -907,6 +924,12 @@ public class ESD4D extends GLOneScript {
         // re-upload duplicates. -48 MB VRAM, -8 uploads; bit-exact (same
         // texture object sampled identically).
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        // Merge tile size: parameters.tile (16 raw px) normally, doubled
+        // when the Halide aligner runs without flow refinement - its plain
+        // level-1 field carries one vector per 32 raw px, the alignment
+        // block below resizes the atlas to that native grid, and the merge
+        // then blends one vector per tile.
+        int mergeTile = parameters.tile;
         Point alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
                 parameters.alignmentSize.y * ((images.size()-1)/parameters.tilesX + 1));
         Log.d("Alignment", "alignment pipeline size: " + alignmentOutputSize.x + " " + alignmentOutputSize.y);
@@ -931,8 +954,32 @@ public class ESD4D extends GLOneScript {
         if (Objects.equals(alignerSelect, "halide")) {
             // CPU/NEON Halide path; identical Result
             // atlas format, so the merge below is unchanged.
+            boolean halideRefine = halideRefineFlow;
+            if (!halideRefine && alignDebugCompare == 1) {
+                // The aligner debug compare indexes both aligners' atlases
+                // cell-by-cell on the shared raw/16 grid; the level-1-native
+                // atlas does not match it. Force the refined field for this
+                // run so the comparison stays meaningful.
+                Log.d("ESD4D", "alignDebugCompare: forcing Halide flow refinement on (raw/16 grid)");
+                halideRefine = true;
+            }
+            if (!halideRefine) {
+                // Plain level-1 field: one vector per 32 raw px. Resize the
+                // atlas to that native density so every vector is packed 1:1
+                // (no 2x2 duplication) and double the merge tile - each merge
+                // tile then consumes exactly one vector and mergeAlign's
+                // cosine windows cross-fade between genuinely adjacent
+                // vectors instead of duplicated copies.
+                parameters.alignmentSize = new Point(
+                        parameters.rawSize.x / (parameters.tile * 2) + 1,
+                        parameters.rawSize.y / (parameters.tile * 2) + 1);
+                alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
+                        parameters.alignmentSize.y * ((images.size() - 1) / parameters.tilesX + 1));
+                mergeTile = parameters.tile * 2;
+            }
             HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images);
             halideAlignment.parameters = parameters;
+            halideAlignment.refineFlow = halideRefine;
             long startTime = System.currentTimeMillis();
             halideAlignment.Run();
             Log.d("ESD4D", "Halide alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
@@ -983,9 +1030,11 @@ public class ESD4D extends GLOneScript {
         // otherwise outlive the whole merge.
         images.get(0).close();
 
-        // getBase() aliases base onto baseAlter from the first iteration,
-        // orphaning the original base texture; reclaim it post-loop below.
-        final GLTexture mergeBase0 = base;
+        // Running accumulation: starts at the merge00 conversion in base;
+        // each combine pass writes into the other slot (getBase) and adopts
+        // it here. The slot fields themselves never change - that is what
+        // keeps the rotation on two distinct textures.
+        GLTexture mergeAcc = base;
 
         long mergeLoopT = System.currentTimeMillis();
         for (int f = 0; f < images.size(); f++) {
@@ -1024,7 +1073,7 @@ public class ESD4D extends GLOneScript {
 
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
-            glProg.setDefine("TILE_AL", parameters.tile);
+            glProg.setDefine("TILE_AL", mergeTile);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
@@ -1057,7 +1106,7 @@ public class ESD4D extends GLOneScript {
                 glProg.setTexture("alignmentTexture", alignmentTex);
             }
             glProg.setTexture("inTexture", inputBase);
-            glProg.setTextureCompute("baseTexture",base, false);
+            glProg.setTextureCompute("baseTexture",mergeAcc, false);
             glProg.setTextureCompute("alterTexture", alter, false);
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
@@ -1099,10 +1148,10 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("enableFlow", enableFlowRefinement ? 1 : 0);
             glProg.setVar("flowNoiseS", rawNoiseS);
             glProg.setVar("flowNoiseO", rawNoiseO);
-            glProg.setTextureCompute("inTexture", base, false);
+            glProg.setTextureCompute("inTexture", mergeAcc, false);
             glProg.setTextureCompute("diffTexture", baseDiff, false);
-            base = getBase();
-            glProg.setTextureCompute("outTexture", base, true);
+            mergeAcc = getBase();
+            glProg.setTextureCompute("outTexture", mergeAcc, true);
             glProg.setVar("noiseS", noiseS);
             glProg.setVar("noiseO", noiseO);
             glProg.setVar("analogBalance", analogBalance);
@@ -1118,7 +1167,7 @@ public class ESD4D extends GLOneScript {
             }
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
-            glProg.computeAuto(base.mSize, 1);
+            glProg.computeAuto(mergeAcc.mSize, 1);
             gpuSyncProfile();
             Log.d("ESD4D", "Stage[merge:combine] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
             // This frame's pixels are on the GPU now: inputAlter.loadData()
@@ -1137,11 +1186,10 @@ public class ESD4D extends GLOneScript {
         // re-encode); PostPipeline consumes it as-is and the uint16 DNG save
         // re-encodes on the CPU (Allocator.createU16FromF16).
         // Temporal temporaries are dead past this point: merge2o below reads
-        // only base + alignmentTex. Release ~530 MB (64 MP) before the output
+        // only mergeAcc + alignmentTex. Release ~530 MB (64 MP) before the output
         // readback instead of AfterRun. Fields are nulled and AfterRun
         // null-guards them, so a stale close can never delete a recycled ID.
         long mergeOutT = System.currentTimeMillis();
-        if (mergeBase0 != base) mergeBase0.close();
         baseDiff.close(); baseDiff = null;
         alter.close(); alter = null;
         inputAlter.close(); inputAlter = null;
@@ -1150,7 +1198,7 @@ public class ESD4D extends GLOneScript {
         glProg.setLayout(tile,tile,1);
         glProg.useAssetProgram("merge/merge2o");
         glProg.setVar("cfaShift", cfaShift); // uniform: GLProg clears defines after each load
-        glProg.setTexture("inTexture",base);
+        glProg.setTexture("inTexture",mergeAcc);
         glProg.setTexture("alignmentTexture", alignmentTex);
         result.BufferLoad();
         glOne.glProcessing.drawBlocksToOutput();
