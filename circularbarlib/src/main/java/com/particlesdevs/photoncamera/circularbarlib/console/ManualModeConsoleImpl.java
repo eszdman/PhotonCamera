@@ -14,29 +14,25 @@ import com.particlesdevs.photoncamera.circularbarlib.control.models.IsoModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.ManualModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.ShutterModel;
 import com.particlesdevs.photoncamera.circularbarlib.control.models.WbModel;
-import com.particlesdevs.photoncamera.circularbarlib.model.KnobModel;
+import com.particlesdevs.photoncamera.circularbarlib.model.SliderModel;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
 import com.particlesdevs.photoncamera.circularbarlib.ui.ViewObserver;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobItemInfo;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderItem;
 
 import java.util.Observer;
 
 /**
- * Responsible for initialising and updating {@link KnobModel} and
+ * Responsible for initialising and updating {@link SliderModel} and
  * {@link ManualModeModel}
- * <p>
- * This class also manages the attaching/detaching of {@link ManualModel}
- * subclasses to {@link KnobView}
- * and setting listeners to models
- * <p>
- * Authors - Vibhor, KillerInk
+ *
+ * <p>This class also manages the attaching/detaching of {@link ManualModel}
+ * subclasses to the slider strips and setting listeners to models.
  */
 public class ManualModeConsoleImpl implements ManualModeConsole {
     private static final String TAG = "ManualModeConsole";
     private static ManualModeConsole sInstance;
     private final ManualModeModel manualModeModel;
-    private final KnobModel knobModel;
+    private final SliderModel sliderModel;
     private final ManualParamModel manualParamModel = new ManualParamModel();
     private ManualModel<?> mfModel, isoModel, expoTimeModel, evModel, wbModel, selectedModel;
     private ViewObserver viewObserver;
@@ -44,13 +40,13 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
 
     private ManualModeConsoleImpl() {
         this.manualModeModel = new ManualModeModel();
-        this.knobModel = new KnobModel();
+        this.sliderModel = new SliderModel();
     }
 
     /**
-     * The previously selected control while the wheel is open; shown as the
-     * smaller inner ruler so both stay adjustable. Selecting it again swaps
-     * the two wheels; closing the wheel forgets it.
+     * The previously selected control while sliders are open; shown as the
+     * upper row so both stay adjustable. Selecting it again swaps the two
+     * rows; closing forgets it.
      */
     private ManualModel<?> previousModel;
     /** Bar cell of the current primary control; the old one becomes the ring. */
@@ -86,15 +82,15 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         return manualParamModel;
     }
 
-    public KnobModel getKnobModel() {
-        return knobModel;
+    public SliderModel getSliderModel() {
+        return sliderModel;
     }
 
     @Override
     public void init(Activity activity, CameraCharacteristics cameraCharacteristics) {
         viewObserver = new ViewObserver(activity);
         addObserver();
-        addKnobs(activity, cameraCharacteristics);
+        addSliders(activity, cameraCharacteristics);
         setupOnClickListeners();
         clearAutoValues();
         setAutoText();
@@ -124,17 +120,17 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     private void addObserver() {
         if (viewObserver != null) {
             removeObservers();
-            knobModel.addObserver(viewObserver);
+            sliderModel.addObserver(viewObserver);
             manualModeModel.addObserver(viewObserver);
         }
     }
 
     private void removeObservers() {
-        knobModel.deleteObservers();
+        sliderModel.deleteObservers();
         manualModeModel.deleteObservers();
     }
 
-    private void addKnobs(Context context, CameraCharacteristics cameraCharacteristics) {
+    private void addSliders(Context context, CameraCharacteristics cameraCharacteristics) {
         CameraProperties cameraProperties = new CameraProperties(cameraCharacteristics);
         double preservedWb = (this.preserveManualWb) ? manualParamModel.getCurrentWbValue() : ManualParamModel.WB_AUTO;
         manualParamModel.reset();
@@ -153,17 +149,17 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
 
         // Restore manual White Balance temperature across camera lenses if enabled
         if (preservedWb != ManualParamModel.WB_AUTO) {
-            for (KnobItemInfo item : wbModel.getKnobInfoList()) {
+            for (SliderItem item : wbModel.getSliderItems()) {
                 if (Math.abs(item.value - preservedWb) < 0.1) {
-                    wbModel.onSelectedKnobItemChanged(item);
+                    wbModel.onSelectedSliderItemChanged(item);
                     manualModeModel.setWbText(item.text);
                     break;
                 }
             }
         }
 
-        knobModel.setKnobVisible(false);
-        knobModel.setSecondaryManualModel(null);
+        sliderModel.setSliderVisible(false);
+        sliderModel.setSecondaryManualModel(null);
         selectedModel = null;
         previousModel = null;
         selectedViewId = -1;
@@ -202,16 +198,16 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
     }
 
     private void setListeners(View view, ManualModel<?> model) {
-        setModelToKnob(view.getId(), model);
+        setModelToSlider(view.getId(), model);
         view.setOnLongClickListener(v -> {
             if (selectedModel == model) {
-                knobModel.setKnobResetCalled(true);
+                sliderModel.setResetCalled(true);
                 model.resetModel();
             } else if (previousModel == model) {
-                // Reset the inner ruler too, then re-notify so its wheel
+                // Reset the upper row too, then re-notify so its strip
                 // snaps back to the auto position.
                 model.resetModel();
-                knobModel.setSecondaryManualModel(previousModel);
+                sliderModel.setSecondaryManualModel(previousModel);
             } else {
                 model.resetModel();
             }
@@ -237,10 +233,10 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
 
     @Override
     public void retractAllKnobs() {
-        knobModel.setKnobVisible(false);
-        knobModel.setSecondaryManualModel(null);
+        sliderModel.setSliderVisible(false);
+        sliderModel.setSecondaryManualModel(null);
         if (!this.preserveManualWb || this.manualParamModel.getCurrentWbValue() == ManualParamModel.WB_AUTO || !(selectedModel instanceof WbModel)) {
-            knobModel.setKnobResetCalled(true);
+            sliderModel.setResetCalled(true);
         }
         selectedModel = null;
         previousModel = null;
@@ -270,7 +266,7 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
         if (mfModel == null) {
             return false;
         }
-        KnobItemInfo currentInfo = mfModel.getCurrentInfo();
+        SliderItem currentInfo = mfModel.getCurrentInfo();
         return currentInfo != null && currentInfo.value != ManualParamModel.FOCUS_AUTO;
     }
 
@@ -298,58 +294,58 @@ public class ManualModeConsoleImpl implements ManualModeConsole {
             return;
         }
 
-        // 1. Locate the matching knob item for the measured Kelvin value
-        KnobItemInfo matchedItem = null;
-        for (KnobItemInfo item : wbModel.getKnobInfoList()) {
+        // 1. Locate the matching slider item for the measured Kelvin value
+        SliderItem matchedItem = null;
+        for (SliderItem item : wbModel.getSliderItems()) {
             if (Math.abs(item.value - kelvinValue) < 0.1) {
                 matchedItem = item;
                 break;
             }
         }
 
-        // 2. Synchronize WbModel, manual bar text, and active KnobView wheel rotation
+        // 2. Synchronize WbModel, manual bar text, and active slider selection
         if (matchedItem != null) {
-            wbModel.onSelectedKnobItemChanged(matchedItem);
+            wbModel.onSelectedSliderItemChanged(matchedItem);
             manualModeModel.setWbText(matchedItem.text);
             if (selectedModel == wbModel) {
-                knobModel.setManualModel(wbModel);
+                sliderModel.setManualModel(wbModel);
             } else if (previousModel == wbModel) {
-                knobModel.setSecondaryManualModel(wbModel);
+                sliderModel.setSecondaryManualModel(wbModel);
             }
         } else {
             manualParamModel.setCurrentWbValue(kelvinValue);
         }
     }
 
-    private void setModelToKnob(int viewId, ManualModel<?> modelToKnob) {
-        if (modelToKnob == selectedModel) {
-            // Toggle off: close the wheel and forget the remembered control.
-            knobModel.setManualModel(null);
-            knobModel.setSecondaryManualModel(null);
-            knobModel.setKnobVisible(false);
+    private void setModelToSlider(int viewId, ManualModel<?> modelToSlider) {
+        if (modelToSlider == selectedModel) {
+            // Toggle off: close the strips and forget the remembered control.
+            sliderModel.setManualModel(null);
+            sliderModel.setSecondaryManualModel(null);
+            sliderModel.setSliderVisible(false);
             manualModeModel.setCheckedTextViewId(-1);
             selectedModel = null;
             previousModel = null;
             selectedViewId = -1;
-        } else if (modelToKnob == previousModel && previousModel != null) {
-            // Selecting the remembered (inner) control swaps the two wheels.
+        } else if (modelToSlider == previousModel && previousModel != null) {
+            // Selecting the remembered (upper) control swaps the two rows.
             ManualModel<?> outgoing = selectedModel;
             selectedModel = previousModel;
             previousModel = outgoing;
-            knobModel.setManualModel(selectedModel);
-            knobModel.setSecondaryManualModel(previousModel);
+            sliderModel.setManualModel(selectedModel);
+            sliderModel.setSecondaryManualModel(previousModel);
             // The outgoing primary becomes the secondary-filled remembered cell.
             manualModeModel.setCheckedTextViewIds(viewId, selectedViewId);
             selectedViewId = viewId;
         } else {
-            if (modelToKnob.getKnobInfoList().size() > 1) {
-                // The outgoing control becomes the inner ruler; an older inner
+            if (modelToSlider.getSliderItems().size() > 1) {
+                // The outgoing control becomes the upper row; an older upper
                 // one is dropped.
                 previousModel = selectedModel;
-                selectedModel = modelToKnob;
-                knobModel.setManualModel(modelToKnob);
-                knobModel.setSecondaryManualModel(previousModel);
-                knobModel.setKnobVisible(true);
+                selectedModel = modelToSlider;
+                sliderModel.setManualModel(modelToSlider);
+                sliderModel.setSecondaryManualModel(previousModel);
+                sliderModel.setSliderVisible(true);
                 manualModeModel.setCheckedTextViewIds(viewId,
                         previousModel != null ? selectedViewId : -1);
                 selectedViewId = viewId;

@@ -55,7 +55,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
 
     /**
      * Live frosted-glass region (quick settings bar, lens/zoom pills, manual
-     * bar, knob wheel). Set from the UI thread; read on the GL thread every
+     * bar plus slider rows). Set from the UI thread; read on the GL thread every
      * frame. {@code null} or an empty list means "no panel blur".
      */
     public static final class PanelBlurSpec {
@@ -74,30 +74,10 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         public final float blurRadius;
         /** Panel alpha, so the backdrop fades with the panel. */
         public final float alpha;
-        /**
-         * Manual-palette blob mode: when {@code pillTop} is non-zero the region
-         * is the palette bubble (its rect starts {@code pillTop} below the
-         * panel's top — the reserved, usually empty dome zone above it is never
-         * blurred), optionally with the wheel dome of {@code domeHeight} grown
-         * out of its top, blended in through shoulder arcs of
-         * {@code shoulderRadius} (mirrors ManualPaletteBackground). Zero
-         * pillTop draws the plain rounded rect over the whole panel rect.
-         */
-        public final float pillTop;
-        public final float domeHeight;
-        public final float shoulderRadius;
 
         public PanelBlurSpec(boolean enabled, float centerX, float centerY,
                              float halfW, float halfH, float angle,
                              float cornerRadius, float blurRadius, float alpha) {
-            this(enabled, centerX, centerY, halfW, halfH, angle, cornerRadius,
-                    blurRadius, alpha, 0f, 0f, 0f);
-        }
-
-        public PanelBlurSpec(boolean enabled, float centerX, float centerY,
-                             float halfW, float halfH, float angle,
-                             float cornerRadius, float blurRadius, float alpha,
-                             float pillTop, float domeHeight, float shoulderRadius) {
             this.enabled = enabled;
             this.centerX = centerX;
             this.centerY = centerY;
@@ -107,9 +87,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             this.cornerRadius = cornerRadius;
             this.blurRadius = blurRadius;
             this.alpha = alpha;
-            this.pillTop = pillTop;
-            this.domeHeight = domeHeight;
-            this.shoulderRadius = shoulderRadius;
         }
     }
 
@@ -209,9 +186,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int uPanelAngle;
     private int uPanelRadius;
     private int uPanelAlpha;
-    private int uPanelPillTop;
-    private int uPanelDomeHeight;
-    private int uPanelShoulderRadius;
     /** Clamp rect for the separable blur passes, in FBO UV space. */
     private float mBlurClampMinX;
     private float mBlurClampMinY = 1f;
@@ -630,9 +604,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             GLES20.glUniform1f(uPanelAngle, (float) Math.toRadians(-spec.angle));
             GLES20.glUniform1f(uPanelRadius, spec.cornerRadius);
             GLES20.glUniform1f(uPanelAlpha, spec.alpha);
-            GLES20.glUniform1f(uPanelPillTop, spec.pillTop);
-            GLES20.glUniform1f(uPanelDomeHeight, spec.domeHeight);
-            GLES20.glUniform1f(uPanelShoulderRadius, spec.shoulderRadius);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
         GLES20.glDisable(GLES20.GL_BLEND);
@@ -787,9 +758,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                     uPanelAngle = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAngle");
                     uPanelRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uRadius");
                     uPanelAlpha = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAlpha");
-                    uPanelPillTop = GLES20.glGetUniformLocation(mPanelBlurProgram, "uPillTop");
-                    uPanelDomeHeight = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDomeHeight");
-                    uPanelShoulderRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uShoulderRadius");
                 }
             }
         }

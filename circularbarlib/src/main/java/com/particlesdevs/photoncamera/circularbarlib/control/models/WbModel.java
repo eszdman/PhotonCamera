@@ -1,22 +1,16 @@
 package com.particlesdevs.photoncamera.circularbarlib.control.models;
 
 import android.content.Context;
-import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
 import android.util.Range;
 
-import com.particlesdevs.photoncamera.circularbarlib.R;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobItemInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.ShadowTextDrawable;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderItem;
 
 import java.util.ArrayList;
 
 /**
  * Model responsible for managing a pure, strictly uniform 50K stepped Kelvin scale (2000K - 10000K).
- * Follows ShutterModel architecture with labeled indicators every 1000K and 4 intermediate 50K ticks.
  */
 public class WbModel extends ManualModel<Integer> {
 
@@ -26,9 +20,9 @@ public class WbModel extends ManualModel<Integer> {
     }
 
     @Override
-    protected void fillKnobInfoList() {
-        KnobItemInfo auto = getNewAutoItem(ManualParamModel.WB_AUTO, null);
-        getKnobInfoList().add(auto);
+    protected void fillSliderItems() {
+        SliderItem auto = getNewAutoItem(ManualParamModel.WB_AUTO, null);
+        getSliderItems().add(auto);
         currentInfo = auto;
 
         ArrayList<String> candidates = new ArrayList<>();
@@ -44,57 +38,25 @@ public class WbModel extends ManualModel<Integer> {
             candidates.add(k + "K");
             values.add(k);
 
-            // Major text label every 1000K (every 5th tick)
+            // Major text label every 1000K; null renders a tick mark.
             if (k % 1000 == 0) {
                 int thousand = k / 1000;
                 labels.add(thousand + "K");
             } else {
-                labels.add(null); // Null label instructs KnobView to draw an intermediate tick mark
+                labels.add(null);
             }
         }
 
-        int indicatorCount = 0;
         int tick = 0;
         while (tick < candidates.size()) {
-            ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(context, R.style.ManualModeKnobText);
-            ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
-
-            String text = labels.get(tick);
-            if (text != null && !text.isEmpty()) {
-                drawable.setText(text);
-                drawableSelected.setText(text);
-                indicatorCount++;
-            }
-
-            StateListDrawable stateDrawable = new StateListDrawable();
-            stateDrawable.addState(new int[]{-android.R.attr.state_selected}, drawable);
-            stateDrawable.addState(new int[]{android.R.attr.state_selected}, drawableSelected);
-
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, (double) values.get(tick)));
+            getSliderItems().add(new SliderItem(candidates.get(tick), labels.get(tick), tick + 1, (double) values.get(tick)));
             tick++;
         }
-
-        int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = context.getResources().getInteger(R.integer.manual_focus_knob_view_angle_half);
-        if (angle > angleMax) {
-            angle = angleMax;
-        }
-        knobInfo = new KnobInfo(0, angle, 0, candidates.size(), context.getResources().getInteger(R.integer.manual_focus_knob_view_auto_angle));
-    }
-
-    private int findPreferredKnobViewAngle(int indicatorCount) {
-        return (indicatorCount - 1) * 30;
     }
 
     @Override
-    public void onRotationStateChanged(KnobView knobView, KnobView.RotationState rotationState) {
-    }
-
-    @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
-        currentInfo = knobItemInfo;
-        manualParamModel.setCurrentWbValue(knobItemInfo.value);
+    public void onSelectedSliderItemChanged(SliderItem newItem) {
+        currentInfo = newItem;
+        manualParamModel.setCurrentWbValue(newItem.value);
     }
 }
