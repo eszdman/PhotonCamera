@@ -1,0 +1,72 @@
+name: Verify commits
+
+# Builds and unit-tests every commit that lands on dev (not just the tip of
+# a push), so a broken commit in the middle of a batch is caught with the
+# failing SHA attached to it. Add more branches to the list as needed.
+
+on:
+  push:
+    branches:
+      - 'dev'
+  workflow_dispatch:
+
+jobs:
+  commits:
+    name: Collect pushed commits
+    runs-on: ubuntu-latest
+    outputs:
+      shas: ${{ steps.list.outputs.shas }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: List commits in this push
+        id: list
+        env:
+          BEFORE: ${{ github.event.before }}
+          AFTER: ${{ github.event.after }}
+        run: |
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != "0000000000000000000000000000000000000000" ] \
+             && git cat-file -e "$BEFORE^{commit}" 2>/dev/null; then
+            shas=$(git rev-list --reverse "$BEFORE..$AFTER")
+          else
+            # Force push or rewritten history: the range is unreliable,
+            # verify just the new tip.
+            echo "Commit range unavailable, verifying only $AFTER"
+            shas=$AFTER
+          fi
+          json=$(printf '%s\n' "$shas" | jq -Rsc 'split("\n")[:-1]')
+          echo "shas=$json" >> "$GITHUB_OUTPUT"
+
+  verify:
+    name: Verify ${{ matrix.sha }}
+    needs: commits
+    runs-on: ubuntu-latest
+    strategy:
+      # Check every commit even when one of them fails.
+      fail-fast: false
+      matrix:
+        sha: ${{ fromJson(needs.commits.outputs.shas) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.sha }}
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: gradle
+
+      - name: Build and run unit tests
+        run: bash ./gradlew assembleDebug testDebugUnitTest --stacktrace
+
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-${{ matrix.sha }}
+          path: app/build/reports/tests/
+          if-no-files-found: ignore

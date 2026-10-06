@@ -3,11 +3,15 @@ package com.particlesdevs.photoncamera.capture;
 
 import android.util.Size;
 
+import com.particlesdevs.photoncamera.api.Settings;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+
 import org.junit.Before;
 import org.junit.Test;
 
 import org.mockito.Mockito;
 
+import java.lang.reflect.Field;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
@@ -17,7 +21,16 @@ public class CaptureControllerTest {
 
     @Before
     public void setUp() throws Exception {
-
+        // getCameraOutputSizeTest() reads PhotonCamera.getSettings(); provide a
+        // minimal app singleton so the static lookup does not NPE on the JVM.
+        PhotonCamera mockApp = Mockito.mock(PhotonCamera.class);
+        Settings mockSettings = Mockito.mock(Settings.class); // QuadBayer defaults to false
+        Field settingsField = PhotonCamera.class.getDeclaredField("mSettings");
+        settingsField.setAccessible(true);
+        settingsField.set(mockApp, mockSettings);
+        Field appField = PhotonCamera.class.getDeclaredField("sPhotonCamera");
+        appField.setAccessible(true);
+        appField.set(null, mockApp);
     }
 
     /**
