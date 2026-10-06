@@ -80,66 +80,20 @@
                 android:icon="@drawable/ic_rounded_corner"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_horizon"
+                android:title="@string/show_horizon_on_preview"
+                android:summary=""
+                android:defaultValue="false"
+                android:icon="@drawable/ic_tune_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_show_watermark_key"
                 android:defaultValue="@bool/pref_show_watermark_default"
                 android:layout="@layout/preference_with_margin"
                 android:title="@string/turn_on_watermark"
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_auto_zoom_switch_key"
-                android:defaultValue="@bool/pref_auto_zoom_switch_default"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/auto_zoom_lens_switch"
-                android:summary="@string/auto_zoom_lens_switch_summary"
-                android:icon="@drawable/ic_focus"
-                />
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_af_mode_key"
-                android:title="@string/af_mode"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_focus"
-                android:entries="@array/af_mode_entries"
-                android:entryValues="@array/af_mode_entryvalues"
-                android:defaultValue="@string/pref_af_mode_default_value"/>
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_peak_method_key"
-                app:useSimpleSummaryProvider="true"
-                android:title="@string/focus_peaking"
-                android:icon="@drawable/ic_focus"
-                android:entries="@array/focuspeakset_entries"
-                android:entryValues="@array/focuspeakset_entryValues"
-                android:defaultValue="2"
-                />
-
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_show_afdata_key"
-                android:title="@string/turn_on_afdata"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_developer"
-                android:entries="@array/afdata_entries"
-                android:entryValues="@array/afdata_entryValues"
-                android:defaultValue="0"
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:title="@string/pref_save_per_lens_string"
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_save_per_lens_settings"
-                android:icon="@drawable/ic_multi_lens"
-                app:defaultValue="false"
-
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_preserve_manual_wb_key"
-                android:defaultValue="false"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/preserve_manual_wb"
-                android:summary=""
-                android:icon="@drawable/ic_multi_lens"
                 />
     </PreferenceCategory>
     <PreferenceCategory
@@ -420,22 +374,6 @@
                 android:entryValues="@array/raw_mode_entryvalues"
                 android:defaultValue="@string/pref_raw_mode_default_value"/>
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_save_heic_key"
-                android:defaultValue="@bool/pref_save_heic_default"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/save_heic"
-                android:summary="@string/save_heic_summary"
-                android:icon="@drawable/ic_burst_mode_black_24dp"
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:key="@string/pref_ultrahdr_key"
-                android:defaultValue="@bool/pref_ultrahdr_default"
-                android:layout="@layout/preference_with_margin"
-                android:title="@string/ultrahdr"
-                android:summary="@string/ultrahdr_summary"
-                android:icon="@drawable/ic_uhdr_black_24dp"
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_hdrx_nr_key"
                 android:defaultValue="@bool/pref_hdrx_nr_default"
                 android:layout="@layout/preference_with_margin"
@@ -541,46 +479,6 @@
                 />
         <ListPreference
                 android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_cfa_key"
-                android:title="@string/cfa"
-                app:useSimpleSummaryProvider="true"
-                android:icon="@drawable/ic_bayer"
-                android:entries="@array/cfapat_entries"
-                android:entryValues="@array/cfapat_entryValues"
-                android:defaultValue="@string/pref_cfa_default_value"
-                />
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_align_method_key"
-                app:useSimpleSummaryProvider="true"
-                android:title="@string/align_method"
-                android:icon="@drawable/ic_burst_mode_black_24dp"
-                android:entries="@array/alignset_entries"
-                android:entryValues="@array/alignset_entryValues"
-                android:defaultValue="@string/pref_align_method_default"
-
-                />
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_color_method_key"
-                app:useSimpleSummaryProvider="true"
-                android:title="@string/color_method"
-                android:icon="@drawable/ic_saturation"
-                android:entries="@array/colorset_entries"
-                android:entryValues="@array/colorset_entryValues"
-                android:defaultValue="@string/pref_align_method_default"
-
-                />
-        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                android:layout="@layout/preference_with_margin"
-                android:key="@string/pref_horizon"
-                android:title="@string/show_horizon_on_preview"
-                android:summary=""
-                android:defaultValue="false"
-                android:icon="@drawable/ic_tune_black_24dp"
-                />
-        <ListPreference
-                android:layout="@layout/preference_with_margin"
                 android:key="@string/pref_preview_format_key"
                 app:useSimpleSummaryProvider="true"
                 android:title="@string/preview_format"
@@ -630,6 +528,104 @@
             android:layout="@layout/preference_category_layout"
             android:key="@string/pref_category_advanced_key"
             android:title="@string/advanced">
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_af_mode_key"
+                android:title="@string/af_mode"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_focus"
+                android:entries="@array/af_mode_entries"
+                android:entryValues="@array/af_mode_entryvalues"
+                android:defaultValue="@string/pref_af_mode_default_value"/>
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_peak_method_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/focus_peaking"
+                android:icon="@drawable/ic_focus"
+                android:entries="@array/focuspeakset_entries"
+                android:entryValues="@array/focuspeakset_entryValues"
+                android:defaultValue="2"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_show_afdata_key"
+                android:title="@string/turn_on_afdata"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_developer"
+                android:entries="@array/afdata_entries"
+                android:entryValues="@array/afdata_entryValues"
+                android:defaultValue="0"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:title="@string/pref_save_per_lens_string"
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_save_per_lens_settings"
+                android:icon="@drawable/ic_multi_lens"
+                app:defaultValue="false"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_preserve_manual_wb_key"
+                android:defaultValue="false"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/preserve_manual_wb"
+                android:summary=""
+                android:icon="@drawable/ic_multi_lens"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_auto_zoom_switch_key"
+                android:defaultValue="@bool/pref_auto_zoom_switch_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/auto_zoom_lens_switch"
+                android:summary="@string/auto_zoom_lens_switch_summary"
+                android:icon="@drawable/ic_focus"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_save_heic_key"
+                android:defaultValue="@bool/pref_save_heic_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/save_heic"
+                android:summary="@string/save_heic_summary"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_ultrahdr_key"
+                android:defaultValue="@bool/pref_ultrahdr_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/ultrahdr"
+                android:summary="@string/ultrahdr_summary"
+                android:icon="@drawable/ic_uhdr_black_24dp"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_cfa_key"
+                android:title="@string/cfa"
+                app:useSimpleSummaryProvider="true"
+                android:icon="@drawable/ic_bayer"
+                android:entries="@array/cfapat_entries"
+                android:entryValues="@array/cfapat_entryValues"
+                android:defaultValue="@string/pref_cfa_default_value"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_align_method_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/align_method"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                android:entries="@array/alignset_entries"
+                android:entryValues="@array/alignset_entryValues"
+                android:defaultValue="@string/pref_align_method_default"
+                />
+        <ListPreference
+                android:layout="@layout/preference_with_margin"
+                android:key="@string/pref_color_method_key"
+                app:useSimpleSummaryProvider="true"
+                android:title="@string/color_method"
+                android:icon="@drawable/ic_saturation"
+                android:entries="@array/colorset_entries"
+                android:entryValues="@array/colorset_entryValues"
+                android:defaultValue="@string/pref_align_method_default"
+                />
         <PreferenceScreen
                 android:layout="@layout/preference_with_margin"
                 android:title="Tunable Settings"

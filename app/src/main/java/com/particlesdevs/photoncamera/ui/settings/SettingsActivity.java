@@ -99,15 +99,23 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
 
         // Get camera mode from intent
         sCameraMode = getIntent().getIntExtra("camera_mode", -1);
-        
+
         // Setup window insets to handle navigation bar
         setupWindowInsets();
-        
+
         getSupportFragmentManager()
                 .beginTransaction()
                 .replace(R.id.settings_container, new SettingsFragment())
                 .commit();
         getSupportFragmentManager().registerFragmentLifecycleCallbacks(new FragmentLifeCycleMonitor(), true);
+
+        // Video modes land directly on the Video settings screen; the general
+        // settings root stays one back-press away.
+        CameraMode cameraMode = CameraMode.valueOf(sCameraMode);
+        if (savedInstanceState == null
+                && (cameraMode == CameraMode.VIDEO || cameraMode == CameraMode.RAWVIDEO)) {
+            startSubScreen("pref_video_settings_submenu");
+        }
 
     }
     
@@ -145,12 +153,23 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
     public boolean onPreferenceStartScreen(@NonNull PreferenceFragmentCompat preferenceFragmentCompat,
                                            PreferenceScreen preferenceScreen) {
         Log.d("SettingsActivity", "onPreferenceStartScreen called for key: " + preferenceScreen.getKey());
-        
+
         // Note: Tunable preferences are already generated in onPreferenceTreeClick before reaching here
-        
+
+        startSubScreen(preferenceScreen.getKey());
+        return true;
+    }
+
+    /**
+     * Opens a sub-settings screen (by root key) on top of the current one and
+     * adds it to the back stack, so back returns to the previous screen. Used
+     * both for user navigation and to auto-open the Video settings screen in
+     * video modes.
+     */
+    private void startSubScreen(String rootKey) {
         SettingsFragment fragment = new SettingsFragment();
         Bundle args = new Bundle();
-        args.putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, preferenceScreen.getKey());
+        args.putString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT, rootKey);
         fragment.setArguments(args);
         // M3 shared-axis transitions for sub-screen navigation (predictive-back compatible).
         fragment.setEnterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, true));
@@ -159,10 +178,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         fragment.setReenterTransition(new MaterialSharedAxis(MaterialSharedAxis.X, false));
         FragmentTransaction ft = getSupportFragmentManager().beginTransaction()
                 .setReorderingAllowed(true);
-        ft.replace(R.id.settings_container, fragment, preferenceScreen.getKey());
-        ft.addToBackStack(preferenceScreen.getKey());
+        ft.replace(R.id.settings_container, fragment, rootKey);
+        ft.addToBackStack(rootKey);
         ft.commit();
-        return true;
     }
 
     public static class SettingsFragment extends PreferenceFragmentCompat implements SharedPreferences.OnSharedPreferenceChangeListener, PreferenceManager.OnPreferenceTreeClickListener {
