@@ -10,7 +10,7 @@ public class FrameNumberSelector {
     public static int getFrames() {
         double lightcycle = (Math.exp(1.3595 + 1.0020 * PhotonCamera.getCaptureController().mPreviewIso/IsoExpoSelector.getISOAnalog())) / 9;
         double target = (Math.exp(1.3595 + 1.0020 * PhotonCamera.getCaptureController().mPreviewIso/IsoExpoSelector.getISOAnalog())) / 14;
-        int frames = PhotonCamera.getSettings().frameCount;
+        int frames = PhotonCamera.getSettings().getActiveFrameCount();
         lightcycle *= frames;
         target *= frames;
         frameCount = Math.min(Math.max((int) lightcycle, Math.min(8,frames)), frames);

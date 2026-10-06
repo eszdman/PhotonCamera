@@ -120,6 +120,21 @@ public class Settings {
         return PreferenceKeys.getCurrentLensFpsMode();
     }
 
+    /**
+     * Effective max frame count: the global {@link #frameCount} divided by the
+     * per-sensor Quad Bayer divisor when Quad Bayer is on and the divisor is
+     * set, otherwise the cached global. Resolved live (like
+     * {@link #getActiveFpsMode()}) so a Quad Bayer toggle or sensor switch
+     * applies without waiting for a settings reload.
+     */
+    public int getActiveFrameCount() {
+        try {
+            return PreferenceKeys.getActiveFrameCountValue();
+        } catch (Exception e) {
+            return frameCount;
+        }
+    }
+
     /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */
     public boolean isHeicSave() {
         return heicSave;

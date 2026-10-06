@@ -2270,7 +2270,7 @@ public class CameraFragment extends Fragment {
         }
 
         private boolean isStillBurst() {
-            return isStillMode() && PreferenceKeys.getFrameCountValue() > 1;
+            return isStillMode() && PreferenceKeys.getActiveFrameCountValue() > 1;
         }
 
         @Override
