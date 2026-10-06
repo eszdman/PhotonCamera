@@ -23,7 +23,7 @@ public class RAW16Saver extends DefaultSaver{
      * and a failed pack keeps the 16-bit buffer untouched.
      */
     private static void packBurstAtArrival(ImageFrame frame) {
-        if (frame == null || PhotonCamera.getSettings().frameCount <= 1) return;
+        if (frame == null || PhotonCamera.getSettings().getActiveFrameCount() <= 1) return;
         int whiteLevel = 0;
         try {
             CameraCharacteristics chars = CaptureController.mCameraCharacteristics;

@@ -150,6 +150,12 @@ public class Parameters {
     )
     public float upscaleFactorQb = 0;
 
+    @SensorConfig(title = "Frame Count Divisor (Quad Bayer)",
+            description = "Divide global HDR Frame Count when Quad Bayer is ON (0 = disabled, uses global)",
+            defaultValue = 0, min = 0, max = 6, step = 1
+    )
+    public int quadBayerFrameCountDivisor = 0;
+
     /**
      * Active per-sensor resize factor: Quad Bayer value when Quad Bayer is on,
      * otherwise the main value. 0 (or &lt;= 0) means Disabled.

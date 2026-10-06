@@ -499,6 +499,61 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_FRAME_COUNT);
     }
 
+    /**
+     * Per-sensor Quad Bayer frame-count divisor, stored under
+     * {@code pref_sensorconfig_<physicalId>_quadbayerframecountdivisor}
+     * (see {@code Parameters.quadBayerFrameCountDivisor}). {@code <= 0}
+     * means disabled and the global HDR Frame Count applies.
+     */
+    public static int getQuadBayerFrameCountDivisor(String cameraId) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return 0;
+        }
+        String physicalId = cameraId.contains("-") ? cameraId.split("-")[1] : cameraId;
+        String key = "pref_sensorconfig_" + physicalId + "_quadbayerframecountdivisor";
+        try {
+            Integer value = SettingsManagerExtensions.getInteger(
+                    preferenceKeys.settingsManager, SCOPE_GLOBAL, key, 0);
+            return value != null ? value : 0;
+        } catch (ClassCastException e) {
+            try {
+                float floatValue = preferenceKeys.settingsManager.getDefaultPreferences()
+                        .getFloat(key, 0f);
+                return (int) floatValue;
+            } catch (Exception ignored) {
+            }
+            try {
+                String stringValue = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, key, null);
+                if (stringValue != null && !stringValue.trim().isEmpty()) {
+                    return Integer.parseInt(stringValue.trim());
+                }
+            } catch (Exception ignored) {
+            }
+            return 0;
+        }
+    }
+
+    /**
+     * Effective max frame count: the global HDR Frame Count divided by the
+     * per-sensor Quad Bayer divisor (rounded, min 1) when Quad Bayer is on
+     * and the divisor is positive, otherwise the global HDR Frame Count.
+     * Read live so a QB toggle or sensor switch applies immediately.
+     */
+    public static int getActiveFrameCountValue() {
+        int global = getFrameCountValue();
+        try {
+            if (!isQuadBayerOn()) {
+                return global;
+            }
+            int divisor = getQuadBayerFrameCountDivisor(getCameraID());
+            if (divisor > 0) {
+                return Math.max(1, Math.round(global / (float) divisor));
+            }
+        } catch (Exception ignored) {
+        }
+        return global;
+    }
+
     public static float getSharpnessValue() {
         return preferenceKeys.settingsManager.getFloat(SCOPE_GLOBAL, Key.KEY_SHARPNESS_SEEKBAR);
     }

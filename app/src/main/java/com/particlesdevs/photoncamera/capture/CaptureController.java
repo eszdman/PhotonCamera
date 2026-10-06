@@ -510,7 +510,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 }
                 synchronized (mZslBufferLock) {
                     mZslRingBuffer.addLast(img);
-                    int maxFrames = Math.min(PhotonCamera.getSettings().frameCount, 37);
+                    int maxFrames = Math.min(PhotonCamera.getSettings().getActiveFrameCount(), 37);
                     while (mZslRingBuffer.size() > maxFrames) {
                         Image old = mZslRingBuffer.pollFirst();
                         if (old != null) old.close();
@@ -526,7 +526,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //taskResults.removeIf(Future::isDone); //remove already completed results
             //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
             //taskResults.add(result);
-            if(PhotonCamera.getSettings().frameCount != 1) {
+            if(PhotonCamera.getSettings().getActiveFrameCount() != 1) {
                 //taskResults.removeIf(Future::isDone); //remove already completed results
                 //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
                 //taskResults.add(result);
@@ -2736,9 +2736,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.RAWVIDEO)
             maxjpg = RAW_VIDEO_MAX_IMAGES;
         if (mTargetFormat == mPreviewTargetFormat && isDualSession)
-            maxjpg = PhotonCamera.getSettings().frameCount + 3;
+            maxjpg = PhotonCamera.getSettings().getActiveFrameCount() + 3;
         if (isZslMode())
-            maxjpg = Math.min(PhotonCamera.getSettings().frameCount + 3, 40);
+            maxjpg = Math.min(PhotonCamera.getSettings().getActiveFrameCount() + 3, 40);
         Size target = getCameraOutputSize(allTargets.toArray(new Size[0]), preview);
         Size aspect = getAspect(PhotonCamera.getSettings().selectedMode);
         if(preview.getWidth() > preview.getHeight())
@@ -3900,7 +3900,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.v("BurstCounter", "CaptureSequenceCompleted! LastFrameNumber:" + lastFrameNumber);
                     Log.d(TAG, "SequenceCompleted");
                     mBackgroundHandler.postDelayed(() -> {
-                        while(mImageSaver.implementation.IMAGE_BUFFER.size() > PhotonCamera.getSettings().frameCount/2) {
+                        while(mImageSaver.implementation.IMAGE_BUFFER.size() > PhotonCamera.getSettings().getActiveFrameCount()/2) {
                             try {
                                 Thread.sleep(1);
                             } catch (InterruptedException ignored) {}
