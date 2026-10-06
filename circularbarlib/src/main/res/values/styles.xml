@@ -18,13 +18,14 @@
         <item name="android:textStyle">bold</item>
     </style>
 
-    <style name="ManualModeKnobText" parent="BoldTextWithShadow">
-        <item name="android:textSize">@dimen/manual_knob_text_size</item>
+    <style name="ManualSliderText" parent="BoldTextWithShadow">
+        <item name="android:textSize">@dimen/manual_slider_text_size</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/manual_icon_text</item>
     </style>
 
-    <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">
+    <style name="ManualSliderTextSelected" parent="ManualSliderText">
+        <item name="android:textSize">@dimen/manual_slider_text_size_selected</item>
         <item name="android:textColor">?android:colorControlActivated</item>
     </style>
 

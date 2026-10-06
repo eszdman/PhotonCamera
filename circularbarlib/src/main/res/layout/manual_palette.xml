@@ -8,11 +8,11 @@
     android:visibility="gone"
     tools:visibility="visible">
 
-    <!-- The option bar is declared first so the wheel (second) draws its
-         items over the palette background. The bar's top padding reserves the
-         fixed-height wheel zone: the panel height (and the lens cluster's
-         constraint) never jumps when the wheel toggles — the dome grows and
-         retracts inside it via the background drawable. -->
+    <!-- The option bar is declared first so the sliders (second) draw over the
+         palette background. The bar's top padding reserves the slider zone:
+         collapsed when nothing is selected, one row normally, two rows while
+         a secondary control is remembered. The single rounded-rect scrim then
+         extends upward with the same edges. -->
     <LinearLayout
         android:id="@+id/buttons_container"
         android:layout_width="match_parent"
@@ -21,7 +21,7 @@
         android:layout_marginStart="16dp"
         android:layout_marginEnd="16dp"
         android:layout_marginBottom="8dp"
-        android:paddingTop="@dimen/manual_knob_height"
+        android:paddingTop="0dp"
         android:paddingBottom="4dp"
         android:orientation="horizontal">
 
@@ -178,19 +178,28 @@
         </FrameLayout>
     </LinearLayout>
 
-    <FrameLayout
-        android:id="@+id/knobViewContainer"
+    <LinearLayout
+        android:id="@+id/sliderContainer"
         android:layout_width="match_parent"
-        android:layout_height="@dimen/manual_knob_height"
+        android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_marginStart="16dp"
-        android:layout_marginEnd="16dp">
+        android:layout_marginEnd="16dp"
+        android:orientation="vertical"
+        android:visibility="gone">
 
-        <com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView
-                android:id="@+id/knobView"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:layout_gravity="top"
-                tools:visibility="gone" />
-    </FrameLayout>
+        <com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.ManualSliderView
+            android:id="@+id/secondarySlider"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/manual_slider_row_height"
+            android:visibility="gone"
+            tools:visibility="visible" />
+
+        <com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.ManualSliderView
+            android:id="@+id/primarySlider"
+            android:layout_width="match_parent"
+            android:layout_height="@dimen/manual_slider_row_height"
+            android:visibility="gone"
+            tools:visibility="gone" />
+    </LinearLayout>
 </RelativeLayout>

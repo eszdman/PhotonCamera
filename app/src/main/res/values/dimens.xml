@@ -26,10 +26,6 @@
     <dimen name="aux_container_margin">8dp</dimen>
     <dimen name="cam_panel_corner_radius">28dp</dimen>
     <dimen name="cam_panel_blur_radius">32dp</dimen>
-    <!-- Floor for the manual wheel dome when the preview is too short for a
-         full 1/3-height disc (e.g. landscape); portrait viewfinders never
-         hit it. -->
-    <dimen name="manual_dome_min_height">64dp</dimen>
     <!-- Viewfinder rounded corners; px to match the renderer's sharp mask and
          SurfaceViewOverViewfinder's grid clip exactly. -->
     <dimen name="viewfinder_round_corner_radius">40px</dimen>

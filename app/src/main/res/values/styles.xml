@@ -50,7 +50,7 @@
         <item name="android:textSize">13sp</item>
     </style>
 
-    <style name="ManualModeKnobTextSelected" parent="ManualModeKnobText">
+    <style name="ManualModeKnobTextSelected" parent="ManualSliderText">
         <item name="android:textColor">@color/cam_primary</item>
     </style>
 

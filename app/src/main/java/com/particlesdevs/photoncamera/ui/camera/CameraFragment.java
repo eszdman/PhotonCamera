@@ -94,7 +94,7 @@ import com.particlesdevs.photoncamera.circularbarlib.console.ManualModeConsoleIm
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
 import com.particlesdevs.photoncamera.circularbarlib.ui.Binding;
 import com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualPaletteBackground;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.ManualSliderView;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.control.Swipe;
@@ -416,7 +416,6 @@ public class CameraFragment extends Fragment {
                         }
                         if (propertyId == BR._all || propertyId == BR.settingsBarVisibility) {
                             lensZoomBarController.setSettingsHidden(model.isSettingsBarVisibility());
-                            applyManualDomeHeight();
                             updateBackIntercept();
                         }
                     }
@@ -431,8 +430,9 @@ public class CameraFragment extends Fragment {
         }
         manualPanelRoot = view.findViewById(R.id.manual_mode);
         manualPanelBar = view.findViewById(R.id.buttons_container);
-        manualKnobContainer = view.findViewById(R.id.knobViewContainer);
-        manualKnobView = view.findViewById(R.id.knobView);
+        manualSliderContainer = view.findViewById(R.id.sliderContainer);
+        manualPrimarySlider = view.findViewById(R.id.primarySlider);
+        manualSecondarySlider = view.findViewById(R.id.secondarySlider);
         // The burst ring and the frame timer hide through their alpha, which
         // capture callbacks manage. The viewfinder root's layout transition
         // would fade a reappearing child (returning from a video/raw-video
@@ -471,28 +471,17 @@ public class CameraFragment extends Fragment {
         camPanelCornerPx = getResources().getDimension(R.dimen.cam_panel_corner_radius);
         camPanelBlurPx = getResources().getDimension(R.dimen.cam_panel_blur_radius);
         if (manualPanelBar != null) {
-            // One drawable owns the palette silhouette — the bubble with the
-            // wheel's dome grown out of it — so the wheel inflates from the
-            // bubble as a single shape. Geometry is mirrored in
-            // shaders/preview/panel_blur_fs.glsl for the frosted blur.
+            // One rounded-rect scrim covers the option bar plus the slider
+            // row(s) above it; the bar's top padding grows when the secondary
+            // row appears so the scrim extends with the same rounded edges.
+            // The same rect is mirrored in panel_blur_fs.glsl for the frosted blur.
             manualPanelBar.setBackground(new ManualPaletteBackground(
                     ContextCompat.getColor(requireContext(), R.color.cam_panel_scrim),
-                    camPanelCornerPx,
-                    getResources().getDimension(com.particlesdevs.photoncamera.circularbarlib.R.dimen.manual_knob_height)));
-            // The bar's bounds include the dome zone; keep the reveal/predictive
-            // back scale pivoted on the visible bubble.
+                    camPanelCornerPx));
+            // The bar's bounds include the slider zone; keep the reveal/predictive
+            // back scale pivoted on the visible pill.
             manualPanelBar.post(() -> Binding.pinOptionBarPivot(manualPanelBar));
         }
-        // The dome tracks the preview area so the disc reads as ~1/3 of the
-        // viewfinder on every device and mode (the dummy view's height is the
-        // visible preview above the bottom bar).
-        cameraFragmentBinding.dummyReferenceView.addOnLayoutChangeListener(
-                (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-                        applyManualDomeHeight());
-        cameraFragmentBinding.settingsBar.addOnLayoutChangeListener(
-                (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) ->
-                        applyManualDomeHeight());
-        view.post(this::applyManualDomeHeight);
         textureView.postOnAnimation(panelBlurTracker);
         view.getViewTreeObserver().addOnPreDrawListener(lensOffsetCorrection);
         view.getViewTreeObserver().addOnPreDrawListener(manualOpenerClearance);
@@ -783,10 +772,9 @@ public class CameraFragment extends Fragment {
     /** Manual-console hierarchy that carries a blurred backdrop while visible. */
     private View manualPanelRoot;
     private View manualPanelBar;
-    private View manualKnobContainer;
-    private KnobView manualKnobView;
-    /** Applied manual wheel dome height in px, -1 until the first layout. */
-    private float manualDomeHeightPx = -1f;
+    private View manualSliderContainer;
+    private ManualSliderView manualPrimarySlider;
+    private ManualSliderView manualSecondarySlider;
     /** Current translation applied to the lens cluster to offset layout jumps. */
     private float lensClusterOffset = Float.NaN;
 
@@ -916,8 +904,9 @@ public class CameraFragment extends Fragment {
             // The manual hierarchy carries its own alpha/transform on the root
             // (show/hide slides it down and fades it out, leaving children's
             // visibility untouched), so the region gates on the root too. One
-            // region covers the merged bubble+dome the palette background
-            // draws, dome included whenever it is grown.
+            // rounded-rect region covers the bar plus the slider row(s); the
+            // bar's top padding already includes the slider zone so the scrim
+            // extends with the same rounded edges.
             if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
                 float manualAlpha = manualPanelRoot.getAlpha();
                 addPaletteBlurSpec(manualPanelBar, manualAlpha);
@@ -945,8 +934,8 @@ public class CameraFragment extends Fragment {
      * Lifts the lens cluster clear of the manual panel. The cluster is anchored
      * to the bottom bar (its layout never moves with the panel), so the whole
      * motion is this explicit translation: it follows the panel's own reveal
-     * alpha — gliding on the same M3E curve as the panel — and the wheel's
-     * alpha once the panel is fully in. Keeping the layout still means the
+     * alpha — gliding on the same M3E curve as the panel — and the slider
+     * rows' alpha once the panel is fully in. Keeping the layout still means the
      * container's layout transition never animates the cluster, so there is no
      * second movement to fight. The blur specs read the translation, so the
      * pills' backdrops follow along.
@@ -956,11 +945,21 @@ public class CameraFragment extends Fragment {
         if (manualPanelRoot != null && manualPanelRoot.getVisibility() == View.VISIBLE) {
             float panelHeight = manualPanelRoot.getHeight();
             if (panelHeight > 0f) {
-                float knobArea = manualKnobContainer != null ? manualKnobContainer.getHeight() : 0f;
-                float knobAlpha = manualKnobView != null && manualKnobView.getVisibility() == View.VISIBLE
-                        ? clampAlpha(manualKnobView.getAlpha()) : 0f;
-                float barArea = Math.max(0f, panelHeight - knobArea);
-                offset = -(barArea + knobArea * knobAlpha) * clampAlpha(manualPanelRoot.getAlpha());
+                float sliderArea = manualSliderContainer != null ? manualSliderContainer.getHeight() : 0f;
+                float sliderAlpha = 0f;
+                if (manualPrimarySlider != null && manualPrimarySlider.getVisibility() == View.VISIBLE) {
+                    sliderAlpha = Math.max(sliderAlpha, clampAlpha(manualPrimarySlider.getAlpha()));
+                }
+                if (manualSecondarySlider != null && manualSecondarySlider.getVisibility() == View.VISIBLE) {
+                    sliderAlpha = Math.max(sliderAlpha, clampAlpha(manualSecondarySlider.getAlpha()));
+                }
+                if (manualSliderContainer != null
+                        && manualSliderContainer.getVisibility() != View.VISIBLE) {
+                    sliderAlpha = 0f;
+                    sliderArea = 0f;
+                }
+                float barArea = Math.max(0f, panelHeight - sliderArea);
+                offset = -(barArea + sliderArea * sliderAlpha) * clampAlpha(manualPanelRoot.getAlpha());
             }
         }
         if (!Float.isNaN(lensClusterOffset) && Math.abs(offset - lensClusterOffset) < 0.25f) {
@@ -979,67 +978,9 @@ public class CameraFragment extends Fragment {
     }
 
     /**
-     * Sizes the manual palette's wheel dome. The reference is always the 4:3
-     * preview — the dummy view's width at the "3:4" ratio — so the disc is
-     * identical in 4:3, 16:9 video and RAW video, where the mode's dummy
-     * aspect differs. The result is clamped to the space above the bottom bar
-     * so the palette (dome + option bar) can never be measured short. The
-     * palette's reserved dome zone, the wheel's container and the bubble
-     * background all take the same height; the blur region and the
-     * lens-cluster lift read them back.
-     */
-    private void applyManualDomeHeight() {
-        if (manualPanelBar == null || manualKnobContainer == null) {
-            return;
-        }
-        int previewWidth = cameraFragmentBinding.dummyReferenceView.getWidth();
-        if (previewWidth <= 0) {
-            return;
-        }
-        // 4:3 preview height: the dummy's "3:4" ratio gives height = 4/3 width.
-        float reference = previewWidth * 4f / 3f;
-        // The quick settings bar overlays the preview from the bottom; while it
-        // is open the disc must fit the viewfinder that stays visible above it.
-        if (cameraFragmentBinding.getUimodel() != null
-                && cameraFragmentBinding.getUimodel().isSettingsBarVisibility()) {
-            int visibleTop = cameraFragmentBinding.settingsBar.getTop();
-            if (visibleTop > 0 && visibleTop < reference) {
-                reference = visibleTop;
-            }
-        }
-        float minDome = getResources().getDimension(R.dimen.manual_dome_min_height);
-        float domePx = Math.max(reference / 5.75f, minDome);
-        // The palette is anchored at the bottom bar's top and grows upward; cap
-        // the dome so dome + option bar always fits the container above it.
-        int bottomBarTop = cameraFragmentBinding.layoutBottombar.getRoot().getTop();
-        if (bottomBarTop > 0) {
-            int optionBarHeight = manualPanelBar.getHeight() - manualKnobContainer.getHeight();
-            float maxDome = bottomBarTop - Math.max(optionBarHeight, 0);
-            if (maxDome > minDome) {
-                domePx = Math.min(domePx, maxDome);
-            }
-        }
-        if (Math.abs(domePx - manualDomeHeightPx) < 1f) {
-            return;
-        }
-        manualDomeHeightPx = domePx;
-        ViewGroup.LayoutParams params = manualKnobContainer.getLayoutParams();
-        if (params != null) {
-            params.height = (int) domePx;
-            manualKnobContainer.setLayoutParams(params);
-        }
-        manualPanelBar.setPadding(manualPanelBar.getPaddingLeft(), (int) domePx,
-                manualPanelBar.getPaddingRight(), manualPanelBar.getPaddingBottom());
-        if (manualPanelBar.getBackground() instanceof ManualPaletteBackground) {
-            ((ManualPaletteBackground) manualPanelBar.getBackground()).setDomeHeightPx(domePx);
-        }
-        manualPanelBar.post(() -> Binding.pinOptionBarPivot(manualPanelBar));
-    }
-
-    /**
      * Snaps the manual palette's reveal to its shown end state. A mode switch
-     * while the palette is open can leave the option-bar scale or the dome
-     * inflation mid-flight, which reads as a squashed bar/wheel and drops the
+     * while the palette is open can leave the option-bar scale or the slider
+     * fade mid-flight, which reads as a squashed bar/strip and drops the
      * blur behind it.
      */
     void reassertManualPanelState() {
@@ -1055,17 +996,23 @@ public class CameraFragment extends Fragment {
             manualPanelBar.setScaleX(1f);
             manualPanelBar.setScaleY(1f);
             Binding.pinOptionBarPivot(manualPanelBar);
-            boolean wheelVisible = manualKnobView != null
-                    && manualKnobView.getVisibility() == View.VISIBLE;
-            if (manualPanelBar.getBackground() instanceof ManualPaletteBackground) {
-                ((ManualPaletteBackground) manualPanelBar.getBackground())
-                        .setDomeProgress(wheelVisible ? 1f : 0f);
+            boolean sliderVisible = (manualPrimarySlider != null
+                    && manualPrimarySlider.getVisibility() == View.VISIBLE)
+                    || (manualSecondarySlider != null
+                    && manualSecondarySlider.getVisibility() == View.VISIBLE);
+            if (manualSliderContainer != null && sliderVisible) {
+                manualSliderContainer.setAlpha(1f);
+                manualSliderContainer.setTranslationY(0f);
+                manualSliderContainer.setVisibility(View.VISIBLE);
             }
-            if (wheelVisible) {
-                manualKnobView.setAlpha(1f);
-                manualKnobView.setDomeProgress(1f);
+            if (manualPrimarySlider != null
+                    && manualPrimarySlider.getVisibility() == View.VISIBLE) {
+                manualPrimarySlider.setAlpha(1f);
             }
-            applyManualDomeHeight();
+            if (manualSecondarySlider != null
+                    && manualSecondarySlider.getVisibility() == View.VISIBLE) {
+                manualSecondarySlider.setAlpha(1f);
+            }
             updatePanelBlurSpecs();
         });
     }
@@ -1089,11 +1036,10 @@ public class CameraFragment extends Fragment {
     }
 
     /**
-     * One region for the manual palette's merged bubble+dome silhouette. The
-     * pill top line is the reserved dome zone (it never moves), and the dome
-     * height follows the palette background's inflation so the frosted region
-     * grows with the shape; zero collapses it to the plain bubble — never the
-     * empty dome zone above it.
+     * One rounded-rect region for the manual palette's bar plus slider rows.
+     * The bar's rect already includes the slider zone via its top padding, so
+     * the frosted region grows with the same rounded edges whenever the
+     * secondary row appears.
      */
     private void addPaletteBlurSpec(View bar, float parentAlpha) {
         if (bar == null || bar.getVisibility() != View.VISIBLE
@@ -1101,9 +1047,7 @@ public class CameraFragment extends Fragment {
             return;
         }
         ManualPaletteBackground palette = (ManualPaletteBackground) bar.getBackground();
-        addBlurSpec(bar, parentAlpha, palette.getCornerRadiusPx(), false,
-                palette.getDomeHeightPx(), palette.getEffectiveDomeHeightPx(),
-                palette.getEffectiveShoulderRadiusPx());
+        addBlurSpec(bar, parentAlpha, palette.getCornerRadiusPx(), false);
     }
 
     /**
@@ -1112,18 +1056,6 @@ public class CameraFragment extends Fragment {
      */
     private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
                              boolean radiusIsScaled) {
-        addBlurSpec(view, alpha, cornerRadiusPx, radiusIsScaled, 0f, 0f, 0f);
-    }
-
-    /**
-     * As above, optionally shaping the region like the palette background's
-     * bubble whose top line sits {@code pillTopPx} below the panel's top, with
-     * a dome of {@code domeHeightPx} blended in through shoulder arcs of
-     * {@code shoulderRadiusPx} (all unscaled; zero pillTop disables the mode).
-     */
-    private void addBlurSpec(View view, float alpha, float cornerRadiusPx,
-                             boolean radiusIsScaled, float pillTopPx,
-                             float domeHeightPx, float shoulderRadiusPx) {
         if (view.getWidth() <= 0 || view.getHeight() <= 0 || alpha <= 0.02f) {
             return;
         }
@@ -1156,9 +1088,7 @@ public class CameraFragment extends Fragment {
         scratchBlurSpecs.add(new MainRenderer.PanelBlurSpec(true,
                 centerX, centerY, halfW, halfH, view.getRotation(),
                 radiusIsScaled ? cornerRadiusPx : cornerRadiusPx * scaleX,
-                camPanelBlurPx, alpha,
-                pillTopPx * scaleY, domeHeightPx * scaleY,
-                shoulderRadiusPx * Math.min(scaleX, scaleY)));
+                camPanelBlurPx, alpha));
     }
 
     private static boolean sameBlurSpecs(List<MainRenderer.PanelBlurSpec> a,
@@ -1175,10 +1105,7 @@ public class CameraFragment extends Fragment {
             if (changed(s.centerX, t.centerX) || changed(s.centerY, t.centerY)
                     || changed(s.halfW, t.halfW) || changed(s.halfH, t.halfH)
                     || changed(s.angle, t.angle) || changed(s.cornerRadius, t.cornerRadius)
-                    || changedAlpha(s.alpha, t.alpha)
-                    || changed(s.pillTop, t.pillTop)
-                    || changed(s.domeHeight, t.domeHeight)
-                    || changed(s.shoulderRadius, t.shoulderRadius)) {
+                    || changedAlpha(s.alpha, t.alpha)) {
                 return false;
             }
         }
