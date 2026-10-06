@@ -51,23 +51,23 @@ public class SliderMathTest {
     }
 
     @Test
-    public void liftGainRestsAtOne() {
-        assertEquals(1f, SliderMath.gainForLift(0f, 120f), 0.001f);
-        assertEquals(1f, SliderMath.gainForLift(-50f, 120f), 0.001f);
-        assertEquals(1f, SliderMath.gainForLift(60f, 0f), 0.001f);
+    public void pressGainRestsAtOne() {
+        assertEquals(1f, SliderMath.gainForPress(0f, 120f), 0.001f);
+        assertEquals(1f, SliderMath.gainForPress(-50f, 120f), 0.001f);
+        assertEquals(1f, SliderMath.gainForPress(60f, 0f), 0.001f);
     }
 
     @Test
-    public void liftGainCapsAtMax() {
-        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForLift(120f, 120f), 0.001f);
-        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForLift(500f, 120f), 0.001f);
+    public void pressGainCapsAtMax() {
+        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForPress(120f, 120f), 0.001f);
+        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForPress(500f, 120f), 0.001f);
     }
 
     @Test
-    public void liftGainRisesMonotonically() {
-        float quarter = SliderMath.gainForLift(30f, 120f);
-        float half = SliderMath.gainForLift(60f, 120f);
-        float threeQuarter = SliderMath.gainForLift(90f, 120f);
+    public void pressGainRisesMonotonically() {
+        float quarter = SliderMath.gainForPress(30f, 120f);
+        float half = SliderMath.gainForPress(60f, 120f);
+        float threeQuarter = SliderMath.gainForPress(90f, 120f);
         assertTrue(quarter > 1f && half > quarter && threeQuarter > half
                 && SliderMath.MAX_GAIN >= threeQuarter);
         // Smoothstep midpoint lands halfway between 1x and max.
