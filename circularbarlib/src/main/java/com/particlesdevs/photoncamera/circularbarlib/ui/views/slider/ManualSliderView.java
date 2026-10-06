@@ -51,6 +51,9 @@ public class ManualSliderView extends View {
     private float indicatorHeightPx;
     private float tickWidthPx;
     private float tickHeightPx;
+    private int primaryColor;
+    private int secondaryColor;
+    private boolean isSecondary;
 
     private OverScroller scroller;
     private VelocityTracker velocityTracker;
@@ -83,6 +86,8 @@ public class ManualSliderView extends View {
         tickHeightPx = 12f * density;
 
         int selectedColor = resolveThemeColor(android.R.attr.colorControlActivated, 0xFFFFFFFF);
+        primaryColor = selectedColor;
+        secondaryColor = resolveSecondaryColor(selectedColor);
         int unselectedColor = 0xFFFFFFFF;
 
         selectedPaint.setTextAlign(Paint.Align.CENTER);
@@ -137,6 +142,44 @@ public class ManualSliderView extends View {
         } catch (Exception ignored) {
         }
         return fallback;
+    }
+
+    private int resolveSecondaryColor(int fallback) {
+        // Same fill as the remembered bar cell (activated state in
+        // manual_option_background): ?attr/colorSecondaryContainer.
+        // Looked up by name so no compile-time dependency on the Material R
+        // (whose attr ids differ from the merged app theme).
+        try {
+            int attrId = getResources().getIdentifier(
+                    "colorSecondaryContainer", "attr", getContext().getPackageName());
+            if (attrId != 0) {
+                int resolved = resolveThemeColor(attrId, 0);
+                if (resolved != 0) {
+                    return resolved;
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return fallback;
+    }
+
+    /**
+     * Role of this strip: the lower (primary) row uses the primary selection
+     * color, the upper (remembered) row the secondary selection color — the
+     * same distinction as the option bar's selected vs. remembered pills.
+     */
+    public void setSecondary(boolean secondary) {
+        if (this.isSecondary != secondary) {
+            this.isSecondary = secondary;
+            int accent = secondary ? secondaryColor : primaryColor;
+            selectedPaint.setColor(accent);
+            indicatorPaint.setColor(accent);
+            invalidate();
+        }
+    }
+
+    public boolean isSecondary() {
+        return isSecondary;
     }
 
     public void setListener(SliderChangedListener listener) {
