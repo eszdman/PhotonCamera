@@ -94,6 +94,14 @@
         <item name="android:layout">@layout/preference_with_margin</item>
     </style>
 
+    <!-- Extra-extra-small slider for settings rows: 10dp track and a slightly
+         smaller handle (44dp - 8dp, mirroring the M->S step of the ladder). -->
+    <style name="Widget.Photon.Slider.Xxs" parent="Widget.Material3Expressive.Slider.Xsmall">
+        <item name="trackHeight">10dp</item>
+        <item name="trackCornerSize">5dp</item>
+        <item name="thumbHeight">36dp</item>
+    </style>
+
     <style name="AlertDialogTheme" parent="ThemeOverlay.Material3Expressive.Dialog.Alert">
         <item name="dialogCornerRadius">16dp</item>
         <item name="buttonBarNegativeButtonStyle">@style/NegativeButtonStyle</item>
