@@ -2,6 +2,7 @@
 <!-- Custom layout for tunable seekbars - wider without icon space -->
 <LinearLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:gravity="center_vertical"
         android:layout_width="match_parent"
@@ -71,5 +72,7 @@
             style="@style/Widget.Material3Expressive.Slider.Xsmall"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"/>
+            android:layout_marginTop="4dp"
+            app:tickVisible="false"
+            app:trackStopIndicatorSize="0dp"/>
 </LinearLayout>

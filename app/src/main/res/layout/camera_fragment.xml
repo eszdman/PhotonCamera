@@ -132,6 +132,8 @@
                         android:valueFrom="0"
                         android:valueTo="1000"
                         app:labelBehavior="gone"
+                        app:tickVisible="false"
+                        app:trackStopIndicatorSize="0dp"
                         app:trackColorActive="?attr/colorPrimary"
                         app:trackColorInactive="@color/cam_outline"
                         app:thumbColor="@color/cam_on_surface"
