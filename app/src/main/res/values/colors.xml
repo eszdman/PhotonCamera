@@ -22,4 +22,10 @@
     <color name="panel_transparency">@color/cam_surface_container_high</color>
     <color name="white">#FFFFFF</color>
     <color name="white_theme_background">#F0EEE9</color>
+    <!-- Neutral tone 70 of the palette generated from white_theme_background
+         (tone 94): the white theme has no hue to separate selected from
+         inactive surfaces, so the remembered manual control's pill
+         (colorSecondaryContainer) drops 24 tones instead. Lowest tone that
+         keeps its black on-container content readable (9.3:1). -->
+    <color name="white_theme_inactive">#ACABA7</color>
 </resources>
