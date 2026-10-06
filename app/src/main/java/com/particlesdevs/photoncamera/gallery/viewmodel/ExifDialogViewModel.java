@@ -45,6 +45,14 @@ public class ExifDialogViewModel extends AndroidViewModel {
     private final ExifDialogModel exifDialogModel;
     private final Handler histoHandler = new Handler(Looper.getMainLooper());
     private Runnable histoRunnable;
+    // Request currently owned by the histogram view; replaced on every image
+    // change so a slow decode of a previous image cannot overwrite the
+    // histogram of the image on screen (fast cache hits made that race
+    // permanent: the stale result landed last and won).
+    private CustomTarget<Bitmap> histoTarget;
+    // One compute helper for the ViewModel's lifetime: each request used to
+    // build a new Histogram, leaking a worker thread + EGL context per open.
+    private Histogram histogram;
 
     public ExifDialogViewModel(Application application) {
         super(application);
@@ -138,30 +146,57 @@ public class ExifDialogViewModel extends AndroidViewModel {
      * check for more detail {@link com.particlesdevs.photoncamera.gallery.binding.CustomBinding#updateHistogram(Histogram, Histogram.HistogramModel)}
      */
     public void updateHistogramView(ImageFile imageFile) {
-        Histogram histogram = new Histogram(getApplication().getBaseContext(), null);
+        if (histogram == null) {
+            histogram = new Histogram(getApplication().getBaseContext(), null);
+        }
         if (histoRunnable != null) {
             histoHandler.removeCallbacks(histoRunnable);
         }
-        histoHandler.post(histoRunnable = () ->
-                Glide.with(getApplication())
-                        .asBitmap()
-                        .load(imageFile.getFileUri())
-                        .apply(new RequestOptions()
-                                .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                                .signature(new ObjectKey("hist" + imageFile.getDisplayName() + imageFile.getLastModified()))
-                                .override(800) //800*800
-                                .fitCenter().useUnlimitedSourceGeneratorsPool(true))
-                .into(new CustomTarget<Bitmap>() {
-                    @Override
-                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                        exifDialogModel.setHistogramModel(histogram.analyze(resource));
-                    }
+        histoHandler.post(histoRunnable = () -> {
+            cancelHistogramRequest();
+            CustomTarget<Bitmap> target = new CustomTarget<Bitmap>() {
+                @Override
+                public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                    if (histoTarget != this) return; // superseded by a newer image, drop the stale result
+                    exifDialogModel.setHistogramModel(histogram.analyze(resource));
+                }
 
-                    @Override
-                    public void onLoadCleared(@Nullable Drawable placeholder) {
+                @Override
+                public void onLoadCleared(@Nullable Drawable placeholder) {
 
+                }
+
+                @Override
+                public void onLoadFailed(@Nullable Drawable errorDrawable) {
+                    // Undecodable source (e.g. DNG without a RAW decoder): clear
+                    // the view instead of leaving the previous image's histogram.
+                    if (histoTarget == this) {
+                        histoTarget = null;
+                        exifDialogModel.setHistogramModel(null);
                     }
-                }));
+                }
+            };
+            histoTarget = target;
+            Glide.with(getApplication())
+                    .asBitmap()
+                    .load(imageFile.getFileUri())
+                    .apply(new RequestOptions()
+                            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                            .signature(new ObjectKey("hist" + imageFile.getDisplayName() + imageFile.getLastModified()))
+                            .override(800) //800*800
+                            .fitCenter().useUnlimitedSourceGeneratorsPool(true))
+                    .into(target);
+        });
+    }
+
+    private void cancelHistogramRequest() {
+        if (histoTarget != null) {
+            try {
+                Glide.with(getApplication()).clear(histoTarget);
+            } catch (Exception ignored) {
+            }
+            histoTarget = null;
+        }
     }
 
     private String getDateText(String savedDate) {
@@ -179,5 +214,10 @@ public class ExifDialogViewModel extends AndroidViewModel {
     @Override
     protected void onCleared() {
         super.onCleared();
+        if (histoRunnable != null) {
+            histoHandler.removeCallbacks(histoRunnable);
+            histoRunnable = null;
+        }
+        cancelHistogramRequest();
     }
 }

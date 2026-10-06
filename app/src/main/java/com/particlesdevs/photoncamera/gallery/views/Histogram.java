@@ -106,11 +106,14 @@ public class Histogram extends View {
         canvas.drawLine(width / 3.f, 0, width / 3.f, height, wallPaint);
         canvas.drawLine(2.f * width / 3.f, 0, 2.f * width / 3.f, height, wallPaint);
 
+        if (histogramModel == null) {
+            if (sHistogramLoadingListener != null) {
+                sHistogramLoadingListener.isLoading(false);
+            }
+            return;
+        }
         if (sHistogramLoadingListener != null) {
             sHistogramLoadingListener.isLoading(true);
-        }
-        if (histogramModel == null) {
-            return;
         }
 
         float xInterval = ((float) getWidth() / ((float) histogramModel.getSize() + 1));

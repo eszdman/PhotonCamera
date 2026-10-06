@@ -23,9 +23,9 @@ public class CustomBinding {
      */
     @BindingAdapter("bindHistogram")
     public static void updateHistogram(Histogram histogram, Histogram.HistogramModel model) {
-        if (model != null) {
-            histogram.setHistogramModel(model);
-        }
+        // null clears the view: keeping the previous image's model would show
+        // a histogram belonging to a different photo.
+        histogram.setHistogramModel(model);
     }
 
     @BindingAdapter("imageFromBitmap")
