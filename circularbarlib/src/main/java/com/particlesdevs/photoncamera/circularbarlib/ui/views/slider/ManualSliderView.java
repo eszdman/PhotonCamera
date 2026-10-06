@@ -43,23 +43,28 @@ public class ManualSliderView extends View {
     private final Paint unselectedPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint tickPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint indicatorPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint gainPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final RectF indicatorRect = new RectF();
 
     private float textSizeSelected;
     private float textSizeUnselected;
+    private float gainTextSize;
     private float indicatorWidthPx;
     private float indicatorHeightPx;
     private float tickWidthPx;
     private float tickHeightPx;
+    private float gainRampPx;
     private int primaryColor;
     private int secondaryColor;
     private boolean isSecondary;
+    private float currentGain = 1f;
 
     private OverScroller scroller;
     private VelocityTracker velocityTracker;
     private ValueAnimator snapAnimator;
     private float lastTouchX;
     private float downX;
+    private float downY;
     private boolean isDragging;
     private int touchSlop;
     private int minFlingVelocity;
@@ -84,6 +89,10 @@ public class ManualSliderView extends View {
         indicatorHeightPx = 4f * density;
         tickWidthPx = 2f * density;
         tickHeightPx = 12f * density;
+        gainTextSize = 12f * density;
+        // Full coarse gain reached by lifting this far above the touch-down
+        // point; keeps a whole-range sweep inside a short controlled drag.
+        gainRampPx = 120f * density;
 
         int selectedColor = resolveThemeColor(android.R.attr.colorControlActivated, 0xFFFFFFFF);
         primaryColor = selectedColor;
@@ -104,6 +113,11 @@ public class ManualSliderView extends View {
         tickPaint.setStrokeCap(Paint.Cap.ROUND);
 
         indicatorPaint.setColor(selectedColor);
+
+        gainPaint.setTextAlign(Paint.Align.CENTER);
+        gainPaint.setTextSize(gainTextSize);
+        gainPaint.setColor(selectedColor);
+        gainPaint.setFakeBoldText(true);
 
         scroller = new OverScroller(context);
         ViewConfiguration vc = ViewConfiguration.get(context);
@@ -174,6 +188,7 @@ public class ManualSliderView extends View {
             int accent = secondary ? secondaryColor : primaryColor;
             selectedPaint.setColor(accent);
             indicatorPaint.setColor(accent);
+            gainPaint.setColor(accent);
             invalidate();
         }
     }
@@ -339,6 +354,24 @@ public class ManualSliderView extends View {
             canvas.drawText(item.label, x, isSelected ? selectedBaseline : unselectedBaseline, paint);
             paint.setAlpha(prevAlpha);
         }
+
+        // Coarse-gain readout while lifted: mirrors the old wheel's
+        // toward-center speedup for a controlled whole-range sweep.
+        if (currentGain >= 1.5f) {
+            int prevAlpha = gainPaint.getAlpha();
+            gainPaint.setAlpha(255);
+            canvas.drawText(formatGain(currentGain), centerX,
+                    gainPaint.getTextSize() + 4f * getResources().getDisplayMetrics().density,
+                    gainPaint);
+            gainPaint.setAlpha(prevAlpha);
+        }
+    }
+
+    private static String formatGain(float gain) {
+        if (gain < 2.5f) {
+            return String.format(java.util.Locale.US, "×%.1f", gain);
+        }
+        return "×" + Math.round(gain);
     }
 
     @Override
@@ -358,17 +391,25 @@ public class ManualSliderView extends View {
                 }
                 lastTouchX = event.getX();
                 downX = event.getX();
+                downY = event.getY();
                 isDragging = false;
+                setGain(1f);
                 getParent().requestDisallowInterceptTouchEvent(true);
                 return true;
             case MotionEvent.ACTION_MOVE: {
                 float x = event.getX();
                 float dx = lastTouchX - x;
-                if (!isDragging && Math.abs(x - downX) > touchSlop) {
+                // Lift-to-go-coarse, the slider analog of the old wheel's
+                // toward-center speedup: finger height above touch-down scales
+                // horizontal travel up to 8x for a controlled whole-range sweep.
+                setGain(SliderMath.gainForLift(downY - event.getY(), gainRampPx));
+                if (!isDragging && (Math.abs(x - downX) > touchSlop
+                        || currentGain >= 1.5f && Math.abs(downY - event.getY()) > touchSlop)) {
                     isDragging = true;
                 }
                 if (isDragging) {
-                    scrollPx = SliderMath.clampScroll(scrollPx + dx, items.size(), itemPitchPx);
+                    scrollPx = SliderMath.clampScroll(
+                            scrollPx + dx * currentGain, items.size(), itemPitchPx);
                     lastTouchX = x;
                     updateSelectionFromScroll();
                     invalidate();
@@ -380,6 +421,8 @@ public class ManualSliderView extends View {
                 float vx = velocityTracker.getXVelocity();
                 getParent().requestDisallowInterceptTouchEvent(false);
                 recycleTracker();
+                // Fling runs on raw velocity; gain only shapes the drag itself.
+                setGain(1f);
                 if (isDragging && Math.abs(vx) > minFlingVelocity) {
                     scroller.fling((int) scrollPx, 0, (int) -vx, 0,
                             0, (int) maxScroll(), 0, 0);
@@ -389,13 +432,16 @@ public class ManualSliderView extends View {
                     settleToNearest();
                 }
                 isDragging = false;
+                invalidate();
                 return true;
             }
             case MotionEvent.ACTION_CANCEL:
                 getParent().requestDisallowInterceptTouchEvent(false);
                 recycleTracker();
                 isDragging = false;
+                setGain(1f);
                 settleToNearest();
+                invalidate();
                 return true;
         }
         return super.onTouchEvent(event);
@@ -415,8 +461,15 @@ public class ManualSliderView extends View {
         }
     };
 
-    private void updateSelectionFromScroll() {
-        if (items.isEmpty()) {
+    private void setGain(float gain) {
+        float clamped = Math.max(1f, Math.min(SliderMath.MAX_GAIN, gain));
+        if (Math.abs(clamped - currentGain) > 0.01f) {
+            currentGain = clamped;
+            invalidate();
+        }
+    }
+
+    private void updateSelectionFromScroll() {        if (items.isEmpty()) {
             return;
         }
         int nearest = SliderMath.snapIndex(scrollPx, itemPitchPx, items.size());
