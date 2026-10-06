@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.circularbarlib.ui.views.slider;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 
@@ -47,5 +48,29 @@ public class SliderMathTest {
         assertEquals("4K", item.label);
         assertEquals(7, item.tick);
         assertEquals(4500.0, item.value, 0.0001);
+    }
+
+    @Test
+    public void liftGainRestsAtOne() {
+        assertEquals(1f, SliderMath.gainForLift(0f, 120f), 0.001f);
+        assertEquals(1f, SliderMath.gainForLift(-50f, 120f), 0.001f);
+        assertEquals(1f, SliderMath.gainForLift(60f, 0f), 0.001f);
+    }
+
+    @Test
+    public void liftGainCapsAtMax() {
+        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForLift(120f, 120f), 0.001f);
+        assertEquals(SliderMath.MAX_GAIN, SliderMath.gainForLift(500f, 120f), 0.001f);
+    }
+
+    @Test
+    public void liftGainRisesMonotonically() {
+        float quarter = SliderMath.gainForLift(30f, 120f);
+        float half = SliderMath.gainForLift(60f, 120f);
+        float threeQuarter = SliderMath.gainForLift(90f, 120f);
+        assertTrue(quarter > 1f && half > quarter && threeQuarter > half
+                && SliderMath.MAX_GAIN >= threeQuarter);
+        // Smoothstep midpoint lands halfway between 1x and max.
+        assertEquals(1f + (SliderMath.MAX_GAIN - 1f) / 2f, half, 0.001f);
     }
 }

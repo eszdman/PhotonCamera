@@ -8,6 +8,9 @@ public final class SliderMath {
     private SliderMath() {
     }
 
+    /** Coarsest lift gain: a whole-range sweep fits a short controlled drag. */
+    public static final float MAX_GAIN = 8f;
+
     public static float maxScroll(int itemCount, float pitchPx) {
         if (itemCount <= 1 || pitchPx <= 0f) {
             return 0f;
@@ -46,5 +49,19 @@ public final class SliderMath {
         }
         int clamped = Math.max(0, Math.min(index, itemCount - 1));
         return clamped * pitchPx;
+    }
+
+    /**
+     * Scrub gain from upward finger lift: 1x at/below touch-down, ramping to
+     * {@link #MAX_GAIN} at {@code rampPx} with a smoothstep onset, capped
+     * beyond. The slider analog of the old wheel's toward-center speedup.
+     */
+    public static float gainForLift(float liftPx, float rampPx) {
+        if (liftPx <= 0f || rampPx <= 0f) {
+            return 1f;
+        }
+        float t = Math.min(1f, liftPx / rampPx);
+        float smooth = t * t * (3f - 2f * t);
+        return 1f + (MAX_GAIN - 1f) * smooth;
     }
 }
