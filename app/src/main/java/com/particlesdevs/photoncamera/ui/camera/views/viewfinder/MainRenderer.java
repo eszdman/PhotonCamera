@@ -172,6 +172,30 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int uEdgeCornerRadius;
     private int uEdgeScrimColor;
     private int uEdgeScrimAlpha;
+    /** Blur-pass uniform locations, resolved once per program build. */
+    private int uOesViewSize;
+    private int uOesFboSize;
+    private int uOesOffsetPx;
+    private int uOesSharpOrigin;
+    private int uOesSharpSize;
+    private int uOesCos;
+    private int uOesSin;
+    private int uOesMirror;
+    private int u2dFboSize;
+    private int u2dOffsetPx;
+    private int u2dClampMin;
+    private int u2dClampMax;
+    private int uPanelViewSize;
+    private int uPanelSampleMin;
+    private int uPanelSampleMax;
+    private int uPanelCenter;
+    private int uPanelHalfSize;
+    private int uPanelAngle;
+    private int uPanelRadius;
+    private int uPanelAlpha;
+    private int uPanelPillTop;
+    private int uPanelDomeHeight;
+    private int uPanelShoulderRadius;
     /** Clamp rect for the separable blur passes, in FBO UV space. */
     private float mBlurClampMinX;
     private float mBlurClampMinY = 1f;
@@ -380,16 +404,14 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 Math.round(sharpWidth * fboScaleX), Math.round(sharpHeight * fboScaleY),
                 mBlurW, mBlurH);
         GLES20.glUseProgram(mBlurOesProgram);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlurOesProgram, "uViewSize"), mViewW, mViewH);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlurOesProgram, "uFboSize"), mBlurW, mBlurH);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlurOesProgram, "uOffsetPx"), blurRadius, 0f);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlurOesProgram, "uSharpOrigin"),
-                sharpLeft, sharpBottom);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlurOesProgram, "uSharpSize"),
-                sharpWidth, sharpHeight);
-        GLES20.glUniform1f(GLES20.glGetUniformLocation(mBlurOesProgram, "uCos"), mTexRotateMatrix[0]);
-        GLES20.glUniform1f(GLES20.glGetUniformLocation(mBlurOesProgram, "uSin"), mTexRotateMatrix[1]);
-        GLES20.glUniform1i(GLES20.glGetUniformLocation(mBlurOesProgram, "mirror"), mMirrorPreview ? 1 : 0);
+        GLES20.glUniform2f(uOesViewSize, mViewW, mViewH);
+        GLES20.glUniform2f(uOesFboSize, mBlurW, mBlurH);
+        GLES20.glUniform2f(uOesOffsetPx, blurRadius, 0f);
+        GLES20.glUniform2f(uOesSharpOrigin, sharpLeft, sharpBottom);
+        GLES20.glUniform2f(uOesSharpSize, sharpWidth, sharpHeight);
+        GLES20.glUniform1f(uOesCos, mTexRotateMatrix[0]);
+        GLES20.glUniform1f(uOesSin, mTexRotateMatrix[1]);
+        GLES20.glUniform1i(uOesMirror, mMirrorPreview ? 1 : 0);
         bindQuadAttributes(mBlurOesProgram);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex[0]);
@@ -420,21 +442,12 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glEnable(GLES20.GL_BLEND);
         GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
         GLES20.glUseProgram(mPanelBlurProgram);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mPanelBlurProgram, "uViewSize"), mViewW, mViewH);
+        GLES20.glUniform2f(uPanelViewSize, mViewW, mViewH);
         float viewW = Math.max(1f, mViewW);
         float viewH = Math.max(1f, mViewH);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mPanelBlurProgram, "uSampleMin"),
-                sharpLeft / viewW, sharpBottom / viewH);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mPanelBlurProgram, "uSampleMax"),
+        GLES20.glUniform2f(uPanelSampleMin, sharpLeft / viewW, sharpBottom / viewH);
+        GLES20.glUniform2f(uPanelSampleMax,
                 (sharpLeft + sharpWidth) / viewW, (sharpBottom + sharpHeight) / viewH);
-        int centerLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uCenter");
-        int halfSizeLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uHalfSize");
-        int angleLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAngle");
-        int radiusLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uRadius");
-        int alphaLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAlpha");
-        int pillTopLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uPillTop");
-        int domeHeightLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDomeHeight");
-        int shoulderLoc = GLES20.glGetUniformLocation(mPanelBlurProgram, "uShoulderRadius");
         bindQuadAttributes(mPanelBlurProgram);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mBlurTexB);
@@ -442,15 +455,15 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             if (!spec.enabled) {
                 continue;
             }
-            GLES20.glUniform2f(centerLoc, spec.centerX, mViewH - spec.centerY);
-            GLES20.glUniform2f(halfSizeLoc, spec.halfW, spec.halfH);
+            GLES20.glUniform2f(uPanelCenter, spec.centerX, mViewH - spec.centerY);
+            GLES20.glUniform2f(uPanelHalfSize, spec.halfW, spec.halfH);
             // Android rotates clockwise in y-down space; GL is y-up, so negate.
-            GLES20.glUniform1f(angleLoc, (float) Math.toRadians(-spec.angle));
-            GLES20.glUniform1f(radiusLoc, spec.cornerRadius);
-            GLES20.glUniform1f(alphaLoc, spec.alpha);
-            GLES20.glUniform1f(pillTopLoc, spec.pillTop);
-            GLES20.glUniform1f(domeHeightLoc, spec.domeHeight);
-            GLES20.glUniform1f(shoulderLoc, spec.shoulderRadius);
+            GLES20.glUniform1f(uPanelAngle, (float) Math.toRadians(-spec.angle));
+            GLES20.glUniform1f(uPanelRadius, spec.cornerRadius);
+            GLES20.glUniform1f(uPanelAlpha, spec.alpha);
+            GLES20.glUniform1f(uPanelPillTop, spec.pillTop);
+            GLES20.glUniform1f(uPanelDomeHeight, spec.domeHeight);
+            GLES20.glUniform1f(uPanelShoulderRadius, spec.shoulderRadius);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
         GLES20.glDisable(GLES20.GL_BLEND);
@@ -461,12 +474,10 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, fbo);
         setViewportClamped(0, 0, mBlurW, mBlurH, mBlurW, mBlurH);
         GLES20.glUseProgram(mBlur2dProgram);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlur2dProgram, "uFboSize"), mBlurW, mBlurH);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlur2dProgram, "uOffsetPx"), offsetX, offsetY);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlur2dProgram, "uClampMin"),
-                mBlurClampMinX, mBlurClampMinY);
-        GLES20.glUniform2f(GLES20.glGetUniformLocation(mBlur2dProgram, "uClampMax"),
-                mBlurClampMaxX, mBlurClampMaxY);
+        GLES20.glUniform2f(u2dFboSize, mBlurW, mBlurH);
+        GLES20.glUniform2f(u2dOffsetPx, offsetX, offsetY);
+        GLES20.glUniform2f(u2dClampMin, mBlurClampMinX, mBlurClampMinY);
+        GLES20.glUniform2f(u2dClampMax, mBlurClampMaxX, mBlurClampMaxY);
         bindQuadAttributes(mBlur2dProgram);
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
         GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, srcTexture);
@@ -565,12 +576,41 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             String vss_quad = loadAsset("shaders/preview/quad_vs.glsl");
             if (mBlurOesProgram == 0) {
                 mBlurOesProgram = loadShader(vss_quad, loadAsset("shaders/preview/blur_oes_fs.glsl"));
+                if (mBlurOesProgram != 0) {
+                    uOesViewSize = GLES20.glGetUniformLocation(mBlurOesProgram, "uViewSize");
+                    uOesFboSize = GLES20.glGetUniformLocation(mBlurOesProgram, "uFboSize");
+                    uOesOffsetPx = GLES20.glGetUniformLocation(mBlurOesProgram, "uOffsetPx");
+                    uOesSharpOrigin = GLES20.glGetUniformLocation(mBlurOesProgram, "uSharpOrigin");
+                    uOesSharpSize = GLES20.glGetUniformLocation(mBlurOesProgram, "uSharpSize");
+                    uOesCos = GLES20.glGetUniformLocation(mBlurOesProgram, "uCos");
+                    uOesSin = GLES20.glGetUniformLocation(mBlurOesProgram, "uSin");
+                    uOesMirror = GLES20.glGetUniformLocation(mBlurOesProgram, "mirror");
+                }
             }
             if (mBlur2dProgram == 0) {
                 mBlur2dProgram = loadShader(vss_quad, loadAsset("shaders/preview/blur2d_fs.glsl"));
+                if (mBlur2dProgram != 0) {
+                    u2dFboSize = GLES20.glGetUniformLocation(mBlur2dProgram, "uFboSize");
+                    u2dOffsetPx = GLES20.glGetUniformLocation(mBlur2dProgram, "uOffsetPx");
+                    u2dClampMin = GLES20.glGetUniformLocation(mBlur2dProgram, "uClampMin");
+                    u2dClampMax = GLES20.glGetUniformLocation(mBlur2dProgram, "uClampMax");
+                }
             }
             if (mPanelBlurProgram == 0) {
                 mPanelBlurProgram = loadShader(vss_quad, loadAsset("shaders/preview/panel_blur_fs.glsl"));
+                if (mPanelBlurProgram != 0) {
+                    uPanelViewSize = GLES20.glGetUniformLocation(mPanelBlurProgram, "uViewSize");
+                    uPanelSampleMin = GLES20.glGetUniformLocation(mPanelBlurProgram, "uSampleMin");
+                    uPanelSampleMax = GLES20.glGetUniformLocation(mPanelBlurProgram, "uSampleMax");
+                    uPanelCenter = GLES20.glGetUniformLocation(mPanelBlurProgram, "uCenter");
+                    uPanelHalfSize = GLES20.glGetUniformLocation(mPanelBlurProgram, "uHalfSize");
+                    uPanelAngle = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAngle");
+                    uPanelRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uRadius");
+                    uPanelAlpha = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAlpha");
+                    uPanelPillTop = GLES20.glGetUniformLocation(mPanelBlurProgram, "uPillTop");
+                    uPanelDomeHeight = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDomeHeight");
+                    uPanelShoulderRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uShoulderRadius");
+                }
             }
         }
 

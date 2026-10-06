@@ -3,7 +3,7 @@ package com.particlesdevs.photoncamera.gallery.ui.fragments;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Bitmap;
-import android.graphics.Canvas;
+import android.graphics.Matrix;
 import android.graphics.PointF;
 import android.graphics.RenderEffect;
 import android.graphics.RuntimeShader;
@@ -13,13 +13,11 @@ import android.os.Bundle;
 import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
-import android.os.SystemClock;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
-import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -50,6 +48,7 @@ import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
 import com.particlesdevs.photoncamera.gallery.views.CustomSSIV;
+import com.particlesdevs.photoncamera.gallery.views.ExifBackdropView;
 import com.particlesdevs.photoncamera.processing.ImagePath;
 import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 
@@ -72,12 +71,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private boolean isExifVisible;
     /** Blur radius applied to the EXIF panel backdrop, in dp. */
     private static final float EXIF_BLUR_RADIUS_DP = 32f;
-    /** Downscale of the captured backdrop bitmap (keeps both capture and software blur cheap). */
-    private static final float EXIF_BLUR_CAPTURE_SCALE = 4f;
-    /** 40% dark scrim baked into the backdrop for text legibility. */
+    /** 40% dark scrim blended into the backdrop for text legibility. */
     private static final int EXIF_BLUR_SCRIM = 0x66121417;
-    /** Minimum interval between backdrop refreshes while panning/zooming. */
-    private static final long EXIF_BLUR_THROTTLE_MS = 80L;
+    /** Retry cadence while the page's preview bitmap is still decoding. */
+    private static final long EXIF_BLUR_RETRY_MS = 120L;
+    private static final int EXIF_BLUR_MAX_RETRIES = 10;
+    private static final long EXIF_BLUR_REANCHOR_MS = 800L;
     /**
      * Rounded-corner mask applied *after* the GPU blur. Only RenderEffect chains
      * can mask after a blur without smearing the content back into the corners.
@@ -86,25 +85,43 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             "uniform shader content;\n" +
             "uniform float2 size;\n" +
             "uniform float radius;\n" +
+            "uniform half4 scrim;\n" +
             "half4 main(float2 coord) {\n" +
             "    float2 halfSize = size * 0.5;\n" +
             "    float2 d = abs(coord - halfSize) - max(halfSize - radius, float2(0.0));\n" +
             "    float dist = length(max(d, float2(0.0))) + min(max(d.x, d.y), 0.0) - radius;\n" +
             "    float mask = 1.0 - smoothstep(-1.0, 1.0, dist);\n" +
             "    half4 c = content.eval(coord);\n" +
-            "    return half4(c.rgb * mask, c.a * mask);\n" +
+            "    half3 frosted = mix(c.rgb, scrim.rgb, scrim.a);\n" +
+            "    return half4(frosted * mask, mask);\n" +
             "}\n";
 
-    private final Bitmap[] exifBlurBuffers = new Bitmap[2];
-    private int exifBlurBufferIndex;
-    private int exifBlurLayoutRetries;
     private RuntimeShader exifMaskShader;
     private RenderEffect exifBackdropEffect;
     private int exifEffectWidth;
     private int exifEffectHeight;
-    private long exifBlurLastCaptureMs;
+    /** True once the transparent panel background has replaced the opening scrim. */
+    private boolean exifBackdropShown;
+    /** Retries while the page's preview bitmap is still decoding. */
+    private int exifBlurRetries;
     private final Handler exifBlurHandler = new Handler(Looper.getMainLooper());
-    private final Runnable exifBlurCaptureRunnable = this::captureExifBlur;
+    private final Runnable exifBlurShowRunnable = this::showExifBackdrop;
+    private final Runnable exifBlurSettleRunnable = this::reanchorExifBackdrop;
+    /** Tracking state: the SSIV whose pan/zoom the backdrop follows. */
+    private CustomSSIV exifTrackSsiv;
+    private final PointF exifTrackAnchorSrc = new PointF();
+    private final PointF exifTrackAnchorView = new PointF();
+    private final PointF exifTrackPivot = new PointF();
+    private float exifTrackBaseScale = 1f;
+    /** Base placement matrix (panel-local). */
+    private final Matrix exifBaseMatrix = new Matrix();
+    private final Matrix exifWorkMatrix = new Matrix();
+    private float exifBackdropBmpW;
+    private float exifBackdropBmpH;
+    private int exifPanelW;
+    private int exifPanelH;
+    private final int[] exifPanelLocation = new int[2];
+    private final int[] exifSsivLocation = new int[2];
     private String mode;
     private int seek_position = 0;
     private int lastHdrPosition = -1;
@@ -121,10 +138,10 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                     viewPager.setUserInputEnabled(true);
                 }
             }
-            scheduleExifBlurRefresh();
+            updateExifBackdropTransform();
         }
         @Override public void onCenterChanged(PointF newCenter, int origin) {
-            scheduleExifBlurRefresh();
+            updateExifBackdropTransform();
         }
         @Override public void onTouched(int id) {}
     };
@@ -176,7 +193,8 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null) {
             viewPager.removeCallbacks(exifUpdateRunnable);
         }
-        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
+        exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
+        exifBlurHandler.removeCallbacks(exifBlurSettleRunnable);
         clearExifBlur();
     }
 
@@ -198,6 +216,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         fragmentGalleryImageViewerBinding.exifLayout.setExifmodel(exifDialogViewModel.getExifDataModel());
         fragmentGalleryImageViewerBinding.setExifmodel(exifDialogViewModel.getExifDataModel());
         navController = NavHostFragment.findNavController(this);
+        // The panel is wrap_content: the EXIF text and histogram bind
+        // asynchronously and resize it after the panel is shown. Re-fit the
+        // backdrop whenever the panel settles at a new size so the rounded
+        // mask matches the final geometry.
+        fragmentGalleryImageViewerBinding.exifLayout.getRoot().addOnLayoutChangeListener(
+                (v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+                    if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                        scheduleExifBlurShow();
+                    }
+                });
         viewModel.getCurrentFolderImages().observe(getViewLifecycleOwner(),this::initImageAdapter);
     }
 
@@ -214,7 +242,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             adapter.setImageEventListener(new SubsamplingScaleImageView.DefaultOnImageEventListener() {
                 @Override public void onReady() {
                     updateScaleText();
-                    scheduleExifBlurRefresh();
+                    // The image just became ready: (re)anchor the backdrop tracking
+                    // if it was set up before the SSIV could map coordinates.
+                    scheduleExifBlurShow();
                 }
             });
             viewPager.setAdapter(adapter);
@@ -577,9 +607,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     /**
-     * Shows, refreshes or clears the frosted-glass backdrop behind the EXIF
-     * panel. Only the region behind the panel is captured and blurred; the
-     * backdrop is clipped to the panel's rounded corners.
+     * Shows, refits or clears the frosted-glass backdrop behind the EXIF
+     * panel. The current page's preview bitmap is shown blurred (GPU
+     * RenderEffect), clipped to the panel's rounded corners.
      */
     private void syncExifBlur() {
         if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
@@ -594,7 +624,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         // Show the scrim right away: the first blurred frame lands a few ms later
         // and the opaque panel must not flash in between.
         if (fragmentGalleryImageViewerBinding.exifLayout != null) {
-            ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+            ExifBackdropView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
             if (backdrop == null || backdrop.getVisibility() != View.VISIBLE) {
                 View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
                 if (panel != null) {
@@ -602,95 +632,261 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 }
             }
         }
-        scheduleExifBlurRefresh();
+        scheduleExifBlurShow();
     }
 
-    /** Throttled backdrop refresh, used while the image is panned or zoomed. */
-    private void scheduleExifBlurRefresh() {
+    /** Shows the backdrop as soon as possible: panel opened, page changed or panel resized. */
+    private void scheduleExifBlurShow() {
         if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
             return;
         }
         if (!Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
             return;
         }
-        exifBlurLayoutRetries = 0;
-        long elapsed = SystemClock.uptimeMillis() - exifBlurLastCaptureMs;
-        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
-        if (elapsed >= EXIF_BLUR_THROTTLE_MS) {
-            exifBlurHandler.post(exifBlurCaptureRunnable);
-        } else {
-            exifBlurHandler.postDelayed(exifBlurCaptureRunnable, EXIF_BLUR_THROTTLE_MS - elapsed);
-        }
+        exifBlurRetries = 0;
+        exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
+        exifBlurHandler.post(exifBlurShowRunnable);
     }
 
     /**
-     * Captures the visible part of the current page that sits behind the panel,
-     * bakes in the 40% scrim and shows it blurred as the panel background.
+     * Puts the current page's preview bitmap behind the panel as frosted
+     * glass. The small preview the gallery already keeps cached is blurred
+     * entirely on the GPU (RenderEffect) — there is no view capture, nothing
+     * tracks pan/zoom, and the bitmap is simply reused for the whole page.
      */
-    private void captureExifBlur() {
+    private void showExifBackdrop() {
         if (!isAdded() || fragmentGalleryImageViewerBinding == null) {
             return;
         }
-        exifBlurLastCaptureMs = SystemClock.uptimeMillis();
         if (!Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
             return;
         }
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
             return;
         }
-        CustomSSIV ssiv = getCurrentSSIV();
         View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
-        ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
-        if (ssiv == null || !ssiv.isReady() || panel == null || backdrop == null) {
+        ExifBackdropView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+        if (panel == null || backdrop == null) {
             return;
         }
-        int panelWidth = panel.getWidth();
-        int panelHeight = panel.getHeight();
-        if (panelWidth <= 0 || panelHeight <= 0) {
-            // The panel is shown but not laid out yet: retry briefly on the next frames.
-            if (exifBlurLayoutRetries++ < 10) {
-                exifBlurHandler.postDelayed(exifBlurCaptureRunnable, 32L);
+        Bitmap preview = adapter != null && viewPager != null
+                ? adapter.getPreviewBitmap(viewPager.getCurrentItem()) : null;
+        if (panel.getWidth() <= 0 || panel.getHeight() <= 0
+                || preview == null || preview.isRecycled()) {
+            // Panel not laid out yet or the preview is still decoding: nudge the
+            // decode and retry briefly.
+            if (adapter != null && viewPager != null && preview == null) {
+                adapter.requestPreview(viewPager.getCurrentItem());
+            }
+            if (exifBlurRetries++ < EXIF_BLUR_MAX_RETRIES) {
+                exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
+                exifBlurHandler.postDelayed(exifBlurShowRunnable, EXIF_BLUR_RETRY_MS);
             }
             return;
         }
-        exifBlurLayoutRetries = 0;
-        int bitmapWidth = Math.max(1, Math.round(panelWidth / EXIF_BLUR_CAPTURE_SCALE));
-        int bitmapHeight = Math.max(1, Math.round(panelHeight / EXIF_BLUR_CAPTURE_SCALE));
-        // Ping-pong two buffers: the one currently shown is never written to,
-        // so no draw can ever reference pixels we are modifying.
-        int nextIndex = 1 - exifBlurBufferIndex;
-        Bitmap capture = exifBlurBuffers[nextIndex];
-        if (capture == null || capture.isRecycled()
-                || capture.getWidth() != bitmapWidth || capture.getHeight() != bitmapHeight) {
-            try {
-                capture = Bitmap.createBitmap(bitmapWidth, bitmapHeight, Bitmap.Config.ARGB_8888);
-            } catch (OutOfMemoryError e) {
-                return;
-            }
-            exifBlurBuffers[nextIndex] = capture;
-        }
-        int[] panelLocation = new int[2];
-        int[] ssivLocation = new int[2];
-        panel.getLocationOnScreen(panelLocation);
-        ssiv.getLocationOnScreen(ssivLocation);
-        Canvas canvas = new Canvas(capture);
-        canvas.scale(1f / EXIF_BLUR_CAPTURE_SCALE, 1f / EXIF_BLUR_CAPTURE_SCALE);
-        canvas.translate(ssivLocation[0] - panelLocation[0], ssivLocation[1] - panelLocation[1]);
-        ssiv.draw(canvas);
-        // Only the scrim is baked here; the blur and rounded mask are applied by
-        // the RenderEffect chain so corners stay crisp.
-        canvas.drawColor(EXIF_BLUR_SCRIM);
-        if (!prepareExifBackdropEffect(panelWidth, panelHeight)) {
+        exifBlurRetries = 0;
+        if (!prepareExifBackdropEffect(panel.getWidth(), panel.getHeight())) {
             return;
         }
+        panel.getLocationOnScreen(exifPanelLocation);
+        setupExifBackdropTracking(preview, panel);
+        exifWorkMatrix.set(exifBaseMatrix);
         // Apply the effect before showing the bitmap so the first visible frame
         // is already blurred (no sharp flash).
         backdrop.setRenderEffect(exifBackdropEffect);
-        backdrop.setImageBitmap(capture);
+        backdrop.setBackdropBitmap(preview);
+        backdrop.setBackdropMatrix(exifBaseMatrix);
         backdrop.setVisibility(View.VISIBLE);
-        // Keep a rounded (transparent) background so the panel outline stays round.
-        panel.setBackgroundResource(R.drawable.exif_background_transparent);
-        exifBlurBufferIndex = nextIndex;
+        if (!exifBackdropShown) {
+            // Keep a rounded (transparent) background so the panel outline stays round.
+            panel.setBackgroundResource(R.drawable.exif_background_transparent);
+            exifBackdropShown = true;
+        }
+    }
+
+    /**
+     * Places the backdrop so its content matches the image currently behind
+     * the panel EXACTLY: the base matrix is solved from the SSIV's live
+     * coordinate mapping (orientation, zoom and pan included) at 1:1 scale —
+     * no crop, no shrink, nothing offset. Areas of the panel beyond the image
+     * fill from the bitmap's clamped edges (the letterbox bands they cover).
+     * Falls back to a plain center-crop when the SSIV cannot map yet. Always
+     * re-anchors gesture tracking afterwards.
+     */
+    private void setupExifBackdropTracking(Bitmap preview, View panel) {
+        int panelW = panel.getWidth();
+        int panelH = panel.getHeight();
+        exifBackdropBmpW = preview.getWidth();
+        exifBackdropBmpH = preview.getHeight();
+        exifPanelW = panelW;
+        exifPanelH = panelH;
+        exifTrackPivot.set(panelW * 0.5f, panelH * 0.5f);
+        panel.getLocationOnScreen(exifPanelLocation);
+        CustomSSIV ssiv = getCurrentSSIV();
+        boolean mapped = false;
+        if (ssiv != null && ssiv.isReady() && ssiv.getSWidth() > 0 && ssiv.getSHeight() > 0
+                && viewPager != null) {
+            // Page origin from the ViewPager, never from the SSIV: during a
+            // swipe the page (SSIV included) is transiently translated inside
+            // the pager, so the SSIV's own screen location would bake the
+            // swipe offset into the solved mapping. The pager itself is fixed.
+            viewPager.getLocationOnScreen(exifSsivLocation);
+            mapped = buildMappedBaseMatrix(ssiv,
+                    exifPanelLocation[0] - exifSsivLocation[0],
+                    exifPanelLocation[1] - exifSsivLocation[1]);
+        }
+        if (!mapped) {
+            float cover = Math.max(panelW / exifBackdropBmpW, panelH / exifBackdropBmpH);
+            exifBaseMatrix.reset();
+            exifBaseMatrix.postScale(cover, cover);
+            exifBaseMatrix.postTranslate((panelW - exifBackdropBmpW * cover) * 0.5f,
+                    (panelH - exifBackdropBmpH * cover) * 0.5f);
+        }
+        anchorExifBackdropTracking();
+    }
+
+    /**
+     * Solves the preview-bitmap → panel-local affine from three corner
+     * correspondences of the SSIV's live mapping. The upright image corners
+     * are identified numerically from the mapped source corners (the mapping
+     * only rotates in 90° steps), so every EXIF orientation is handled.
+     */
+    private boolean buildMappedBaseMatrix(CustomSSIV ssiv, float panelOffX, float panelOffY) {
+        float srcW = ssiv.getSWidth();
+        float srcH = ssiv.getSHeight();
+        PointF v00 = ssiv.sourceToViewCoord(0, 0);
+        PointF v10 = ssiv.sourceToViewCoord(srcW, 0);
+        PointF v01 = ssiv.sourceToViewCoord(0, srcH);
+        PointF v11 = ssiv.sourceToViewCoord(srcW, srcH);
+        if (v00 == null || v10 == null || v01 == null || v11 == null) {
+            return false;
+        }
+        // Upright corners by their extremes in view space.
+        PointF tl = extremalCorner(v00, v10, v01, v11, 1f, 1f);   // min x+y
+        PointF tr = extremalCorner(v00, v10, v01, v11, -1f, 1f);  // min y-x
+        PointF bl = extremalCorner(v00, v10, v01, v11, 1f, -1f);  // min x-y
+        if (tl == tr || tl == bl || tr == bl) {
+            return false;
+        }
+        // Preview corners (0,0), (bmpW,0), (0,bmpH) -> panel-local positions.
+        float qtlX = tl.x - panelOffX, qtlY = tl.y - panelOffY;
+        float f1X = (tr.x - panelOffX) - qtlX, f1Y = (tr.y - panelOffY) - qtlY;
+        float f2X = (bl.x - panelOffX) - qtlX, f2Y = (bl.y - panelOffY) - qtlY;
+        if (exifBackdropBmpW <= 0f || exifBackdropBmpH <= 0f) {
+            return false;
+        }
+        exifBaseMatrix.setValues(new float[]{
+                f1X / exifBackdropBmpW, f2X / exifBackdropBmpH, qtlX,
+                f1Y / exifBackdropBmpW, f2Y / exifBackdropBmpH, qtlY,
+                0f, 0f, 1f});
+        return true;
+    }
+
+    /** The corner minimizing {@code sx*x + sy*y}. */
+    private static PointF extremalCorner(PointF a, PointF b, PointF c, PointF d, float sx, float sy) {
+        PointF best = a;
+        float bestKey = a.x * sx + a.y * sy;
+        for (PointF p : new PointF[]{b, c, d}) {
+            float key = p.x * sx + p.y * sy;
+            if (key < bestKey) {
+                best = p;
+                bestKey = key;
+            }
+        }
+        return best;
+    }
+
+    /**
+     * Records the content anchor the tracking follows: the source coordinate
+     * currently at the panel's centre. Returns true when tracking is live
+     * (a ready SSIV could map the coordinates).
+     */
+    private boolean anchorExifBackdropTracking() {
+        exifTrackSsiv = null;
+        if (fragmentGalleryImageViewerBinding == null || exifPanelW <= 0) {
+            return false;
+        }
+        View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+        CustomSSIV ssiv = getCurrentSSIV();
+        if (panel == null || ssiv == null || !ssiv.isReady() || viewPager == null) {
+            return false;
+        }
+        panel.getLocationOnScreen(exifPanelLocation);
+        // Pager origin, not the SSIV's (see setupExifBackdropTracking): stable
+        // even while the page is mid-swipe.
+        viewPager.getLocationOnScreen(exifSsivLocation);
+        float cx = exifPanelLocation[0] + exifPanelW * 0.5f - exifSsivLocation[0];
+        float cy = exifPanelLocation[1] + exifPanelH * 0.5f - exifSsivLocation[1];
+        PointF src = ssiv.viewToSourceCoord(cx, cy);
+        if (src == null) {
+            return false;
+        }
+        exifTrackSsiv = ssiv;
+        exifTrackAnchorSrc.set(src.x, src.y);
+        exifTrackAnchorView.set(cx, cy);
+        exifTrackBaseScale = ssiv.getScale() > 0f ? ssiv.getScale() : 1f;
+        return true;
+    }
+
+    /**
+     * Moves the frozen backdrop with the gesture: the already-blurred preview
+     * bitmap is transformed, never recaptured — under the 32dp blur this is
+     * indistinguishable from blurring the live view. Pan slides the bitmap
+     * along the SSIV's live coordinate mapping; zoom scales it by the same
+     * ratio around the anchor. Pans that run past the bitmap's bounds fill
+     * from its clamped edges (invisible under the blur) until the settle
+     * re-anchor re-centres the true mapping.
+     */
+    private void updateExifBackdropTransform() {
+        if (exifTrackSsiv == null || fragmentGalleryImageViewerBinding == null
+                || exifBackdropBmpW <= 0f) {
+            return;
+        }
+        if (!Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
+            return;
+        }
+        ExifBackdropView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+        if (backdrop == null || backdrop.getVisibility() != View.VISIBLE || !exifTrackSsiv.isReady()) {
+            return;
+        }
+        PointF now = exifTrackSsiv.sourceToViewCoord(exifTrackAnchorSrc.x, exifTrackAnchorSrc.y);
+        if (now == null) {
+            return;
+        }
+        // The zoom ratio is tracked unclamped: the SSIV's own scale bounds
+        // (minScale..2 absolute) are the only zoom limits, and clamping here
+        // would descale the backdrop while the pan delta keeps tracking —
+        // visible as drift at deep zoom on high-megapixel images.
+        float ratio = exifTrackSsiv.getScale() / exifTrackBaseScale;
+        if (!(ratio > 0f) || !Float.isFinite(ratio)) {
+            return;
+        }
+        float dx = now.x - exifTrackAnchorView.x;
+        float dy = now.y - exifTrackAnchorView.y;
+        exifWorkMatrix.set(exifBaseMatrix);
+        exifWorkMatrix.postScale(ratio, ratio, exifTrackPivot.x, exifTrackPivot.y);
+        exifWorkMatrix.postTranslate(dx, dy);
+        backdrop.setBackdropMatrix(exifWorkMatrix);
+        exifBlurHandler.removeCallbacks(exifBlurSettleRunnable);
+        exifBlurHandler.postDelayed(exifBlurSettleRunnable, EXIF_BLUR_REANCHOR_MS);
+    }
+
+    /**
+     * Settle, {@link #EXIF_BLUR_REANCHOR_MS} after the last gesture event:
+     * bakes the tracked transform into the base (so nothing pops) and resets
+     * the anchor to the current framing.
+     */
+    private void reanchorExifBackdrop() {
+        if (fragmentGalleryImageViewerBinding == null
+                || !Boolean.TRUE.equals(fragmentGalleryImageViewerBinding.getExifDialogVisible())) {
+            return;
+        }
+        ExifBackdropView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+        if (backdrop == null || backdrop.getVisibility() != View.VISIBLE || exifBackdropBmpW <= 0f) {
+            return;
+        }
+        exifBaseMatrix.set(exifWorkMatrix);
+        anchorExifBackdropTracking();
     }
 
     /**
@@ -708,6 +904,11 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             exifMaskShader.setFloatUniform("size", width, height);
             exifMaskShader.setFloatUniform("radius",
                     getResources().getDimension(R.dimen.cam_panel_corner_radius));
+            exifMaskShader.setFloatUniform("scrim",
+                    ((EXIF_BLUR_SCRIM >> 16) & 0xFF) / 255f,
+                    ((EXIF_BLUR_SCRIM >> 8) & 0xFF) / 255f,
+                    (EXIF_BLUR_SCRIM & 0xFF) / 255f,
+                    ((EXIF_BLUR_SCRIM >>> 24) & 0xFF) / 255f);
             float blurRadius = BlurSupport.dpToPx(requireContext(), EXIF_BLUR_RADIUS_DP);
             RenderEffect mask = RenderEffect.createRuntimeShaderEffect(exifMaskShader, "content");
             RenderEffect blur = RenderEffect.createBlurEffect(blurRadius, blurRadius, Shader.TileMode.CLAMP);
@@ -719,12 +920,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void clearExifBlur() {
-        exifBlurHandler.removeCallbacks(exifBlurCaptureRunnable);
+        exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
+        exifBlurHandler.removeCallbacks(exifBlurSettleRunnable);
+        exifTrackSsiv = null;
+        exifBackdropBmpW = 0f;
+        exifBackdropBmpH = 0f;
         if (fragmentGalleryImageViewerBinding != null && fragmentGalleryImageViewerBinding.exifLayout != null) {
-            ImageView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
+            ExifBackdropView backdrop = fragmentGalleryImageViewerBinding.exifLayout.exifBlurBackdrop;
             if (backdrop != null) {
                 backdrop.setVisibility(View.GONE);
-                backdrop.setImageBitmap(null);
+                backdrop.setBackdropBitmap(null);
                 BlurSupport.clearBlur(backdrop);
             }
             View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
@@ -732,14 +937,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 panel.setBackgroundResource(R.drawable.exif_background);
             }
         }
-        for (int i = 0; i < exifBlurBuffers.length; i++) {
-            Bitmap buffer = exifBlurBuffers[i];
-            if (buffer != null && !buffer.isRecycled()) {
-                buffer.recycle();
-            }
-            exifBlurBuffers[i] = null;
-        }
-        exifBlurBufferIndex = 0;
+        exifBackdropShown = false;
     }
 
     private void isHistogramLoading(boolean loading) {

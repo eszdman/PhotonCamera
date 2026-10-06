@@ -405,6 +405,26 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     }
 
     /**
+     * Best available small bitmap for a position — the tiled-page preview, or
+     * the cached DNG viewport bitmap. Used by the EXIF frosted-glass backdrop,
+     * which blurs it entirely on the GPU.
+     */
+    @Nullable
+    public Bitmap getPreviewBitmap(int position) {
+        if (!inBounds(position)) return null;
+        Bitmap preview = previewCache.get(position);
+        if (preview != null && !preview.isRecycled()) return preview;
+        Bitmap dng = dngBitmapCache.get(position);
+        if (dng != null && !dng.isRecycled()) return dng;
+        return null;
+    }
+
+    /** Kicks off the background preview decode for a position if it is not cached yet. */
+    public void requestPreview(int position) {
+        ensurePreview(position);
+    }
+
+    /**
      * Sets the tiled image for a position, passing a small preview + native dimensions (if cached) so
      * SSIV paints the preview immediately instead of black while the base tiles decode.
      */

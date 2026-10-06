@@ -16,16 +16,16 @@
         android:layout_height="wrap_content"
         android:background="@drawable/exif_background">
 
-    <!-- Frosted-glass backdrop: a blurred capture of the photo behind the panel,
-         spanning the full rounded panel. The blur, scrim and rounded corners are
-         all baked into the bitmap. -->
-    <ImageView
+    <!-- Frosted-glass backdrop: the page's preview bitmap, blurred and rounded
+         on the GPU by a RenderEffect chain (API 33+). The custom view fills its
+         whole bounds through a CLAMP bitmap shader, so pans that run past the
+         bitmap continue its edge pixels instead of exposing a dark bar. -->
+    <com.particlesdevs.photoncamera.gallery.views.ExifBackdropView
             android:id="@+id/exif_blur_backdrop"
             android:layout_width="0dp"
             android:layout_height="0dp"
             android:contentDescription="@null"
             android:importantForAccessibility="no"
-            android:scaleType="fitXY"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
