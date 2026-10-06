@@ -99,6 +99,8 @@ public class Binding {
                                         ManualModel<?> primaryModel,
                                         ManualModel<?> secondaryModel) {
         if (primary != null) {
+            // Lower row always carries the primary selection color.
+            primary.setSecondary(false);
             if (primaryModel != null && primaryModel.getSliderItems() != null
                     && !primaryModel.getSliderItems().isEmpty()) {
                 primary.setItems(primaryModel.getSliderItems());
@@ -115,6 +117,9 @@ public class Binding {
             }
         }
         if (secondary != null) {
+            // Upper (remembered) row always carries the secondary selection
+            // color, matching the bar's remembered-cell ring.
+            secondary.setSecondary(true);
             if (secondaryModel != null && secondaryModel.getSliderItems() != null
                     && secondaryModel.getSliderItems().size() > 1) {
                 secondary.setItems(secondaryModel.getSliderItems());
