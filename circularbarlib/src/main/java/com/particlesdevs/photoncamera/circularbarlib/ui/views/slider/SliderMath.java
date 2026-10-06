@@ -52,15 +52,15 @@ public final class SliderMath {
     }
 
     /**
-     * Scrub gain from upward finger lift: 1x at/below touch-down, ramping to
-     * {@link #MAX_GAIN} at {@code rampPx} with a smoothstep onset, capped
+     * Scrub gain from downward finger press: 1x at/above touch-down, ramping
+     * to {@link #MAX_GAIN} at {@code rampPx} with a smoothstep onset, capped
      * beyond. The slider analog of the old wheel's toward-center speedup.
      */
-    public static float gainForLift(float liftPx, float rampPx) {
-        if (liftPx <= 0f || rampPx <= 0f) {
+    public static float gainForPress(float pressPx, float rampPx) {
+        if (pressPx <= 0f || rampPx <= 0f) {
             return 1f;
         }
-        float t = Math.min(1f, liftPx / rampPx);
+        float t = Math.min(1f, pressPx / rampPx);
         float smooth = t * t * (3f - 2f * t);
         return 1f + (MAX_GAIN - 1f) * smooth;
     }

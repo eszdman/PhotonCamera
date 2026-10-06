@@ -90,8 +90,9 @@ public class ManualSliderView extends View {
         tickWidthPx = 2f * density;
         tickHeightPx = 12f * density;
         gainTextSize = 12f * density;
-        // Full coarse gain reached by lifting this far above the touch-down
-        // point; keeps a whole-range sweep inside a short controlled drag.
+        // Full coarse gain reached by pressing this far below the touch-down
+        // point toward the option bar; keeps a whole-range sweep inside a
+        // short controlled drag.
         gainRampPx = 120f * density;
 
         int selectedColor = resolveThemeColor(android.R.attr.colorControlActivated, 0xFFFFFFFF);
@@ -355,7 +356,7 @@ public class ManualSliderView extends View {
             paint.setAlpha(prevAlpha);
         }
 
-        // Coarse-gain readout while lifted: mirrors the old wheel's
+        // Coarse-gain readout while pressed: mirrors the old wheel's
         // toward-center speedup for a controlled whole-range sweep.
         if (currentGain >= 1.5f) {
             int prevAlpha = gainPaint.getAlpha();
@@ -399,10 +400,11 @@ public class ManualSliderView extends View {
             case MotionEvent.ACTION_MOVE: {
                 float x = event.getX();
                 float dx = lastTouchX - x;
-                // Lift-to-go-coarse, the slider analog of the old wheel's
-                // toward-center speedup: finger height above touch-down scales
-                // horizontal travel up to 8x for a controlled whole-range sweep.
-                setGain(SliderMath.gainForLift(downY - event.getY(), gainRampPx));
+                // Press-to-go-coarse, the slider analog of the old wheel's
+                // toward-center speedup: finger depth below touch-down toward
+                // the option bar scales horizontal travel up to 8x for a
+                // controlled whole-range sweep.
+                setGain(SliderMath.gainForPress(event.getY() - downY, gainRampPx));
                 if (!isDragging && (Math.abs(x - downX) > touchSlop
                         || currentGain >= 1.5f && Math.abs(downY - event.getY()) > touchSlop)) {
                     isDragging = true;
