@@ -488,13 +488,21 @@ public final class StillHeicEncoder {
             throw new UnsupportedOperationException("Encoder input image has "
                     + planes.length + " planes");
         }
-        Allocator.rgbaToYuv420Tile(rgba, width, height, 0, 0, width, height,
-                planes[0].getBuffer(), planes[0].getRowStride(),
-                planes[0].getPixelStride(),
-                planes[1].getBuffer(), planes[1].getRowStride(),
-                planes[1].getPixelStride(),
-                planes[2].getBuffer(), planes[2].getRowStride(),
-                planes[2].getPixelStride());
+        // Banded conversion: same bytes as a single full-frame call, but the
+        // native loop stays cache-resident (512-row bands) instead of
+        // streaming one 100MP+ frame in a single JNI pass. Lowers transient
+        // pressure ahead of LMK without changing output.
+        final int kBandRows = 512;
+        for (int y = 0; y < height; y += kBandRows) {
+            int rows = Math.min(kBandRows, height - y);
+            Allocator.rgbaToYuv420Tile(rgba, width, height, 0, y, width, rows,
+                    planes[0].getBuffer(), planes[0].getRowStride(),
+                    planes[0].getPixelStride(),
+                    planes[1].getBuffer(), planes[1].getRowStride(),
+                    planes[1].getPixelStride(),
+                    planes[2].getBuffer(), planes[2].getRowStride(),
+                    planes[2].getPixelStride());
+        }
         ByteBuffer in = codec.getInputBuffer(inIndex);
         int size = in != null ? in.capacity() : (int) ((long) width * height * 3 / 2);
         codec.queueInputBuffer(inIndex, 0, size, PRESENTATION_TIME_US, flags);
@@ -599,6 +607,9 @@ public final class StillHeicEncoder {
         try {
             byte[] muxed = Files.readAllBytes(dest);
             byte[] tagged = UltraHdrHeicContainer.injectExif(muxed, exifPayload);
+            // Release the pre-injection image before verify/write so only one
+            // full file copy is live at a time.
+            muxed = null;
             int[] size = UltraHdrHeicContainer.primarySize(tagged);
             if (size[0] != width || size[1] != height) {
                 throw new IllegalStateException("Metadata-injected HEIC dimensions "

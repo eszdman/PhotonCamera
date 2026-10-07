@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
 import android.graphics.Point;
+import android.opengl.EGLContext;
 import android.opengl.GLES30;
 import android.opengl.GLUtils;
 
@@ -87,6 +88,13 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         allocation = alloc;
         mOut = out;
     }
+    /** As the four-arg form, but in {@code shareWith}'s EGL group: textures
+     *  created here are visible to every context that shares the group. */
+    public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat, GLDrawParams.Allocate alloc, EGLContext shareWith) {
+        this(size, glFormat, alloc, shareWith);
+        allocation = alloc;
+        mOut = out;
+    }
     public GLCoreBlockProcessing(Point size, GLImage out, GLFormat glFormat) {
         this(size, glFormat, GLDrawParams.Allocate.Direct);
         mOut = out;
@@ -95,7 +103,10 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         this(size,glFormat, GLDrawParams.Allocate.Direct);
     }
     public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc) {
-        super(size.x, GLDrawParams.TileSize);
+        this(size, glFormat, alloc, null);
+    }
+    public GLCoreBlockProcessing(Point size, GLFormat glFormat, GLDrawParams.Allocate alloc, EGLContext shareWith) {
+        super(size.x, GLDrawParams.TileSize, shareWith);
         mTileSize = GLDrawParams.TileSize;
         allocation = alloc;
         mglFormat = glFormat;
@@ -181,6 +192,35 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     }
 
     /**
+     * Async variant of {@link #drawBlocksToOutput()}: issues every block's
+     * draw + readback into the PBO ring and returns immediately, leaving the
+     * transfers in flight. {@link #finishBlocksToOutputAsync()} must be called
+     * before {@link #mOutBuffer} is consumed. Same geometry, same bytes and
+     * the same block order; only the transfer is asynchronous.
+     */
+    public void beginBlocksToOutputAsync() {
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLProg program = super.mProgram;
+        GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
+        int[] row = new int[2];
+        int stride = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        while (divider.nextBlock(row)) {
+            int y = row[0];
+            int height = row[1];
+            program.setVar("yOffset", y);
+            streamBandAsync(y, height, mOutBuffer, stride);
+        }
+    }
+
+    /** Waits out and copies all pending async output blocks (see above). */
+    public void finishBlocksToOutputAsync() {
+        finishStreamedBands();
+        mOutBuffer.position(0);
+        if (mOut != null) mOut.byteBuffer = mOutBuffer;
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    /**
      * Streams the rendered tiles directly into {@code sink}'s pixel memory
      * (a software ARGB_8888 bitmap wrapped via {@link Allocator#wrapBitmap}),
      * skipping every intermediate full-frame buffer. The per-tile program
@@ -251,6 +291,144 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         checkEglError("glReadPixels");
     }
 
+    // ---- Async (PBO) variant of streamBand --------------------------------
+    // A synchronous glReadPixels into client memory forces the driver to drain
+    // the whole queue before it can copy, so each fused band serializes with
+    // the next band's render. Reading into a pixel-pack buffer instead lets
+    // the DMA run while the next band is drawn; the copy into the wrapped sink
+    // happens when the slot comes around again (two slots, one band apart).
+
+    private final int[] streamPbo = new int[2];
+    private final long[] streamFence = new long[2];
+    private final int[] streamPboY = new int[2];
+    private final int[] streamPboRows = new int[2];
+    private final int[] streamPboStride = new int[2];
+    private final java.nio.ByteBuffer[] streamPboDst = new java.nio.ByteBuffer[2];
+    private int streamSlot = 0;
+    private int streamPendingMask = 0;
+
+    /**
+     * Draws one output band with the currently-bound program and starts an
+     * asynchronous readback into a PBO (same geometry and bytes as
+     * {@link #streamBand}; the caller must invoke {@link #finishStreamedBands}
+     * before the destination buffer's memory is released).
+     */
+    public void streamBandAsync(int y, int rows, java.nio.ByteBuffer dst, int dstStrideBytes) {
+        if (y < 0 || rows <= 0 || y + rows > mOutHeight) {
+            throw new IllegalStateException("sink band [" + y + "," + (y + rows)
+                    + ") outside height " + mOutHeight);
+        }
+        if (rows > renderHeight) {
+            throw new IllegalStateException("sink band rows " + rows
+                    + " exceed renderbuffer height " + renderHeight);
+        }
+        int slot = streamSlot;
+        collectStreamSlot(slot);
+        int rowBytes = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        if (streamPbo[slot] == 0) {
+            int[] pbo = new int[1];
+            GLES30.glGenBuffers(1, pbo, 0);
+            streamPbo[slot] = pbo[0];
+            GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, streamPbo[slot]);
+            GLES30.glBufferData(GLES30.GL_PIXEL_PACK_BUFFER,
+                    rowBytes * renderHeight, null, GLES30.GL_STREAM_READ);
+        }
+        glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
+        GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
+        glViewport(0, 0, mOutWidth, rows);
+        checkEglError("glViewport");
+        super.mProgram.draw();
+        checkEglError("program");
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, streamPbo[slot]);
+        // readbackType: FLOAT_16 outputs must request GL_HALF_FLOAT (same rule
+        // as drawBlocksToOutput); only reached with FLOAT_16 for the ESD4D
+        // merge output, RGBA8 sinks are unaffected.
+        glReadPixels(0, 0, mOutWidth, rows, mglFormat.getGLFormatExternal(),
+                readbackType(mglFormat), 0);
+        checkEglError("glReadPixels");
+        streamFence[slot] = GLES30.glFenceSync(GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+        streamPboY[slot] = y;
+        streamPboRows[slot] = rows;
+        streamPboStride[slot] = dstStrideBytes;
+        streamPboDst[slot] = dst;
+        streamPendingMask |= (1 << slot);
+        streamSlot ^= 1;
+    }
+
+    /** Waits for and copies out any band transfer still in flight. */
+    public void finishStreamedBands() {
+        collectStreamSlot(0);
+        collectStreamSlot(1);
+    }
+
+    private void collectStreamSlot(int slot) {
+        if ((streamPendingMask & (1 << slot)) == 0) return;
+        streamPendingMask &= ~(1 << slot);
+        long fence = streamFence[slot];
+        if (fence != 0) {
+            // Bounded retry, mirroring GLTexture.finishAsyncHalfFloatRead:
+            // a driver that never signals must not hang the shot forever.
+            for (int attempt = 0; attempt < 3; attempt++) {
+                int status = GLES30.glClientWaitSync(fence,
+                        GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000L);
+                if (status != GLES30.GL_TIMEOUT_EXPIRED) break;
+            }
+            GLES30.glDeleteSync(fence);
+            streamFence[slot] = 0;
+        }
+        java.nio.ByteBuffer dst = streamPboDst[slot];
+        streamPboDst[slot] = null;
+        if (dst == null || streamPbo[slot] == 0) return;
+        int rowBytes = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        int rows = streamPboRows[slot];
+        int y = streamPboY[slot];
+        int stride = streamPboStride[slot];
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, streamPbo[slot]);
+        java.nio.ByteBuffer mapped = (java.nio.ByteBuffer) GLES30.glMapBufferRange(
+                GLES30.GL_PIXEL_PACK_BUFFER, 0, rowBytes * rows,
+                GLES30.GL_MAP_READ_BIT);
+        if (mapped != null) {
+            mapped.order(java.nio.ByteOrder.nativeOrder());
+            for (int r = 0; r < rows; r++) {
+                int srcOff = r * rowBytes;
+                int dstOff = (y + r) * stride;
+                if (dstOff + rowBytes > dst.capacity()) {
+                    throw new IllegalStateException("sink copy out of range: band=" + y
+                            + " rows=" + rows + " dstCap=" + dst.capacity());
+                }
+                mapped.limit(srcOff + rowBytes).position(srcOff);
+                dst.limit(dstOff + rowBytes).position(dstOff);
+                dst.put(mapped);
+            }
+        }
+        GLES30.glUnmapBuffer(GLES30.GL_PIXEL_PACK_BUFFER);
+        GLES30.glBindBuffer(GLES30.GL_PIXEL_PACK_BUFFER, 0);
+        checkEglError("streamBandAsync copy");
+    }
+
+    private void releaseStreamResources() {
+        for (int slot = 0; slot < 2; slot++) {
+            if (streamFence[slot] != 0) {
+                try {
+                    GLES30.glClientWaitSync(streamFence[slot],
+                            GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 1_000_000_000L);
+                    GLES30.glDeleteSync(streamFence[slot]);
+                } catch (Exception ignored) {}
+                streamFence[slot] = 0;
+            }
+            if (streamPbo[slot] != 0) {
+                try {
+                    int[] pbo = new int[]{streamPbo[slot]};
+                    GLES30.glDeleteBuffers(1, pbo, 0);
+                } catch (Exception ignored) {}
+                streamPbo[slot] = 0;
+            }
+            streamPboDst[slot] = null;
+        }
+        streamPendingMask = 0;
+    }
+
 
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat) {
         return drawBlocksToOutput(size,glFormat, GLDrawParams.Allocate.Heap);
@@ -308,6 +486,11 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
 
     @Override
     public void close() {
+        // Any pending async band transfer belongs to this context; wait it out
+        // and delete the fence/PBO while the context is still current.
+        try {
+            releaseStreamResources();
+        } catch (Exception ignored) {}
         // Ensure GPU work is complete before tearing down EGL state.
         try {
             GLES30.glFinish();

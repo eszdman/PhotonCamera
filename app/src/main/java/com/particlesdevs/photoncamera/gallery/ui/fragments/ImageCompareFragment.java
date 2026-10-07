@@ -22,6 +22,8 @@ import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageCompareBinding;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import com.particlesdevs.photoncamera.gallery.compare.ScaleAndPan;
@@ -103,9 +105,13 @@ public class ImageCompareFragment extends Fragment {
 
     private void onSyncClick(View view) {
         toSync = ((ToggleButton) view).isChecked();
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.toggle(toSync);
     }
 
     private void onShareClick(View view) {
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.confirm();
         hideButtons(true);
         HandlerThread bmpThread = new HandlerThread("ScreenshotThread", Process.THREAD_PRIORITY_BACKGROUND);
         bmpThread.start();

@@ -96,10 +96,17 @@ public class ABLC extends Node {
 
     public void Run() {
         if(!enable){
+            // No black level applied: the resolve must not convert for one.
+            ((PostPipeline) basePipeline).ablcBlack = null;
             WorkingTexture = super.previousNode.WorkingTexture;
             return;
         }
         blackLevels = computeBlackLevels(previousNode.WorkingTexture);
+        // Publish the applied levels: SRPreResolve's reference is this
+        // post-ABLC image while the drizzle's fused luma is in the pre-ABLC
+        // packed domain, so the injection brings the fused luma through the
+        // same transform before differencing.
+        ((PostPipeline) basePipeline).ablcBlack = blackLevels;
         renderLevels(previousNode.WorkingTexture);
         if (((PostPipeline) basePipeline).debugTiledCompare) {
             verifyRegions();

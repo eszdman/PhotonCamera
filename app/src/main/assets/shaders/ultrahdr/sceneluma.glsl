@@ -30,6 +30,9 @@ uniform ivec2 uLinGridSize;
 // exactly the old behavior.
 uniform ivec2 uInOrigin;
 uniform ivec2 uInFull;
+// Crop footprint inside the full-frame gain map, normalized (see initial.glsl).
+uniform vec2 u_gainMin;
+uniform vec2 u_gainMax;
 
 out vec4 Output;
 
@@ -77,7 +80,7 @@ float sceneLumaAt(ivec2 xy, ivec2 texSize) {
     // Initial restores it via gainsVal = dot(avg_gains) on the SDR path; we
     // must do the same here so L and SDR are on the same flat field before
     // the gainmap ratio and median anchoring.
-    vec4 gains = textureBicubicHardware(GainMap, vec2(srcCoord) / vec2(rawSize));
+    vec4 gains = textureBicubicHardware(GainMap, mix(u_gainMin, u_gainMax, vec2(srcCoord) / vec2(rawSize)));
     gains.rgb = vec3(gains.r, (gains.g + gains.b) / 2.0, gains.a);
     float gainsVal = dot(gains.rgb, vec3(1.0 / 3.0));
     return lum709(max(c, vec3(0.0))) * gainsVal;

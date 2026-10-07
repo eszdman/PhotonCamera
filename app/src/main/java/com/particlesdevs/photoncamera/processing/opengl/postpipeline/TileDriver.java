@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 
 import android.graphics.Point;
 
+import com.particlesdevs.photoncamera.processing.opengl.GLBasePipeline;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLProg;
@@ -16,6 +17,7 @@ import java.util.List;
 import java.util.Set;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
+import static android.opengl.GLES20.GL_LINEAR;
 import static android.opengl.GLES20.GL_NEAREST;
 import static android.opengl.GLES31.GL_ALL_BARRIER_BITS;
 import static android.opengl.GLES31.glMemoryBarrier;
@@ -681,9 +683,49 @@ public final class TileDriver {
                 new GLFormat(fmt), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
     }
 
+    /**
+     * Releases a node's input texture once its draw has consumed it and the
+     * draw went into a different texture: that node was the input's last
+     * reader (the next node reads this node's output), and the pipeline
+     * would otherwise hold the input until the tail's idle-main sweep. At a
+     * 144.5 MP output (13872x10416 RGBA16F) that is ~1.16 GB of dead bytes
+     * riding the Laplacian, the tail and encode - exactly the window where
+     * the >100 MP LMK kills were observed.
+     *
+     * The pipeline slot is nulled before the close: getMain() then re-creates
+     * it explicitly for legacy fallbacks. Inferring liveness from the GL name
+     * registry instead is unsound - names get recycled, so a closed wrapper
+     * can be re-registered by an unrelated texture and look live, which made
+     * the non-fused Laplacian/tail draw into a deleted (or foreign) texture
+     * and produce black frames. Idempotent, null-safe, no-op for passthroughs
+     * (input == output). Callers skip it under the oracle harness, which
+     * reads previousNode.WorkingTexture after the draw.
+     */
+    public static void releaseConsumedInput(GLBasePipeline bp, GLTexture input, GLTexture output) {
+        if (input == null || output == null || input == output) {
+            return;
+        }
+        try {
+            Log.d("TiledHarness", "tone input released " + input.mSize.x + "x" + input.mSize.y
+                    + " " + (input.getByteCount() / (1024 * 1024)) + " MB");
+            if (bp != null) {
+                if (bp.main1 == input) {
+                    bp.main1 = null;
+                } else if (bp.main2 == input) {
+                    bp.main2 = null;
+                }
+            }
+            input.close();
+        } catch (Throwable ignored) {
+        }
+    }
+
     /** Production tail band height (T4): halo overhead per band is constant,
      * so wide bands minimize recompute; 512 also divides every target cleanly. */
     public static final int TAIL_TILE_ROWS = 512;
+
+    /** Output-row band height of the head produce (same scale as the tail). */
+    public static final int HEAD_TILE_ROWS = 512;
 
     /**
      * T4 tail driver, shared by the A/B proof and production: tiles the proven
@@ -948,7 +990,8 @@ public final class TileDriver {
     public static int runTailProduce(CaptureSharpening cap, Sharpen2 shp,
                                      RotateWatermark rot, GLTexture entry,
                                      GLCoreBlockProcessing glproc,
-                                     java.nio.ByteBuffer wrapped) {
+                                     java.nio.ByteBuffer wrapped,
+                                     boolean logBindState) {
         String tag = "TiledHarness";
         if (cap == null || shp == null || rot == null) {
             throw new IllegalStateException("tail produce without segment");
@@ -997,38 +1040,35 @@ public final class TileDriver {
                 throw new IllegalStateException("tail produce window mismatch off=" + off
                         + " take=" + take + " in=" + (we[1] - we[0]));
             }
-            GLTexture capInTile = null, capTile = null;
-            GLTexture sharpInTile = null, sharpTile = null;
+            // No window-copy blits: both shaders are origin-aware, so the
+            // capture reads the full-size entry directly and the sharpen pass
+            // reads the capture tile directly (its window is a superset of the
+            // sharpen window by construction). Same fetches in image
+            // coordinates, minus ~200 MB of copies and two textures per band.
+            GLTexture capTile = null;
+            GLTexture sharpTile = null;
             try {
                 cap.glProg.rebindProgram(cap.tileProgram);
-                capInTile = columns ? newTile(we[1] - we[0], imgH, float4)
-                        : newTile(imgW, we[1] - we[0], float4);
-                if (columns) {
-                    blitColumn(entry, capInTile, we[0], we[1] - we[0]);
-                } else {
-                    blitBand(entry, capInTile, we[0], we[1] - we[0]);
-                }
                 capTile = columns ? newTile(we[1] - we[0], imgH, float4)
                         : newTile(imgW, we[1] - we[0], float4);
-                cap.renderTile(capInTile, capTile);
-                logProgramState(tag, "cap-band" + b0, cap.glProg,
-                        "InputBuffer", cap.tileProgram);
-                shp.glProg.rebindProgram(shp.tileProgram);
-                sharpInTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
-                        : newTile(imgW, ws[1] - ws[0], float4);
-                if (columns) {
-                    blitColumn(capTile, sharpInTile, off, take);
-                } else {
-                    blitBand(capTile, sharpInTile, off, take);
+                cap.renderTile(entry, capTile,
+                        columns ? we[0] : 0, columns ? 0 : we[0]);
+                if (logBindState) {
+                    logProgramState(tag, "cap-band" + b0, cap.glProg,
+                            "InputBuffer", cap.tileProgram);
                 }
+                shp.glProg.rebindProgram(shp.tileProgram);
                 sharpTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
                         : newTile(imgW, ws[1] - ws[0], float4);
                 if (b0 == 0) {
                     GLTexture.logLive(tag, "tail-produce-peak");
                 }
-                shp.renderTile(sharpInTile, sharpTile);
-                logProgramState(tag, "shp-band" + b0, shp.glProg,
-                        "InputBuffer", shp.tileProgram);
+                shp.renderTile(capTile, sharpTile,
+                        columns ? off : 0, columns ? 0 : off);
+                if (logBindState) {
+                    logProgramState(tag, "shp-band" + b0, shp.glProg,
+                            "InputBuffer", shp.tileProgram);
+                }
                 // Rotate band straight to the sink (same yOffset sampling the
                 // oracles prove; same viewport/draw/readPixels sequence as
                 // the shared sink loop, via streamBand). Compensation per
@@ -1049,20 +1089,30 @@ public final class TileDriver {
                     yOff = b0 - (imgW - ws[1]);
                 }
                 rot.glProg.setVar("yOffset", yOff);
-                logProgramState(tag, "rot-band" + b0, rot.glProg,
-                        "InputBuffer", rot.tileProgram);
-                glproc.streamBand(b0, b1 - b0, wrapped, outW * 4);
+                if (logBindState) {
+                    logProgramState(tag, "rot-band" + b0, rot.glProg,
+                            "InputBuffer", rot.tileProgram);
+                }
+                // Async PBO readback: the band DMA overlaps the next band's
+                // render instead of draining the queue here. Copied into the
+                // wrapped sink at the end of the loop (still under its lock).
+                glproc.streamBandAsync(b0, b1 - b0, wrapped, outW * 4);
                 bandCount++;
             } catch (Throwable t) {
+                // Copy out whatever is in flight before the sink lock drops.
+                try {
+                    glproc.finishStreamedBands();
+                } catch (Throwable ignored) {
+                }
                 throw new IllegalStateException(
-                        "tail produce band [" + b0 + "," + b1 + ") failed", t);
+                        "tail produce band [" + b0 + "," + (b1 - b0) + ") failed", t);
             } finally {
-                closeQuietly(capInTile);
                 closeQuietly(capTile);
-                closeQuietly(sharpInTile);
                 closeQuietly(sharpTile);
             }
         }
+        // Collect the trailing band transfers while the sink is still locked.
+        glproc.finishStreamedBands();
         // Restore nodes to valid placeholders (same post-state convention as
         // runTailTiled; true output lives in the sink bitmap now).
         cap.WorkingTexture = entry;
@@ -1073,6 +1123,246 @@ public final class TileDriver {
         rot.glProg.setTexture("InputBuffer", entry);
         Log.d(tag, "tail tiled produce bands=" + bandCount + " rows=" + outH
                 + " fused to sink rot=" + rot.tileRot + " (no compares)");
+        return bandCount;
+    }
+
+    /**
+     * Supplies one band of a stage's output as a fresh tile: image rows
+     * [{@code w0}, {@code w1}) stored at tile rows [0, w1-w0). The driver
+     * closes the returned tile.
+     */
+    public interface BandSource {
+        /**
+         * One band of the source's output: image rows [{@code w0}, {@code w1})
+         * for {@code columns == false}, image columns [{@code w0}, {@code w1})
+         * at full height for {@code columns == true}. The tile starts at its
+         * origin in both cases; the driver closes it.
+         */
+        GLTexture produce(int w0, int w1, boolean columns);
+    }
+
+    /**
+     * Head-segment produce: streams the crop -> aniso -> SR band chain in
+     * output-row bands straight into one output-sized texture, so the two
+     * output-sized mains the legacy chain ping-pongs through never coexist
+     * with the crop input - the post's >100 MP LMK peak (at a 144 MP output:
+     * 2.31 GB of mains, versus one output texture and band scratches).
+     *
+     * <p>Every stage is origin-aware: the aniso reads its halo-expanded crop
+     * window through {@code u_winOrigin} (oracle-proven), the band stage reads
+     * its band-sized input window through {@code u_inOrigin} while the band
+     * map stays in absolute output coordinates. Each stage's halo contract
+     * sizes the previous stage's window, so the final bands are bit-exact.</p>
+     *
+     * <p>The band stage may stand down (no recovered band this shot); the
+     * aniso bands are then blitted directly. Returns true when the segment was
+     * produced; false when a node declined and the caller falls back to the
+     * legacy full-frame chain.</p>
+     */
+    public static boolean runHeadProduce(UpscaleCrop up, SRBandApply ba,
+                                         GLTexture cropIn, GLTexture out) {
+        if (up == null || cropIn == null || out == null
+                || cropIn.mSize == null || out.mSize == null
+                || cropIn.mSize.x <= 0 || out.mSize.x <= 0 || out.mSize.y <= 0) {
+            Log.d("TiledHarness", "head produce declined: segment/size missing up=" + (up != null)
+                    + " in=" + (cropIn != null) + " out=" + (out != null));
+            return false;
+        }
+        int outW = out.mSize.x;
+        int outH = out.mSize.y;
+        int inH = cropIn.mSize.y;
+        int hUp = Math.max(1, up.halo()) + 1;
+        boolean baActive = ba != null && ba.prepare(out.mSize);
+        int hBa = baActive ? ba.halo() : 0;
+        int bands = 0;
+        for (int[] band : computeBands(outH, HEAD_TILE_ROWS)) {
+            int o0 = band[0], o1 = band[1];
+            // Chained windows: the band reads the aniso rows it needs (its
+            // halo), and the aniso renders that window from the crop.
+            int x0 = Math.max(0, o0 - hBa), x1 = Math.min(outH, o1 + hBa);
+            int[] win = inputWindow(x0, x1, inH, up.anisoZoomY, hUp);
+            int wy0 = win[0], wy1 = win[1];
+            GLTexture inTile = null, anisoTile = null, bandTile = null;
+            try {
+                // Input window tile must be GL_LINEAR: the aniso shader
+                // samples it through texture()/bicubic, so it has to filter
+                // exactly like the full crop texture it replaces.
+                inTile = new GLTexture(new Point(cropIn.mSize.x, wy1 - wy0),
+                        new GLFormat(cropIn.mFormat), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+                blitBand(cropIn, inTile, wy0, wy1 - wy0);
+                anisoTile = newTile(outW, x1 - x0, out.mFormat);
+                if (!up.renderAnisoTile(cropIn, inTile, anisoTile, x0, wy0)) {
+                    throw new IllegalStateException("head produce: aniso declined");
+                }
+                inTile.close();
+                inTile = null;
+                if (baActive) {
+                    // The recovered band replaces the reconstruction's
+                    // invented content in the recovered range; it writes
+                    // exactly this band, so it is blitted directly.
+                    bandTile = newTile(outW, o1 - o0, out.mFormat);
+                    ba.renderTile(anisoTile, bandTile, x0, o0);
+                    blitBand(bandTile, out, 0, o1 - o0, o0);
+                    bandTile.close();
+                    bandTile = null;
+                } else {
+                    blitBand(anisoTile, out, o0 - x0, o1 - o0, o0);
+                }
+                anisoTile.close();
+                anisoTile = null;
+                bands++;
+            } finally {
+                if (inTile != null) inTile.close();
+                if (anisoTile != null) anisoTile.close();
+                if (bandTile != null) bandTile.close();
+            }
+        }
+        if (baActive && bands > 0) {
+            // The band layer rendered inside this fused pass; tell the node so
+            // its own Run does not apply it a second time (double deconv).
+            ba.markAppliedByHead();
+        }
+        Log.d("TiledHarness", "head produce bands=" + bands + " out=" + outW + "x" + outH
+                + " in=" + cropIn.mSize.x + "x" + inH + " band=" + baActive);
+        return bands > 0;
+    }
+
+    /**
+     * Fused tail produce: like {@link #runTailProduce}, but the capture's
+     * input comes from {@code source} per band instead of a full-size entry.
+     * {@code LocalLaplacian2} uses it to render its finest reconstruction
+     * band while the pyramid is still alive, so the full output/entry texture
+     * never exists - the last full-frame allocation before the sink.
+     *
+     * <p>Rows only: the source produces row bands, so a transposed (90/270)
+     * rotation cannot use it. The source tile is read tile-relative by the
+     * capture ({@code u_inOrigin = 0}), unlike the full-entry path which
+     * offsets by the window origin.</p>
+     */
+    public static int runTailProduceFused(CaptureSharpening cap, Sharpen2 shp,
+                                          RotateWatermark rot, BandSource source,
+                                          GLTexture placeholder, int imgW, int imgH,
+                                          GLCoreBlockProcessing glproc,
+                                          java.nio.ByteBuffer wrapped,
+                                          boolean logBindState) {
+        String tag = "TiledHarness";
+        if (cap == null || shp == null || rot == null || source == null) {
+            throw new IllegalStateException("fused tail produce without segment/source");
+        }
+        if (glproc == null || wrapped == null) {
+            throw new IllegalStateException("fused tail produce without sink");
+        }
+        if (rot.watermarkTex == null || rot.noiseTex == null) {
+            throw new IllegalStateException("fused tail produce without rotate samplers");
+        }
+        GLFormat float4 = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
+        int hCap = cap.halo();
+        int hShp = shp.halo();
+        GLTexture.logLive(tag, "tail-fused-base");
+        int bandCount = 0;
+        boolean columns = rot.tileRot == 1 || rot.tileRot == 3;
+        boolean mirror = rot.tileRot == 2 || rot.tileRot == 1;
+        int outH = columns ? imgW : imgH;
+        int outW = columns ? imgH : imgW;
+        int wLen = columns ? imgW : imgH;
+        for (int[] band : computeBands(outH, TAIL_TILE_ROWS)) {
+            int b0 = band[0], b1 = band[1];
+            int wb0 = mirror ? wLen - b1 : b0;
+            int wb1 = mirror ? wLen - b0 : b1;
+            int[] wc = expandWindow(wb0, wb1, wLen, hShp + hCap);
+            int[] we = expandWindow(wc[0], wc[1], wLen, hCap);
+            int[] ws = expandWindow(wb0, wb1, wLen, hShp);
+            int off = ws[0] - we[0];
+            int take = ws[1] - ws[0];
+            if (off < 0 || off + take > (we[1] - we[0])) {
+                throw new IllegalStateException("fused tail produce window mismatch off=" + off
+                        + " take=" + take + " in=" + (we[1] - we[0]));
+            }
+            GLTexture srcTile = null;
+            GLTexture capTile = null;
+            GLTexture sharpTile = null;
+            try {
+                srcTile = source.produce(we[0], we[1], columns);
+                boolean srcOk = srcTile != null && (columns
+                        ? (srcTile.mSize.x == (we[1] - we[0]) && srcTile.mSize.y == imgH)
+                        : (srcTile.mSize.x == imgW && srcTile.mSize.y == (we[1] - we[0])));
+                if (!srcOk) {
+                    throw new IllegalStateException("fused tail source band "
+                            + (srcTile == null ? "null"
+                            : (srcTile.mSize.x + "x" + srcTile.mSize.y))
+                            + " expected " + (columns ? (we[1] - we[0]) + "x" + imgH
+                            : imgW + "x" + (we[1] - we[0])));
+                }
+                cap.glProg.rebindProgram(cap.tileProgram);
+                capTile = columns ? newTile(we[1] - we[0], imgH, float4)
+                        : newTile(imgW, we[1] - we[0], float4);
+                // Source tile holds image rows [we0, we1) at row 0: the
+                // capture samples it tile-relative (origin 0).
+                cap.renderTile(srcTile, capTile, 0, 0);
+                if (logBindState) {
+                    logProgramState(tag, "cap-band" + b0, cap.glProg,
+                            "InputBuffer", cap.tileProgram);
+                }
+                shp.glProg.rebindProgram(shp.tileProgram);
+                sharpTile = columns ? newTile(ws[1] - ws[0], imgH, float4)
+                        : newTile(imgW, ws[1] - ws[0], float4);
+                if (b0 == 0) {
+                    GLTexture.logLive(tag, "tail-fused-peak");
+                }
+                shp.renderTile(capTile, sharpTile, columns ? off : 0, columns ? 0 : off);
+                if (logBindState) {
+                    logProgramState(tag, "shp-band" + b0, shp.glProg,
+                            "InputBuffer", shp.tileProgram);
+                }
+                rot.glProg.rebindProgram(rot.tileProgram);
+                rot.glProg.setTexture("InputBuffer", sharpTile);
+                rot.glProg.setTexture("Watermark", rot.watermarkTex);
+                rot.glProg.setTexture("Noise", rot.noiseTex);
+                int yOff;
+                if (rot.tileRot == 0 || rot.tileRot == 3) {
+                    // Buffer-relative (buffer cell 0 holds image cell ws0):
+                    // rows for rot 0, columns for rot 3.
+                    yOff = b0 - ws[0];
+                } else if (rot.tileRot == 2) {
+                    yOff = b0 + ws[1] - imgH + 1;
+                } else {
+                    yOff = b0 - (imgW - ws[1]);
+                }
+                rot.glProg.setVar("yOffset", yOff);
+                if (logBindState) {
+                    logProgramState(tag, "rot-band" + b0, rot.glProg,
+                            "InputBuffer", rot.tileProgram);
+                }
+                glproc.streamBandAsync(b0, b1 - b0, wrapped, outW * 4);
+                bandCount++;
+            } catch (Throwable t) {
+                try {
+                    glproc.finishStreamedBands();
+                } catch (Throwable ignored) {
+                }
+                throw new IllegalStateException(
+                        "fused tail produce band [" + b0 + "," + (b1 - b0) + ") failed", t);
+            } finally {
+                closeQuietly(srcTile);
+                closeQuietly(capTile);
+                closeQuietly(sharpTile);
+            }
+        }
+        // Collect the trailing band transfers while the sink is still locked.
+        glproc.finishStreamedBands();
+        // Restore nodes to valid placeholders (same post-state convention as
+        // runTailProduce; the true output lives in the sink bitmap now).
+        GLTexture ph = placeholder;
+        cap.WorkingTexture = ph;
+        shp.WorkingTexture = ph;
+        if (ph != null) {
+            cap.glProg.setTexture("InputBuffer", ph);
+            shp.glProg.setTexture("InputBuffer", ph);
+            shp.glProg.setTexture("BlurBuffer", ph);
+            rot.glProg.setTexture("InputBuffer", ph);
+        }
+        Log.d(tag, "tail fused produce bands=" + bandCount + " rows=" + outH
+                + " rot=" + rot.tileRot + " (no compares)");
         return bandCount;
     }
 }

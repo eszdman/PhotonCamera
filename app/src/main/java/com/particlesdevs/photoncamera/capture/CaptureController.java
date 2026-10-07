@@ -85,6 +85,7 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.circularbarlib.api.ManualModeConsole;
 import com.particlesdevs.photoncamera.control.GyroBurst;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.control.TouchFocus;
 import com.particlesdevs.photoncamera.debugclient.DebugSender;
 import com.particlesdevs.photoncamera.manual.ParamController;
@@ -295,6 +296,24 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     )
     public float exposureBalanceShutterLimit = -1.0f;
 
+    @SensorConfig(
+            title = "Capture session FPS",
+            description = "Cap the capture frame rate when Quad Bayer is off, or when the Quad Bayer cap is unset; preview keeps the frame rate selected in the camera UI",
+            entries = {"Off", "24fps", "30fps", "60fps"},
+            entryValues = {"0", "24", "30", "60"},
+            defaultValue = 0
+    )
+    public int captureSessionFps = 0;
+
+    @SensorConfig(
+            title = "Capture session FPS (Quad Bayer)",
+            description = "Cap the capture frame rate when Quad Bayer is on; preview keeps the frame rate selected in the camera UI",
+            entries = {"Off", "24fps", "30fps", "60fps"},
+            entryValues = {"0", "24", "30", "60"},
+            defaultValue = 0
+    )
+    public int captureSessionFpsQuadBayer = 0;
+
     private static int mTargetFormat = RAW_FORMAT;
     private ManualModeConsole manualModeConsole;
     private final ParamController paramController;
@@ -420,6 +439,18 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private final Object mZslBufferLock = new Object();
     private volatile boolean mZslCapturing = false;
 
+    /**
+     * On-demand ZSL burst state (used when the continuous ring buffer is
+     * disabled because the preview rate exceeds this sensor's capture cap):
+     * raw frames are captured on press at the capped rate instead.
+     */
+    private volatile boolean mZslOnDemandBurst = false;
+    private volatile int mZslOnDemandTarget = 0;
+    private volatile int mZslOnDemandResultCount = 0;
+    private volatile int mZslOnDemandBurstId = 0;
+    private CaptureResult mZslLastBurstResult;
+    private CaptureRequest mZslLastBurstRequest;
+
     public interface RawFrameCallback {
         void onRawFrameAvailable(@NonNull Image image, CaptureResult result);
     }
@@ -460,13 +491,26 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (isZslMode()) {
                 Image img = reader.acquireNextImage();
                 if (img == null) return;
+                if (isZslOnDemand()) {
+                    // Continuous buffering is off (the preview runs above this
+                    // sensor's cap): collect the frames of the on-press burst.
+                    if (!mZslOnDemandBurst) {
+                        img.close();
+                        return;
+                    }
+                    synchronized (mZslBufferLock) {
+                        mZslRingBuffer.addLast(img);
+                    }
+                    maybeFinishZslOnDemandBurst();
+                    return;
+                }
                 if (mZslCapturing) {
                     img.close();
                     return;
                 }
                 synchronized (mZslBufferLock) {
                     mZslRingBuffer.addLast(img);
-                    int maxFrames = Math.min(PhotonCamera.getSettings().frameCount, 37);
+                    int maxFrames = Math.min(PhotonCamera.getSettings().getActiveFrameCount(), 37);
                     while (mZslRingBuffer.size() > maxFrames) {
                         Image old = mZslRingBuffer.pollFirst();
                         if (old != null) old.close();
@@ -482,7 +526,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             //taskResults.removeIf(Future::isDone); //remove already completed results
             //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
             //taskResults.add(result);
-            if(PhotonCamera.getSettings().frameCount != 1) {
+            if(PhotonCamera.getSettings().getActiveFrameCount() != 1) {
                 //taskResults.removeIf(Future::isDone); //remove already completed results
                 //Future<?> result = processExecutor.submit(() -> mImageSaver.initProcess(reader));
                 //taskResults.add(result);
@@ -1264,12 +1308,49 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (mHighSpeedRecording && mIsRecordingVideo && mHighSpeedFpsRange != null) {
             return mHighSpeedFpsRange;
         }
-        switch (PhotonCamera.getSettings().fpsMode) {
+        switch (PhotonCamera.getSettings().getActiveFpsMode()) {
             case 1: return new Range<>(24, 24);
             case 2: return new Range<>(30, 30);
             case 3: return new Range<>(60, 60);
             default: return FpsRangeAuto != null ? FpsRangeAuto : new Range<>(14, 30);
         }
+    }
+
+    /**
+     * True when the per-sensor "Capture session FPS" cap applies to the current
+     * mode. Photo modes only: video and RAW video keep their own frame-rate
+     * setting and their recording paths must not be clamped.
+     */
+    private boolean isCaptureSessionFpsCapActive() {
+        if (getActiveCaptureSessionFps() <= 0) {
+            return false;
+        }
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        return mode == CameraMode.PHOTO || mode == CameraMode.MOTION || mode == CameraMode.NIGHT;
+    }
+
+    /**
+     * Effective per-sensor cap: the Quad Bayer value when Quad Bayer is on and
+     * that cap is set, otherwise the general value (which also covers Quad
+     * Bayer on with the Quad Bayer cap unset).
+     */
+    private int getActiveCaptureSessionFps() {
+        if (PhotonCamera.getSettings().QuadBayer && captureSessionFpsQuadBayer > 0) {
+            return captureSessionFpsQuadBayer;
+        }
+        return captureSessionFps;
+    }
+
+    /**
+     * The selected frame rate limited to this sensor's capture cap, e.g.
+     * [60,60] with cap 30 becomes [30,30] and auto [14,30] with cap 24
+     * becomes [14,24].
+     */
+    private Range<Integer> getCappedFpsRange() {
+        Range<Integer> selected = getSelectedFpsRange();
+        int[] clamped = CaptureFpsCap.clamp(selected.getLower(), selected.getUpper(),
+                getActiveCaptureSessionFps());
+        return new Range<>(clamped[0], clamped[1]);
     }
 
     /**
@@ -1889,6 +1970,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * Applies the newly active lens id and refreshes the cached settings so
+     * per-lens state (including the effective Quad Bayer flag) matches the new
+     * lens before its session is built.
+     */
+    private void setActiveCameraId(String cameraId) {
+        PreferenceKeys.setCameraID(cameraId);
+        PhotonCamera.getSettings().loadCache();
+    }
+
+    /**
      * Closes the current session/device and schedules the open of {@code req}
      * after the HAL settle delay. Runs on the main thread; only one such cycle
      * can be active because the scheduler only promotes a request when idle.
@@ -1900,7 +1991,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             lensSwitchScheduler.cancel();
             return;
         }
-        PreferenceKeys.setCameraID(req.cameraId);
+        setActiveCameraId(req.cameraId);
         zoomDrivenLensSwitch = req.zoomDriven;
         armOrCancelIszTransition();
         CameraFragment.mSelectedMode = PhotonCamera.getSettings().selectedMode;
@@ -2013,7 +2104,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     @SuppressLint("MissingPermission")
     private void openCameraDevice(final int token, String cameraId, boolean zoomDriven) {
         if (token != openToken.get() || !isCameraResumed) return;
-        PreferenceKeys.setCameraID(cameraId);
+        setActiveCameraId(cameraId);
         zoomDrivenLensSwitch = zoomDriven;
         armOrCancelIszTransition();
         parseCameraIds(cameraId);
@@ -2309,13 +2400,19 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
     private Size getAspect(CameraMode targetMode){
-        Size aspectRatio;
-        if (targetMode == CameraMode.VIDEO || targetMode == CameraMode.RAWVIDEO || PhotonCamera.getSettings().aspect169) {
-            aspectRatio = new Size(9, 16);
-        } else {
-            aspectRatio = new Size(3, 4);
-        }
-        return aspectRatio;
+        return aspectForMode(targetMode);
+    }
+
+    /**
+     * Portrait aspect (width:height) the viewfinder uses for a mode. Depends
+     * only on the mode and the 16:9-photo option, so the UI can start the
+     * viewfinder's aspect stretch at the mode switch instead of waiting for the
+     * camera to reopen.
+     */
+    public static Size aspectForMode(CameraMode targetMode) {
+        boolean wide = targetMode == CameraMode.VIDEO || targetMode == CameraMode.RAWVIDEO
+                || (PhotonCamera.getSettings() != null && PhotonCamera.getSettings().aspect169);
+        return wide ? new Size(9, 16) : new Size(3, 4);
     }
 
     private Display getSafeDisplay() {
@@ -2426,8 +2523,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     private Size matchVideoPreviewSize(Size[] allSizes, Size aspectRatio) {
         try {
             int idInt = parseVideoCameraId();
-            CamcorderProfile profile = resolveVideoProfile(idInt, PreferenceKeys.getVideoResolution());
-            android.util.Size videoSize = resolveVideoSize(PreferenceKeys.getVideoResolution(), profile, false);
+            String resolution = getActiveVideoResolution();
+            CamcorderProfile profile = resolveVideoProfile(idInt, resolution);
+            android.util.Size videoSize = resolveVideoSize(resolution, profile, false);
             long targetArea = (long) videoSize.getWidth() * (long) videoSize.getHeight();
             if (targetArea <= 0) return null;
             long cap = Math.min(VIDEO_PREVIEW_MAX_AREA,
@@ -2638,9 +2736,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         if (PhotonCamera.getSettings().selectedMode == CameraMode.RAWVIDEO)
             maxjpg = RAW_VIDEO_MAX_IMAGES;
         if (mTargetFormat == mPreviewTargetFormat && isDualSession)
-            maxjpg = PhotonCamera.getSettings().frameCount + 3;
+            maxjpg = PhotonCamera.getSettings().getActiveFrameCount() + 3;
         if (isZslMode())
-            maxjpg = Math.min(PhotonCamera.getSettings().frameCount + 3, 40);
+            maxjpg = Math.min(PhotonCamera.getSettings().getActiveFrameCount() + 3, 40);
         Size target = getCameraOutputSize(allTargets.toArray(new Size[0]), preview);
         Size aspect = getAspect(PhotonCamera.getSettings().selectedMode);
         if(preview.getWidth() > preview.getHeight())
@@ -2953,7 +3051,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                     && PhotonCamera.getSettings().selectedMode == CameraMode.VIDEO) {
                                 com.particlesdevs.photoncamera.settings.TunableKeyManager
                                         .applyVideoTunableKeys(mPreviewRequestBuilder, getTunablePhysicalId(),
-                                                mVideoHdrActive && mIsRecordingVideo);
+                                                mVideoHdrActive && mIsRecordingVideo,
+                                                isActiveCameraFrontFacing(), getActiveVideoResolution(),
+                                                PhotonCamera.getSettings().getActiveFpsMode());
                             }
                         } catch (Exception e) {
                             Log.w(TAG, "video tunable keys failed", e);
@@ -3081,13 +3181,20 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         Range<Integer> videoFpsRange = videoMode ? getSelectedFpsRange() : null;
         List<VendorTagUtils.TunableKey> videoFull = null;
         boolean videoListIsHdr = false;
+        // Scope for the video lists/session types: active lens + resolution + fps.
+        boolean videoSelfie = isActiveCameraFrontFacing();
+        String videoResolution = getActiveVideoResolution();
+        int videoFpsMode = PhotonCamera.getSettings() != null
+                ? PhotonCamera.getSettings().getActiveFpsMode() : 0;
         List<VendorTagUtils.TunableKey> videoKeys = new java.util.ArrayList<>();
         try {
             if (videoMode) {
                 videoListIsHdr = mVideoHdrActive && mIsRecordingVideo;
                 videoFull = videoListIsHdr
-                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoHdrKeys(context)
-                        : com.particlesdevs.photoncamera.settings.TunableKeyManager.loadVideoKeys(context);
+                        ? com.particlesdevs.photoncamera.settings.TunableKeyManager
+                                .loadVideoHdrKeys(context, videoSelfie, videoResolution, videoFpsMode)
+                        : com.particlesdevs.photoncamera.settings.TunableKeyManager
+                                .loadVideoKeys(context, videoSelfie, videoResolution, videoFpsMode);
                 videoKeys = com.particlesdevs.photoncamera.settings.TunableKeyManager.sessionSubset(videoFull);
             }
         } catch (Exception e) {
@@ -3123,10 +3230,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             if (videoFull != null) {
                 if (videoListIsHdr) {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoHdrKeys(
-                            context, videoFull);
+                            context, videoSelfie, videoResolution, videoFpsMode, videoFull);
                 } else {
                     com.particlesdevs.photoncamera.settings.TunableKeyManager.saveVideoKeys(
-                            context, videoFull);
+                            context, videoSelfie, videoResolution, videoFpsMode, videoFull);
                 }
             }
         } catch (Exception e) {
@@ -3222,6 +3329,21 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     allowHdr = false;
                     Log.w(TAG, "no 10-bit dynamic range profile, recording SDR");
                     showToast("HDR not available on this camera, recording SDR");
+                } else {
+                    String transfer = "";
+                    try {
+                        transfer = String.valueOf(PreferenceKeys.getVideoHdrTransfer());
+                    } catch (Exception ignored) {
+                    }
+                    boolean wantHdr10Plus = "hdr10plus".equalsIgnoreCase(transfer)
+                            || "hdr10_plus".equalsIgnoreCase(transfer)
+                            || "hdr10+".equalsIgnoreCase(transfer);
+                    if (wantHdr10Plus && mPendingVideoDynamicRange
+                            != android.hardware.camera2.params.DynamicRangeProfiles.HDR10_PLUS) {
+                        Log.w(TAG, "HDR10+ profile unavailable, recording HDR10/HLG base layer instead"
+                                + " (picked=" + mPendingVideoDynamicRange + ")");
+                        showToast("HDR10+ not available, recording HDR base layer");
+                    }
                 }
             }
             setUpMediaRecorder(allowHdr);
@@ -3591,7 +3713,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 while ((stale = mImageReaderRaw.acquireNextImage()) != null) stale.close();
             } catch (Exception ignored) {}
         }
-        if (isZslMode()) {
+        if (isZslStreamingEnabled()) {
             mPreviewRequestBuilder.addTarget(mImageReaderRaw.getSurface());
         }
         mInitialMeteringAF = mPreviewRequestBuilder.get(CONTROL_AF_REGIONS);
@@ -3778,7 +3900,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     Log.v("BurstCounter", "CaptureSequenceCompleted! LastFrameNumber:" + lastFrameNumber);
                     Log.d(TAG, "SequenceCompleted");
                     mBackgroundHandler.postDelayed(() -> {
-                        while(mImageSaver.implementation.IMAGE_BUFFER.size() > PhotonCamera.getSettings().frameCount/2) {
+                        while(mImageSaver.implementation.IMAGE_BUFFER.size() > PhotonCamera.getSettings().getActiveFrameCount()/2) {
                             try {
                                 Thread.sleep(1);
                             } catch (InterruptedException ignored) {}
@@ -3822,6 +3944,22 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
+     * True when continuous ZSL buffering must be replaced by an on-press burst:
+     * the preview is selected above this sensor's capture cap, and the raw
+     * stream cannot be fed at the preview rate without breaking captures.
+     */
+    private boolean isZslOnDemand() {
+        return isZslMode()
+                && isCaptureSessionFpsCapActive()
+                && getSelectedFpsRange().getUpper() > getActiveCaptureSessionFps();
+    }
+
+    /** True when the raw stream feeds the continuous ZSL ring buffer. */
+    private boolean isZslStreamingEnabled() {
+        return isZslMode() && !isZslOnDemand();
+    }
+
+    /**
      * Round 3 (ZSL): pack a shutter-copied burst frame immediately, so the
      * copy loop's native peak drops from 8x24 MB to ~8x15.7 MB and ApplyHdrX
      * finds nothing left to pack. Fail-safe: HdrxProcessor's loop still
@@ -3848,11 +3986,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
         mZslCapturing = true;
         burst = false;
-
-        int frameCount = FrameNumberSelector.getFrames();
         cameraRotation = PhotonCamera.getGravity().getCameraRotation(mSensorOrientation);
         BurstShakiness = new ArrayList<>();
         mExposures = new HashMap<>();
+
+        if (isZslOnDemand()) {
+            startZslOnDemandBurst();
+            return;
+        }
 
         // Drain raw Image objects from the ring buffer (no copy yet)
         List<Image> rawImages;
@@ -3860,20 +4001,237 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             rawImages = new ArrayList<>(mZslRingBuffer);
             mZslRingBuffer.clear();
         }
+        processZslFrames(rawImages, mPreviewCaptureResult, mPreviewCaptureRequest, true);
+    }
 
-        int take = Math.min(rawImages.size(), frameCount);
-        int skip = rawImages.size() - take;
-        for (int i = 0; i < skip; i++) {
-            rawImages.get(i).close();
+    /**
+     * On-demand ZSL: the raw stream is not part of the repeating preview
+     * request (the preview runs above this sensor's capture cap), so the
+     * frames are captured on press at the capped rate instead. Hardware AE
+     * runs on the capture requests; each frame's exposure and the last result
+     * are recorded to feed the ZSL pipeline.
+     */
+    private void startZslOnDemandBurst() {
+        if (mCameraDevice == null || mCaptureSession == null || mImageReaderRaw == null) {
+            Log.w(TAG, "on-demand ZSL: camera not ready");
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        int frameCount = FrameNumberSelector.getFrames();
+        if (frameCount <= 0) {
+            frameCount = 1;
+        }
+        mZslOnDemandTarget = frameCount;
+        mZslOnDemandResultCount = 0;
+        mZslLastBurstResult = null;
+        mZslLastBurstRequest = null;
+        final int burstId = ++mZslOnDemandBurstId;
+        synchronized (mZslBufferLock) {
+            for (Image img : mZslRingBuffer) {
+                if (img != null) img.close();
+            }
+            mZslRingBuffer.clear();
+        }
+        final Range<Integer> fpsRange = getCappedFpsRange();
+        final List<CaptureRequest> requests = new ArrayList<>(frameCount);
+        try {
+            for (int i = 0; i < frameCount; i++) {
+                requests.add(buildZslOnDemandRequest(fpsRange));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "on-demand ZSL: request build failed", e);
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        mZslOnDemandBurst = true;
+        burst = true;
+        Log.d(TAG, "on-demand ZSL burst: " + frameCount + " frames at " + fpsRange);
+        try {
+            mCaptureSession.captureBurst(requests, mZslOnDemandCallback, mBackgroundHandler);
+        } catch (Exception e) {
+            Log.e(TAG, "on-demand ZSL burst failed", e);
+            mZslOnDemandBurst = false;
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        // Watchdog: if no callbacks arrive at all, release the capture lock.
+        Handler handler = mBackgroundHandler;
+        if (handler != null) {
+            handler.postDelayed(() -> forceFinishZslOnDemandBurst(burstId),
+                    2000L + frameCount * 200L);
+        }
+    }
+
+    /**
+     * Raw burst request for the on-demand ZSL path: inherits the live AF/AE
+     * state, OIS, zoom and ISZ from the preview builder (like
+     * {@link #captureSingleRawForMetering}) and pins the capped frame rate.
+     * Uses the still-capture template because HALs honor a per-request AE
+     * range there (the same template the working photo-mode still path uses),
+     * while preview-template requests can keep the sensor at the preview rate.
+     */
+    private CaptureRequest buildZslOnDemandRequest(Range<Integer> fpsRange) throws CameraAccessException {
+        CaptureRequest.Builder builder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+        builder.addTarget(mImageReaderRaw.getSurface());
+        if (mPreviewRequestBuilder != null) {
+            Integer afMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_MODE);
+            if (afMode != null) builder.set(CaptureRequest.CONTROL_AF_MODE, afMode);
+            MeteringRectangle[] afRegions = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AF_REGIONS);
+            if (afRegions != null) builder.set(CaptureRequest.CONTROL_AF_REGIONS, afRegions);
+            MeteringRectangle[] aeRegions = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_REGIONS);
+            if (aeRegions != null) builder.set(CaptureRequest.CONTROL_AE_REGIONS, aeRegions);
+            Integer aeMode = mPreviewRequestBuilder.get(CaptureRequest.CONTROL_AE_MODE);
+            if (aeMode != null) builder.set(CaptureRequest.CONTROL_AE_MODE, aeMode);
+        }
+        if (fpsRange != null) {
+            builder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, fpsRange);
+        }
+        applyOisMode(builder, false);
+        applyZoom(builder);
+        applyIszIfActive(builder, physicalID);
+        return builder.build();
+    }
+
+    private final CameraCaptureSession.CaptureCallback mZslOnDemandCallback =
+            new CameraCaptureSession.CaptureCallback() {
+        @Override
+        public void onCaptureCompleted(@NonNull CameraCaptureSession session,
+                                       @NonNull CaptureRequest request,
+                                       @NonNull TotalCaptureResult result) {
+            onZslOnDemandResult(request, result);
         }
 
-        // Populate exposures map from preview capture result — all ZSL frames share preview exposure
+        @Override
+        public void onCaptureSequenceCompleted(@NonNull CameraCaptureSession session,
+                                               int sequenceId, long frameNumber) {
+            // Safety net: finish with whatever arrived if the HAL dropped
+            // frames or results (the normal path finishes earlier).
+            Handler handler = mBackgroundHandler;
+            if (handler != null) {
+                int burstId = mZslOnDemandBurstId;
+                handler.postDelayed(() -> forceFinishZslOnDemandBurst(burstId), 200);
+            }
+        }
+    };
+
+    private void onZslOnDemandResult(CaptureRequest request, CaptureResult result) {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
+        Long exposureNs = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Integer iso = result.get(CaptureResult.SENSOR_SENSITIVITY);
+        if (timestamp != null && exposureNs != null && iso != null) {
+            mExposures.put(timestamp, (exposureNs / 1_000_000_000.0) * iso);
+        }
+        mZslLastBurstResult = result;
+        mZslLastBurstRequest = request;
+        mZslOnDemandResultCount++;
+        maybeFinishZslOnDemandBurst();
+    }
+
+    /**
+     * Runs on the background handler: finishes the on-demand burst once all
+     * requested results and images have been collected.
+     */
+    private void maybeFinishZslOnDemandBurst() {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        if (mZslOnDemandResultCount < mZslOnDemandTarget) {
+            return;
+        }
+        int buffered;
+        synchronized (mZslBufferLock) {
+            buffered = mZslRingBuffer.size();
+        }
+        if (buffered < mZslOnDemandTarget) {
+            return;
+        }
+        finishZslOnDemandBurst();
+    }
+
+    /** Safety net after the burst sequence completes: process what arrived. */
+    private void forceFinishZslOnDemandBurst(int burstId) {
+        if (!mZslOnDemandBurst || burstId != mZslOnDemandBurstId) {
+            return;
+        }
+        if (mZslOnDemandResultCount <= 0) {
+            Log.w(TAG, "on-demand ZSL: no capture results, aborting");
+            mZslOnDemandBurst = false;
+            mZslCapturing = false;
+            burst = false;
+            return;
+        }
+        finishZslOnDemandBurst();
+    }
+
+    private void finishZslOnDemandBurst() {
+        if (!mZslOnDemandBurst) {
+            return;
+        }
+        mZslOnDemandBurst = false;
+        burst = false;
+        List<Image> frames;
+        synchronized (mZslBufferLock) {
+            frames = new ArrayList<>(mZslRingBuffer);
+            mZslRingBuffer.clear();
+        }
+        // Every processed frame needs an exposure entry (HdrxProcessor looks it
+        // up by timestamp): fall back to the last AE value for dropped results.
+        double fallback = 1.0;
+        if (mZslLastBurstResult != null) {
+            Long exposureNs = mZslLastBurstResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Integer iso = mZslLastBurstResult.get(CaptureResult.SENSOR_SENSITIVITY);
+            if (exposureNs != null && iso != null) {
+                fallback = (exposureNs / 1_000_000_000.0) * iso;
+            }
+        }
+        for (Image img : frames) {
+            if (!mExposures.containsKey(img.getTimestamp())) {
+                mExposures.put(img.getTimestamp(), fallback);
+            }
+        }
+        Log.d(TAG, "on-demand ZSL burst finished: " + frames.size() + "/"
+                + mZslOnDemandTarget + " frames, " + mZslOnDemandResultCount + " results");
+        final CaptureResult burstResult = mZslLastBurstResult != null
+                ? mZslLastBurstResult : mPreviewCaptureResult;
+        final CaptureRequest burstRequest = mZslLastBurstRequest != null
+                ? mZslLastBurstRequest : mPreviewCaptureRequest;
+        // Frame copying and UI events run on the main thread, matching the
+        // continuous ZSL path (the callbacks deliver on the background handler).
+        mMainHandler.post(() -> processZslFrames(frames, burstResult, burstRequest, false));
+    }
+
+    /**
+     * Copies raw ZSL frames into ImageFrames and runs them through the RAW
+     * saver. Continuous ZSL passes frames drained from the ring buffer with
+     * exposures taken from the preview result; the on-demand burst passes
+     * frames captured on press with per-frame AE exposures already recorded.
+     */
+    private void processZslFrames(List<Image> rawImages, CaptureResult captureResult,
+                                  CaptureRequest captureRequest, boolean exposuresFromPreview) {
+        int frameCount = FrameNumberSelector.getFrames();
+        if (exposuresFromPreview && frameCount > 0 && rawImages.size() > frameCount) {
+            int skip = rawImages.size() - frameCount;
+            for (int i = 0; i < skip; i++) {
+                rawImages.get(i).close();
+            }
+            rawImages = rawImages.subList(skip, rawImages.size());
+        }
+        int take = rawImages.size();
+
+        // Exposure metadata: continuous ZSL frames share the preview exposure;
+        // on-demand frames carry their own AE exposure per timestamp.
         double previewExpTime = 1.0;
         double previewISO = 100.0;
         long exposureTimeNs = 0;
-        if (mPreviewCaptureResult != null) {
-            Long expTimeNs = mPreviewCaptureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
-            Integer isoVal = mPreviewCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY);
+        if (captureResult != null) {
+            Long expTimeNs = captureResult.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+            Integer isoVal = captureResult.get(CaptureResult.SENSOR_SENSITIVITY);
             if (expTimeNs != null) {
                 exposureTimeNs = expTimeNs;
                 previewExpTime = expTimeNs / 1_000_000_000.0;
@@ -3884,8 +4242,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         boolean doZoomCrop = zoomController.isZoomed();
         // Copy selected Images to ImageFrames only now (on shutter press)
         List<ImageFrame> selected = new ArrayList<>();
-        for (int i = skip; i < rawImages.size(); i++) {
-            Image img = rawImages.get(i);
+        for (Image img : rawImages) {
             int rowStride = img.getPlanes()[0].getRowStride();
             int pixelStride = img.getPlanes()[0].getPixelStride();
             int width = (img.getFormat() == ImageFormat.RAW10)
@@ -3908,7 +4265,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 if (frame == null) { img.close(); continue; }
                 frame.timestamp = img.getTimestamp();
                 img.close();
-                mExposures.put(frame.timestamp, exposureVal);
+                if (exposuresFromPreview) mExposures.put(frame.timestamp, exposureVal);
                 if (take > 1) packZslBurstFrame(frame);
                 selected.add(frame);
                 continue;
@@ -3934,7 +4291,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 frame.height/= 2;
             }
             img.close();
-            mExposures.put(frame.timestamp, exposureVal);
+            if (exposuresFromPreview) mExposures.put(frame.timestamp, exposureVal);
             if (take > 1) packZslBurstFrame(frame);
             selected.add(frame);
         }
@@ -3956,7 +4313,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         SaverImplementation.IMAGE_BUFFER.clear();
         SaverImplementation.IMAGE_BUFFER.addAll(selected);
 
-        mCaptureResult = mPreviewCaptureResult;
+        mCaptureResult = captureResult;
         mMeasuredFrameCnt = actualCount;
 
         cameraEventsListener.onFrameCountSet(actualCount);
@@ -3994,7 +4351,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 }
                 mImageSaver.implementation.bufferLock = false;
                 mImageSaver.updateFrameCount(capturedCount);
-                mImageSaver.runRaw(mCameraCharacteristics, mPreviewCaptureResult, mPreviewCaptureRequest,
+                mImageSaver.runRaw(mCameraCharacteristics, captureResult, captureRequest,
                         new ArrayList<>(BurstShakiness), cameraRotation, mExposures);
             } catch (Exception e) {
                 Log.e(TAG, "ZSL runRaw: " + Log.getStackTraceString(e));
@@ -4022,6 +4379,15 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getSelectedFpsRange());
             } else {
                 captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
+            }
+            if (isCaptureSessionFpsCapActive()) {
+                // Per-sensor capture cap: preview stays at the selected rate,
+                // stills are explicitly limited to the cap.
+                try {
+                    captureBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getCappedFpsRange());
+                } catch (Exception e) {
+                    Log.w(TAG, "still capture fps cap rejected", e);
+                }
             }
             float focus = mFocus;
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
@@ -4406,7 +4772,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     public void applyFpsRange() {
         if (mPreviewRequestBuilder == null) return;
-        PhotonCamera.getSettings().fpsMode = PreferenceKeys.getFpsMode();
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        int fps = PreferenceKeys.getFpsModeForMode(mode);
+        if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
+            PhotonCamera.getSettings().videoFpsMode = fps;
+        } else {
+            PhotonCamera.getSettings().fpsMode = fps;
+        }
         mPreviewRequestBuilder.set(CaptureRequest.CONTROL_AE_TARGET_FPS_RANGE, getSelectedFpsRange());
         rebuildPreviewBuilder();
     }
@@ -4589,10 +4961,39 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         createCameraPreviewSession(false);
     }
 
+    /**
+     * True when the currently open camera is front-facing, so video uses the
+     * separate selfie resolution.
+     */
+    private boolean isActiveCameraFrontFacing() {
+        try {
+            CameraCharacteristics chars = mCameraCharacteristics;
+            if (chars == null && mCameraCharacteristicsMap != null) {
+                chars = mCameraCharacteristicsMap.get(physicalID);
+            }
+            Integer facing = chars != null ? chars.get(CameraCharacteristics.LENS_FACING) : null;
+            return facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /** Video resolution for the active camera: selfie has its own entry. */
+    private String getActiveVideoResolution() {
+        return isActiveCameraFrontFacing()
+                ? PreferenceKeys.getSelfieVideoResolution()
+                : PreferenceKeys.getVideoResolution();
+    }
+
     private CamcorderProfile resolveVideoProfile(int cameraId, String resolution) {
         int[] qualities;
         switch (resolution) {
-            case "3840x2160": qualities = new int[]{CamcorderProfile.QUALITY_2160P, CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P}; break;
+            // AOSP has no 1440p profile quality, so 1440p shares the 4K
+            // preference order: the actual size comes from the resolution
+            // string (MediaRecorder outputs) in resolveVideoSize(), and the
+            // profile only seeds frame-rate/bitrate defaults.
+            case "3840x2160":
+            case "2560x1440": qualities = new int[]{CamcorderProfile.QUALITY_2160P, CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P}; break;
             case "1280x720":  qualities = new int[]{CamcorderProfile.QUALITY_720P,  CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_2160P}; break;
             default:          qualities = new int[]{CamcorderProfile.QUALITY_1080P, CamcorderProfile.QUALITY_720P,  CamcorderProfile.QUALITY_2160P}; break;
         }
@@ -4626,9 +5027,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // preview session already uses the HDR vendor type like the
             // record session will.
             boolean hdr = mIsRecordingVideo ? mVideoHdrActive : isVideoHdrRequested();
+            boolean selfie = isActiveCameraFrontFacing();
+            String resolution = getActiveVideoResolution();
+            int fpsMode = PhotonCamera.getSettings().getActiveFpsMode();
             String raw = hdr
-                    ? PreferenceKeys.getVideoHdrSessionType()
-                    : PreferenceKeys.getVideoSdrSessionType();
+                    ? PreferenceKeys.getVideoHdrSessionType(selfie, resolution, fpsMode)
+                    : PreferenceKeys.getVideoSdrSessionType(selfie, resolution, fpsMode);
             if (raw == null || raw.isEmpty()) return fallback;
             int value = Integer.parseInt(raw);
             if (value < 0 || value > 65535) {
@@ -4637,6 +5041,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             Log.d(TAG, "video session type override=" + value + " (per-sensor fallback=" + fallback
                     + ", hdr=" + hdr + ", recording=" + mIsRecordingVideo
+                    + ", scope=" + (selfie ? "selfie" : "back") + "/" + resolution + "/"
+                    + com.particlesdevs.photoncamera.settings.VideoScope.fpsToken(fpsMode)
                     + ", device=" + getOpenDeviceId() + ")");
             return value;
         } catch (NumberFormatException e) {
@@ -4755,8 +5161,11 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     /**
      * Best-effort 10-bit dynamic-range profile for the video session (API 33+).
-     * HLG transfer maps to HLG10, PQ maps to HDR10. Falls back to the other
-     * 10-bit profile when only one is advertised, else STANDARD (SDR).
+     * HLG transfer maps to HLG10, PQ maps to HDR10, HDR10+ maps to
+     * HDR10_PLUS with cascade HDR10_PLUS -&gt; HDR10 -&gt; HLG10. Each step
+     * falls back to the next advertised 10-bit profile, else STANDARD (SDR).
+     * HDR10+ shares the PQ transfer, so an HDR10 base layer still plays as
+     * HDR10 where dynamic SEI passthrough is unavailable.
      */
     private long resolveVideoDynamicRangeProfile() {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
@@ -4811,18 +5220,28 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             java.util.Set<Long> supported = profiles.getSupportedProfiles();
             Log.d(TAG, "video HDR supported profiles=" + supported);
-            boolean wantPq = "pq".equalsIgnoreCase(PreferenceKeys.getVideoHdrTransfer());
+            String transfer = PreferenceKeys.getVideoHdrTransfer();
+            boolean wantHdr10Plus = "hdr10plus".equalsIgnoreCase(transfer)
+                    || "hdr10_plus".equalsIgnoreCase(transfer)
+                    || "hdr10+".equalsIgnoreCase(transfer);
+            boolean wantPq = wantHdr10Plus || "pq".equalsIgnoreCase(transfer);
             long hlg10 = android.hardware.camera2.params.DynamicRangeProfiles.HLG10;
             long hdr10 = android.hardware.camera2.params.DynamicRangeProfiles.HDR10;
+            long hdr10Plus = android.hardware.camera2.params.DynamicRangeProfiles.HDR10_PLUS;
             long picked = android.hardware.camera2.params.DynamicRangeProfiles.STANDARD;
-            if (wantPq) {
+            if (wantHdr10Plus) {
+                if (supported.contains(hdr10Plus)) picked = hdr10Plus;
+                else if (supported.contains(hdr10)) picked = hdr10;
+                else if (supported.contains(hlg10)) picked = hlg10;
+            } else if (wantPq) {
                 if (supported.contains(hdr10)) picked = hdr10;
                 else if (supported.contains(hlg10)) picked = hlg10;
             } else {
                 if (supported.contains(hlg10)) picked = hlg10;
                 else if (supported.contains(hdr10)) picked = hdr10;
             }
-            Log.d(TAG, "video HDR picked profile=" + picked + " (wantPq=" + wantPq + ")");
+            Log.d(TAG, "video HDR picked profile=" + picked + " (transfer=" + transfer
+                    + " wantHdr10Plus=" + wantHdr10Plus + " wantPq=" + wantPq + ")");
             return picked;
         } catch (Exception e) {
             Log.w(TAG, "resolveVideoDynamicRangeProfile failed", e);
@@ -4861,6 +5280,48 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         }
     }
 
+    /**
+     * True when the HDR transfer uses the PQ electro-optical transfer
+     * function. HDR10 and HDR10+ share ST 2084 PQ (colr transfer 16, VUI
+     * transfer 16); HLG uses ARIB STD-B67 (transfer 18).
+     */
+    private static boolean isPqVideoTransfer() {
+        try {
+            String transfer = PreferenceKeys.getVideoHdrTransfer();
+            return "pq".equalsIgnoreCase(transfer)
+                    || "hdr10plus".equalsIgnoreCase(transfer)
+                    || "hdr10_plus".equalsIgnoreCase(transfer)
+                    || "hdr10+".equalsIgnoreCase(transfer);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * Tags the upcoming MP4 with the current fix when "Save location" is on.
+     * Must run before {@link MediaRecorder#prepare()}; silently skipped when
+     * disabled, unauthorized or no fresh fix exists.
+     */
+    private void applyVideoLocation() {
+        if (!PreferenceKeys.isSaveLocationOn()) {
+            return;
+        }
+        try {
+            Context context = PhotonCamera.getAppContext();
+            if (context == null || !LocationProvider.hasPermission(context)) {
+                return;
+            }
+            LocationProvider provider = PhotonCamera.getLocationProvider();
+            android.location.Location location = provider != null ? provider.getLastLocation() : null;
+            if (location != null) {
+                mMediaRecorder.setLocation(
+                        (float) location.getLatitude(), (float) location.getLongitude());
+            }
+        } catch (Exception e) {
+            Log.w(TAG, "video location tag failed", e);
+        }
+    }
+
     private void setUpMediaRecorder(boolean allowHdr) {
         mMediaRecorder.reset();
         int audioSource = mAudioSourceRetry >= 0 ? mAudioSourceRetry : resolveAudioSource();
@@ -4870,7 +5331,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         mMediaRecorder.setVideoSource(MediaRecorder.VideoSource.SURFACE);
         mMediaRecorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);
         int cameraIdInt = parseVideoCameraId();
-        String resolution = PreferenceKeys.getVideoResolution();
+        String resolution = getActiveVideoResolution();
         CamcorderProfile profile = resolveVideoProfile(cameraIdInt, resolution);
         android.util.Size videoSize = resolveVideoSize(resolution, profile);
         Log.d(TAG, "video record " + resolution + " -> " + videoSize.getWidth()
@@ -4881,7 +5342,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         try {
             // Align the container frame rate with the AE range configured on
             // the session.
-            int fpsModeWanted = PhotonCamera.getSettings().fpsMode;
+            int fpsModeWanted = PhotonCamera.getSettings().getActiveFpsMode();
             if (fpsModeWanted == 3) {
                 // A fixed [60,60] high-speed entry is the sanctioned route when
                 // the HAL advertises one. Otherwise record 60 on a regular
@@ -4965,7 +5426,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     }
                     mMediaRecorder.setVideoEncodingProfileLevel(
                             android.media.MediaCodecInfo.CodecProfileLevel.HEVCProfileMain10, level);
-                    Log.d(TAG, "video HDR10-bit Main10 requested, transfer=" + PreferenceKeys.getVideoHdrTransfer());
+                    Log.d(TAG, "video HDR10-bit Main10 requested, transfer="
+                            + PreferenceKeys.getVideoHdrTransfer()
+                            + " dynamicRange=" + mPendingVideoDynamicRange);
                 } catch (Exception e) {
                     Log.w(TAG, "HDR Main10 profile level not accepted, falling back to SDR HEVC", e);
                     wantHdr = false;
@@ -5020,6 +5483,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Log.e(TAG, Log.getStackTraceString(e));
         }
         mMediaRecorder.setOutputFile(vid.getAbsolutePath());
+        applyVideoLocation();
         try {
             mMediaRecorder.prepare();
             Log.d(TAG, "video record start");
@@ -5094,8 +5558,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             try {
                 com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange.Result colorRange =
                         com.particlesdevs.photoncamera.processing.encoder.Mp4ColorRange
-                                .applyFullRange(vid,
-                                        "pq".equalsIgnoreCase(PreferenceKeys.getVideoHdrTransfer()));
+                                .applyFullRange(vid, isPqVideoTransfer());
                 Log.d(TAG, "video color range: " + colorRange);
             } catch (Exception e) {
                 Log.w(TAG, "video color range patch failed", e);
@@ -5359,8 +5822,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             return;
         }
 
-        // 2. In ZSL mode, RAW frames stream continuously: intercept the next streaming frame with 0ms freeze
-        if (isZslMode()) {
+        // 2. In streaming ZSL mode, RAW frames stream continuously: intercept
+        // the next streaming frame with 0ms freeze. On-demand ZSL has no
+        // continuous stream, so it falls through to the single-shot path.
+        if (isZslStreamingEnabled()) {
             mPendingRawMeteringCallback = callback;
             return;
         }

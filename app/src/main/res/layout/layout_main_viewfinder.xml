@@ -14,6 +14,9 @@
                 type="com.particlesdevs.photoncamera.ui.camera.model.TimerFrameCountModel"/>
     </data>
 
+    <!--The include is sized by its constraints (a fixed, full-height container),
+        NOT by the viewfinder frame: the frame's aspect morph then only re-solves
+        this small subtree instead of the whole camera container.-->
     <FrameLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent"
@@ -34,15 +37,17 @@
 
             <!--Grid/rounded-corner overlay: declared first so its window drawing
                 (and any canvas operation it makes) stays below the focus and
-                spot WB indicators. Its surface keeps ZOrderOnTop. -->
+                spot WB indicators. It spans this container (a fixed size) and
+                draws its grid inside the viewfinder frame's rect, so its
+                surface never resizes while the frame morphs. -->
             <com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder
                     android:layout_width="0dp"
                     android:layout_height="0dp"
                     android:id="@+id/surfaceView"
-                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
-                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
-                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
-                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintTop_toTopOf="parent"
                     android:background="#00000000"
                     tools:visibility="visible" />
 
@@ -99,39 +104,47 @@
                 app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
                 app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
                 app:layout_constraintTop_toTopOf="@id/viewfinder_frame" />
+
+            <!--Capture Progress circle: M3E indicator sized like the old ring.
+                indicatorSize/trackThickness reproduce the previous drawable's
+                geometry (150dp box: 50dp inner radius + 3.75dp stroke = 107.5dp
+                outer ring). indicatorSize must stay explicit — the widget ignores
+                layout_width/height and would collapse to its 40dp default.
+                Centred on the viewfinder frame, not on the container, so it stays
+                put while the frame morphs.-->
+            <com.google.android.material.progressindicator.CircularProgressIndicator
+                    android:id="@+id/capture_progress_bar"
+                    style="@style/Widget.Material3.CircularProgressIndicator"
+                    android:layout_width="@dimen/capture_progress_circle_size"
+                    android:layout_height="@dimen/capture_progress_circle_size"
+                    tools:progress="75"
+                    android:indeterminate="false"
+                    android:max="100"
+                    app:indicatorSize="107.5dp"
+                    app:trackThickness="3.75dp"
+                    app:indicatorTrackGapSize="0dp"
+                    app:indicatorColor="?attr/colorPrimary"
+                    app:trackColor="@color/cam_outline"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame" />
+
+            <TextView
+                    android:id="@+id/frameTimer"
+                    android:layout_width="120dp"
+                    android:layout_height="wrap_content"
+                    android:textAlignment="center"
+                    tools:text="14:00"
+                    android:text="@{timermodel.timerCount}"
+                    android:textColor="@android:color/white"
+                    android:textSize="36sp"
+                    android:typeface="normal"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="@id/viewfinder_frame"
+                    app:layout_constraintEnd_toEndOf="@id/viewfinder_frame"
+                    app:layout_constraintStart_toStartOf="@id/viewfinder_frame"
+                    app:layout_constraintTop_toTopOf="@id/viewfinder_frame" />
         </androidx.constraintlayout.widget.ConstraintLayout>
-
-        <!--Capture Progress circle: M3E indicator sized like the old ring.
-            indicatorSize/trackThickness reproduce the previous drawable's
-            geometry (150dp box: 50dp inner radius + 3.75dp stroke = 107.5dp
-            outer ring). indicatorSize must stay explicit — the widget ignores
-            layout_width/height and would collapse to its 40dp default.-->
-        <com.google.android.material.progressindicator.CircularProgressIndicator
-                android:id="@+id/capture_progress_bar"
-                style="@style/Widget.Material3.CircularProgressIndicator"
-                android:layout_width="@dimen/capture_progress_circle_size"
-                android:layout_height="@dimen/capture_progress_circle_size"
-                tools:progress="75"
-                android:indeterminate="false"
-                android:max="100"
-                android:layout_gravity="center"
-                app:indicatorSize="107.5dp"
-                app:trackThickness="3.75dp"
-                app:indicatorTrackGapSize="0dp"
-                app:indicatorColor="?attr/colorPrimary"
-                app:trackColor="@color/cam_outline" />
-
-        <TextView
-                android:id="@+id/frameTimer"
-                android:layout_width="120dp"
-                android:layout_height="wrap_content"
-                android:textAlignment="center"
-                tools:text="14:00"
-                android:text="@{timermodel.timerCount}"
-                android:textColor="@android:color/white"
-                android:textSize="36sp"
-                android:typeface="normal"
-                android:visibility="visible"
-                android:layout_gravity="center" />
     </FrameLayout>
 </layout>

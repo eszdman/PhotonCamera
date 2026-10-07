@@ -205,7 +205,7 @@
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintEnd_toEndOf="parent"
                 app:layout_constraintTop_toBottomOf="@id/histogram_container"
-                app:layout_constraintBottom_toBottomOf="parent">
+                app:layout_constraintBottom_toTopOf="@id/exif_description_toggle">
 
             <TextView
                     android:id="@+id/value_res"
@@ -269,6 +269,53 @@
                     app:layout_constraintEnd_toEndOf="parent"/>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
+
+        <ImageView
+                android:id="@+id/exif_description_toggle"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:contentDescription="@string/exif_show_description"
+                android:focusable="true"
+                android:padding="8dp"
+                android:rotation="180"
+                android:scaleType="fitCenter"
+                android:visibility="gone"
+                app:layout_constraintBottom_toTopOf="@id/exif_description_scroll"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/file_info_container"
+                app:srcCompat="@drawable/chevron_up"
+                tools:visibility="visible" />
+
+        <androidx.core.widget.NestedScrollView
+                android:id="@+id/exif_description_scroll"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_marginStart="20dp"
+                android:layout_marginEnd="20dp"
+                android:layout_marginBottom="4dp"
+                android:scrollbars="vertical"
+                android:visibility="gone"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintHeight_default="wrap"
+                app:layout_constraintHeight_max="@dimen/exif_description_max_height"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/exif_description_toggle"
+                tools:visibility="visible">
+
+            <TextView
+                    android:id="@+id/value_description"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="5dp"
+                    android:text="@{exifmodel.description}"
+                    android:textColor="@color/cam_on_surface"
+                    android:textSize="13sp"
+                    tools:text="parameters:&#10;&#10; hasGainMap=true&#10; FrameCount=7&#10; CameraID=0" />
+        </androidx.core.widget.NestedScrollView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>

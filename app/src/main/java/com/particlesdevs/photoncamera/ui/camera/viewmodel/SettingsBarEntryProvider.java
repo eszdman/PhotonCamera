@@ -24,6 +24,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
@@ -85,7 +86,8 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(timerEntry, PreferenceKeys.getCountdownTimerIndex());
         updateEntry(hdrxEntry, PreferenceKeys.isHdrXOn());
         updateEntry(eisEntry, PreferenceKeys.isEisPhotoOn());
-        updateEntry(fpsEntry, PreferenceKeys.getFpsMode());
+        updateEntry(fpsEntry, PreferenceKeys.getFpsModeForMode(
+                PhotonCamera.getSettings().selectedMode));
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
         if (PreferenceKeys.isHeicSave() != saveLabelsHeic) {
             // Toggle flipped since the buttons were built (e.g. changed in
@@ -108,8 +110,11 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     public void addEntries(SettingsBarLayout settingsBarLayout) {
-        settingsBarLayout.removeEntries();
-        allEntries.forEach(settingsBarLayout::addEntry);
+        // Reuse the entries already in the panel: recreating them churned every
+        // entry view and option button, which reset the rows' selection pills
+        // (they snapped instead of sliding) and made an open pulldown fade its
+        // rows out and back in.
+        allEntries.forEach(settingsBarLayout::addOrUpdateEntry);
     }
 
     private void createHdrxEntry() {

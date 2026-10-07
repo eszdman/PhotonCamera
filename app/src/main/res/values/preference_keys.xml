@@ -47,8 +47,10 @@
     <string name="pref_save_heic_key" translatable="false">pref_save_heic_key</string>
     <string name="pref_show_roundedge_key" translatable="false">pref_show_roundedge_key</string>
     <string name="pref_show_grid_key" translatable="false">pref_show_grid_key</string>
+    <string name="pref_always_show_zoom_bar_key" translatable="false">pref_always_show_zoom_bar_key</string>
     <string name="pref_lens_bar_position_key" translatable="false">pref_lens_bar_position_key</string>
     <string name="pref_camera_sounds_key" translatable="false">pref_camera_sounds_key</string>
+    <string name="pref_haptics_key" translatable="false">pref_haptics_key</string>
     <string name="pref_chroma_nr_seekbar_key" translatable="false">pref_chroma_nr_seekbar_key</string>
     <string name="pref_luma_nr_seekbar_key" translatable="false">pref_luma_nr_seekbar_key</string>
     <string name="pref_compressor_seekbar_key" translatable="false">pref_compressor_seekbar_key</string>
@@ -80,6 +82,7 @@
     <string name="pref_auto_zoom_switch_key" translatable="false">pref_auto_zoom_switch_key</string>
     <string name="pref_quad_bayer_key" translatable="false">pref_quad_bayer_key</string>
     <string name="pref_fps_preview_key" translatable="false">pref_fps_preview_key</string>
+    <string name="pref_video_fps_key" translatable="false">pref_video_fps_key</string>
     <string name="pref_ultrahdr_key" translatable="false">pref_ultrahdr_key</string>
     <string name="camera_id" translatable="false">camera_id</string>
     <string name="tonemap_key" translatable="false">tonemap_key</string>
@@ -111,6 +114,9 @@
     <string name="pref_version_key" translatable="false">pref_version_key</string>
     <string name="pref_folders_list" translatable="false">pref_folders_list</string>
     <string name="pref_hide_gallery_icon_key" translatable="false">pref_hide_gallery_icon_key</string>
+    <string name="pref_hide_modes_key" translatable="false">pref_hide_modes_key</string>
+    <string name="pref_mode_order_key" translatable="false">pref_mode_order_key</string>
+    <string name="pref_save_location_key" translatable="false">pref_save_location_key</string>
     <string name="pref_category_device_key" translatable="false">pref_category_device_key</string>
     <string name="pref_fetch_configurations_key" translatable="false">pref_fetch_configurations_key</string>
 </resources>

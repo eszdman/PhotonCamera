@@ -183,7 +183,30 @@ public class ImageSaver {
 
         public static boolean saveStackedRaw(Path dngFilePath,
                                              ByteBuffer buffer, Parameters parameters) {
-            return saveSingleRaw(dngFilePath, buffer, parameters);
+            return saveStackedRaw(dngFilePath, buffer, parameters, false);
+        }
+
+        /**
+         * Scaled/SR variant: identical, but compresses the (much larger)
+         * output when requested.
+         */
+        public static boolean saveStackedRaw(Path dngFilePath,
+                                             ByteBuffer buffer, Parameters parameters,
+                                             boolean compressed) {
+            DngCreator dngCreator = new DngCreator();
+            dngCreator.setParameters(parameters);
+            dngCreator.setCompression(compressed);
+            try {
+                OutputStream outputStream = Files.newOutputStream(dngFilePath);
+                dngCreator.writeBuffer(outputStream, buffer, parameters.rawSize.x, parameters.rawSize.y);
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                return false;
+            } finally {
+                dngCreator.close();
+            }
+            return true;
         }
         public static boolean saveSingleRaw(Path dngFilePath,
                                             ImageFrame image,

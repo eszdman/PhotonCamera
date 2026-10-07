@@ -19,14 +19,21 @@ import static android.opengl.GLES20.GL_MIRRORED_REPEAT;
 import static android.opengl.GLES20.GL_NEAREST;
 
 /**
- * Builds the KernelNet input luma plane for a cropped single-frame capture
- * (the multi-frame path already exports its params from ESD4D) and starts the
- * parameter-model inference on a worker thread.
+ * Builds the KernelNet input luma plane and starts the parameter-model
+ * inference on a worker thread.
+ *
+ * <p>Covers both the legacy cropped path (the multi-frame path already
+ * exports its params from ESD4D) and the explicit per-sensor
+ * upscale/downscale factor ({@code upscaleFactor} / {@code upscaleFactorQb}
+ * on {@link com.particlesdevs.photoncamera.processing.render.Parameters}),
+ * which also applies to uncropped shots. The guided aniso reconstruction in
+ * {@link UpscaleCrop} is used for both up and down resizes, so inference is
+ * started whenever a resize will happen.
  *
  * <p>The GL-thread work here is one packed-luma pass plus one small readback;
  * the ncnn inference then overlaps the rest of the post pipeline and is
  * collected by {@link UpscaleCrop}. Params unavailable paths (RGB layout,
- * not cropped, model failure) simply fall back to bicubic in UpscaleCrop.</p>
+ * no resize, model failure) fall back to bicubic in UpscaleCrop.</p>
  */
 public final class KernelNetPrep extends Node {
 
@@ -55,12 +62,23 @@ public final class KernelNetPrep extends Node {
         PostPipeline pp = (PostPipeline) basePipeline;
         try {
             if (pp.kernelParams != null || pp.kernelNetSingleThread != null) return;
-            if (!basePipeline.mParameters.isCropped
-                    || basePipeline.mParameters.fullRawSize == null) return;
+            com.particlesdevs.photoncamera.processing.render.Parameters params =
+                    basePipeline.mParameters;
+            if (params == null) return;
+            float factor = params.getActiveUpscaleFactor();
+            boolean explicitResize =
+                    !com.particlesdevs.photoncamera.processing.render.Parameters.isResizeDisabled(factor)
+                            && Math.abs(factor - 1.0f) > 1e-4f;
+            // No consumer in UpscaleCrop when neither zoom-expanded nor
+            // explicitly resized: skip inference (1.0x is a size no-op).
+            if (!params.isCropped && !explicitResize) return;
+            // Cropped path still needs the full-frame size to expand into.
+            if (params.isCropped && params.fullRawSize == null && !explicitResize) return;
             // RGB layout carries no Bayer quads for the packed luma pass.
             if (basePipeline.mSettings.alignAlgorithm == 2) return;
 
             Point rawSize = basePipeline.mParameters.rawSize;
+            if (rawSize == null || rawSize.x <= 0 || rawSize.y <= 0) return;
             Point packed = new Point(rawSize.x / 2, rawSize.y / 2);
             Point lumaTexSize = new Point((packed.x + 3) / 4, packed.y);
             if (lumaTexSize.x < 1) lumaTexSize.x = 1;

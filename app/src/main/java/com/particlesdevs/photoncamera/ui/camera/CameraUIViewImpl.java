@@ -1,29 +1,38 @@
 package com.particlesdevs.photoncamera.ui.camera;
 
+import android.graphics.drawable.Drawable;
+import android.graphics.drawable.TransitionDrawable;
 import android.os.Bundle;
 import android.widget.TextView;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.Log;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
 
+import androidx.annotation.DrawableRes;
+import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.constraintlayout.widget.ConstraintLayout;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraManager2;
 import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.TunableInjector;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.ui.camera.views.modeswitcher.wefika.horizontalpicker.HorizontalPicker;
-import com.particlesdevs.photoncamera.ui.widget.MorphShapeDrawable;
-import com.particlesdevs.photoncamera.ui.widget.RecordButtonDrawable;
+import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderFrameView;
+import com.particlesdevs.photoncamera.ui.widget.ShutterFaceDrawable;
 import com.particlesdevs.photoncamera.util.Utilities;
 
-import java.util.Arrays;
+import java.util.ArrayList;
+import java.util.List;
 
 import static androidx.constraintlayout.widget.ConstraintSet.GONE;
 
@@ -52,12 +61,12 @@ public class CameraUIViewImpl implements CameraUIView {
     private final ProgressBar mProcessingProgressBar;
     private final HorizontalPicker mModePicker;
     private final TextView mVideoRecordingInfo;
-    private final MorphShapeDrawable mShutterMorph;
-    private final RecordButtonDrawable mRecordDrawable;
+    private final ShutterFaceDrawable mShutterFace;
     private LayoutMainTopbarBinding topbar;
     private LayoutBottombuttonsBinding bottombuttons;
     private CameraUIEventsListener uiEventsListener;
     private CameraModeState currentState;
+    private List<CameraMode> mVisibleModes;
 
     CameraUIViewImpl(CameraFragment cameraFragment) {
         this.cameraFragment = cameraFragment;
@@ -66,8 +75,8 @@ public class CameraUIViewImpl implements CameraUIView {
         this.mCaptureProgressBar = cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar;
         this.mProcessingProgressBar = bottombuttons.processingProgressBar;
         this.mShutterButton = bottombuttons.shutterButton;
-        this.mShutterMorph = MorphShapeDrawable.shutter(cameraFragment.requireContext());
-        this.mRecordDrawable = new RecordButtonDrawable(cameraFragment.requireContext());
+        this.mShutterFace = new ShutterFaceDrawable(cameraFragment.requireContext());
+        this.mShutterButton.setBackground(mShutterFace);
         this.mModePicker = cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.modePickerView;
         this.mVideoRecordingInfo = cameraFragment.cameraFragmentBinding.getRoot().findViewById(R.id.video_recording_info);
         this.initListeners();
@@ -95,6 +104,14 @@ public class CameraUIViewImpl implements CameraUIView {
         currentState.reConfigureModeViews(mode);
     }
 
+    /**
+     * Quad Bayer controls are unavailable when the tunable disables them or on
+     * an ISZ virtual lens, where Quad Bayer is always off.
+     */
+    private boolean isQuadResAvailable() {
+        return enableQuadRes && !CameraManager2.isIszVirtual(PreferenceKeys.getCameraID());
+    }
+
     private void initListeners() {
         TunableInjector.inject(this);
         if (!enableQuadRes) {
@@ -102,14 +119,54 @@ public class CameraUIViewImpl implements CameraUIView {
         }
         this.topbar.setTopBarClickListener(v -> this.uiEventsListener.onClick(v));
         this.bottombuttons.setBottomBarClickListener(v -> this.uiEventsListener.onClick(v));
-        this.topbar.setQuadVisible(enableQuadRes);
+        this.topbar.setQuadVisible(isQuadResAvailable());
     }
 
     private void initModeSwitcher() {
-        this.mModePicker.setValues(Arrays.stream(CameraMode.nameIds()).map(cameraFragment.activity::getString).toArray(String[]::new));
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        CameraMode current = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
+        if (!mVisibleModes.contains(current)) {
+            current = PreferenceKeys.getFallbackMode(current);
+            PreferenceKeys.setCameraModeOrdinal(current.ordinal());
+        }
+        updateModePickerValues();
         this.mModePicker.setOverScrollMode(View.OVER_SCROLL_NEVER);
-        this.mModePicker.setOnItemSelectedListener(index -> switchToMode(CameraMode.valueOf(index)));
-        this.mModePicker.setSelectedItem(PreferenceKeys.getCameraModeOrdinal());
+        this.mModePicker.setOnItemSelectedListener(index -> {
+            if (index < 0 || index >= mVisibleModes.size()) {
+                return;
+            }
+            switchToMode(mVisibleModes.get(index));
+        });
+        this.mModePicker.setSelectedItem(mVisibleModes.indexOf(current));
+    }
+
+    /**
+     * Rebuilds the picker labels from the currently visible modes. Called on
+     * init and on {@link #refresh(boolean)} so changes made in Settings apply
+     * without restarting the camera.
+     */
+    private void updateModePickerValues() {
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        Integer[] allNameIds = CameraMode.nameIds();
+        String[] names = new String[mVisibleModes.size()];
+        for (int i = 0; i < mVisibleModes.size(); i++) {
+            names[i] = cameraFragment.activity.getString(allNameIds[mVisibleModes.get(i).ordinal()]);
+        }
+        this.mModePicker.setValues(names);
+    }
+
+    /**
+     * Ensures the persisted mode is visible, falling back to the next visible
+     * mode when the selected one was hidden. Returns the effective mode.
+     */
+    private CameraMode resolveVisibleMode() {
+        mVisibleModes = PreferenceKeys.getVisibleModes();
+        CameraMode current = CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal());
+        if (!mVisibleModes.contains(current)) {
+            current = PreferenceKeys.getFallbackMode(current);
+            PreferenceKeys.setCameraModeOrdinal(current.ordinal());
+        }
+        return current;
     }
 
     @Override
@@ -122,8 +179,8 @@ public class CameraUIViewImpl implements CameraUIView {
 
     @Override
     public void setShutterRecording(boolean recording) {
-        if (mRecordDrawable != null) {
-            mRecordDrawable.setRecording(recording);
+        if (mShutterFace != null) {
+            mShutterFace.setRecording(recording);
         }
         if (mShutterButton != null) {
             mShutterButton.post(() -> mShutterButton.setContentDescription(
@@ -134,16 +191,14 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     /**
-     * Attaches the shared record-button drawable (popping the dot in on
-     * first attach) and syncs it with the live capture state so refreshes
-     * during a recording don't reset it to idle.
+     * Switches the shared shutter face to the record design (video, unlimited
+     * and RAW video modes) and syncs it with the live capture state so refreshes
+     * during a recording don't reset it to idle. The face is never swapped as a
+     * background: it morphs, so the photo/video change animates.
      */
-    private void attachRecordButton() {
-        if (mShutterButton.getBackground() != mRecordDrawable) {
-            mShutterButton.setBackground(mRecordDrawable);
-            mRecordDrawable.rewindEntry();
-        }
-        mRecordDrawable.refreshColors(cameraFragment.requireContext());
+    private void syncShutterFace() {
+        mShutterFace.refreshColors(cameraFragment.requireContext());
+        mShutterFace.setMode(true);
         boolean recording = cameraFragment.captureController != null
                 && (cameraFragment.captureController.mIsRecordingVideo
                         || cameraFragment.captureController.onUnlimited);
@@ -170,8 +225,156 @@ public class CameraUIViewImpl implements CameraUIView {
                 break;
         }
 
+        // Animate the mode's layout changes with translation FLIPs instead of a
+        // TransitionManager (its delayed transition suppresses layout for the
+        // whole tree, freezing the viewfinder's stretch) or a per-frame dummy
+        // aspect animation (re-solving the whole container every frame starved
+        // the shutter and mode-picker animations). The viewfinder stretch
+        // starts with the rest of the UI; the camera reopens behind the held
+        // capture.
+        cameraFragment.beginAspectSwitchForMode(cameraMode);
+        List<View> flippedViews = modeSwitchFlippedViews();
+        int[] flippedTops = new int[flippedViews.size()];
+        for (int i = 0; i < flippedViews.size(); i++) {
+            flippedTops[i] = flippedViews.get(i).getTop();
+        }
         currentState.reConfigureModeViews(cameraMode);
+        flipModeSwitchViews(flippedViews, flippedTops);
         if (uiEventsListener != null) uiEventsListener.onCameraModeChanged(cameraMode);
+    }
+
+    /** Every view a mode switch may offset, whether visible in it or not. */
+    private static final int[] MODE_SWITCH_FLIP_IDS = {
+            R.id.camera_container,
+            R.id.layout_bottombar,
+            R.id.lens_zoom_bar,
+            R.id.zoom_slider_container,
+            R.id.zoom_indicator,
+            R.id.zoom_lock_pill,
+            // The manual-palette opener hangs off the same bottom-bar anchor,
+            // so it must glide with the bar instead of jumping when the anchor
+            // moves.
+            R.id.open_close_manual};
+
+    /** Views whose layout position changes with the mode's anchors. */
+    private List<View> modeSwitchFlippedViews() {
+        View root = cameraFragment.cameraFragmentBinding.getRoot();
+        List<View> views = new ArrayList<>(MODE_SWITCH_FLIP_IDS.length);
+        for (int id : MODE_SWITCH_FLIP_IDS) {
+            addIfVisible(views, root.findViewById(id));
+        }
+        return views;
+    }
+
+    private static void addIfVisible(List<View> views, View view) {
+        if (view != null && view.getVisibility() == View.VISIBLE) {
+            views.add(view);
+        }
+    }
+
+    /**
+     * Applies each view's layout delta as a translation as soon as the new
+     * layout lands (in the pre-draw, before the frame is shown), then follows
+     * the viewfinder's stretch progress to zero, so the chrome glides in
+     * lockstep with the frame instead of arriving early — the bottom bar's top
+     * must never cross the frame's bottom while the viewfinder shrinks. The
+     * panel-blur regions read the translations, so the frosted backdrops
+     * follow along.
+     */
+    private void flipModeSwitchViews(List<View> views, int[] tops) {
+        if (views.isEmpty()) {
+            return;
+        }
+        View root = cameraFragment.cameraFragmentBinding.getRoot();
+        ViewfinderFrameView frame =
+                cameraFragment.cameraFragmentBinding.layoutViewfinder.viewfinderFrame;
+        root.getViewTreeObserver().addOnPreDrawListener(new ViewTreeObserver.OnPreDrawListener() {
+            @Override
+            public boolean onPreDraw() {
+                if (root.getViewTreeObserver().isAlive()) {
+                    root.getViewTreeObserver().removeOnPreDrawListener(this);
+                }
+                // Drop any listener left by an interrupted switch before this
+                // one installs its own deltas.
+                frame.setProgressListener(null);
+                if (!frame.isAspectAnimating()) {
+                    // No stretch to follow (the aspect did not change, or it
+                    // snapped): the views belong at their final positions.
+                    clearModeSwitchTranslations(root);
+                    return true;
+                }
+                float progress = frame.getStretchProgress();
+                for (int i = 0; i < views.size(); i++) {
+                    View view = views.get(i);
+                    view.setTranslationY((tops[i] - view.getTop()) * (1f - progress));
+                }
+                frame.setProgressListener(stretchProgress -> {
+                    float remaining = 1f - stretchProgress;
+                    for (int i = 0; i < views.size(); i++) {
+                        View view = views.get(i);
+                        // The delta is re-anchored every frame: a view can
+                        // re-lay out while the switch is still gliding (the new
+                        // camera's lens set arrives mid-switch), and a delta
+                        // frozen at the switch would then start the glide from a
+                        // position the view was never at.
+                        view.setTranslationY((tops[i] - view.getTop()) * remaining);
+                    }
+                    if (stretchProgress >= 1f) {
+                        frame.setProgressListener(null);
+                        // Also clear candidates that were hidden for this
+                        // switch: a stale translation would shift them when
+                        // they reappear.
+                        clearModeSwitchTranslations(root);
+                    }
+                });
+                return true;
+            }
+        });
+    }
+
+    /** Zeroes the mode-switch translation on every candidate view. */
+    private static void clearModeSwitchTranslations(View root) {
+        for (int id : MODE_SWITCH_FLIP_IDS) {
+            View view = root.findViewById(id);
+            if (view != null) {
+                view.setTranslationY(0f);
+            }
+        }
+    }
+
+    /**
+     * Crossfades the root background to a new mode gradient instead of swapping
+     * it instantly. Nested TransitionDrawables are flattened first, so repeated
+     * mode switches cannot stack layers.
+     */
+    private void animateRootBackground(@Nullable Drawable next) {
+        View root = cameraFragment.cameraFragmentBinding.getRoot();
+        if (next == null) {
+            return;
+        }
+        Drawable current = root.getBackground();
+        if (current == null) {
+            root.setBackground(next);
+            return;
+        }
+        if (current instanceof TransitionDrawable) {
+            TransitionDrawable previous = (TransitionDrawable) current;
+            int layerCount = previous.getNumberOfLayers();
+            if (layerCount > 0) {
+                current = previous.getDrawable(layerCount - 1);
+            }
+        }
+        TransitionDrawable crossfade = new TransitionDrawable(new Drawable[]{current, next});
+        crossfade.setCrossFadeEnabled(true);
+        root.setBackground(crossfade);
+        crossfade.startTransition((int) Motion.durationMedium2(root.getContext()));
+    }
+
+    private void animateRootBackground(@DrawableRes int resId) {
+        // Load as a drawable resource: Utilities.resolveDrawable() resolves a
+        // theme attribute, so a drawable id would resolve to 0 and crash.
+        animateRootBackground(AppCompatResources.getDrawable(
+                cameraFragment.requireContext(), resId));
     }
 
     private void toggleConstraints(CameraMode mode) {
@@ -204,31 +407,21 @@ public class CameraUIViewImpl implements CameraUIView {
     }
 
     /**
-     * Bottom chrome for 16:9/video layouts: no scrim behind the button row
-     * so the viewfinder shows through between the buttons; the mode
-     * selector's own background follows the viewfinder background option
-     * (black for none, theme gradient for gradient, transparent for blurred
-     * edges). Photo 4:3 layouts clear the selector and float over the themed
-     * root instead.
+     * The bottom chrome carries no background of its own in any layout: the
+     * button row and the mode selector both float over the viewfinder, so the
+     * viewfinder background - or the preview itself, where the 16:9 finder
+     * reaches behind the bar - shows through between the controls.
+     * <p>
+     * The viewfinder background option owns the root's background, which is
+     * the one place it can render continuously; a copy of it behind the mode
+     * selector restarts the gradient inside the selector's bounds and reads as
+     * a band.
      */
-    private void applyBottomChrome(boolean scrimmed) {
-        android.view.View buttons =
-                cameraFragment.cameraFragmentBinding.layoutBottombar.bottomButtons.getRoot();
-        android.view.View selector =
-                cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.getRoot();
-        buttons.setBackground(null);
-        if (scrimmed) {
-            String bg = PreferenceKeys.getViewfinderBackground();
-            if (PreferenceKeys.VIEWFINDER_BACKGROUND_GRADIENT.equals(bg)) {
-                selector.setBackgroundResource(R.drawable.gradient_vector);
-            } else if (PreferenceKeys.VIEWFINDER_BACKGROUND_BLUR.equals(bg)) {
-                selector.setBackground(null);
-            } else {
-                selector.setBackgroundColor(0xFF000000);
-            }
-        } else {
-            selector.setBackground(null);
-        }
+    private void clearBottomChrome() {
+        cameraFragment.cameraFragmentBinding.layoutBottombar.bottomButtons.getRoot()
+                .setBackground(null);
+        cameraFragment.cameraFragmentBinding.layoutBottombar.modeSwitcher.getRoot()
+                .setBackground(null);
     }
 
     /**
@@ -252,9 +445,20 @@ public class CameraUIViewImpl implements CameraUIView {
         if (!enableQuadRes) {
             PreferenceKeys.setQuadBayer(false);
         }
-        this.topbar.setQuadVisible(enableQuadRes);
+        this.topbar.setQuadVisible(isQuadResAvailable());
         cameraFragment.cameraFragmentBinding.invalidateAll();
-        currentState.reConfigureModeViews(CameraMode.valueOf(PreferenceKeys.getCameraModeOrdinal()));
+        CameraMode current = resolveVisibleMode();
+        updateModePickerValues();
+        // The picker's own scroll is the source of truth for the mode: re-seat
+        // it only when it is somewhere else, and never while the user is
+        // dragging or its snap is still settling (that snapped the selector
+        // back under the finger right after a switch).
+        int targetIndex = mVisibleModes.indexOf(current);
+        if (targetIndex >= 0 && mModePicker.getSelectedItem() != targetIndex
+                && !mModePicker.isUserScrolling()) {
+            this.mModePicker.setSelectedItem(targetIndex);
+        }
+        currentState.reConfigureModeViews(current);
         this.resetCaptureProgressBar();
         if (!processing) {
             this.activateShutterButton(true);
@@ -379,7 +583,7 @@ public class CameraUIViewImpl implements CameraUIView {
     private void syncFpsButton() {
         try {
             cameraFragment.cameraFragmentBinding.layoutTopbar.fpsToggleButton
-                    .setFpsModeState(PreferenceKeys.getFpsMode());
+                    .setFpsModeState(PreferenceKeys.getCurrentLensVideoFpsMode());
         } catch (Exception e) {
             Log.w(TAG, "syncFpsButton failed", e);
         }
@@ -402,7 +606,7 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.GONE);
-            attachRecordButton();
+            syncShutterFace();
             // VIDEO has its own REC badge (video_recording_info); the photo
             // countdown timer and burst progress ring do not apply here.
             cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
@@ -411,10 +615,11 @@ public class CameraUIViewImpl implements CameraUIView {
             // Anchor the bottom bar below the 16:9 finder (same layout as the
             // aspect169 photo mode); see setVideoDummyAspect().
             setVideoDummyAspect();
-            applyBottomChrome(true);
-            cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -429,8 +634,8 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            attachRecordButton();
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
+            syncShutterFace();
             if (mode == CameraMode.RAWVIDEO) {
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.frameTimer.setVisibility(View.GONE);
                 cameraFragment.cameraFragmentBinding.layoutViewfinder.captureProgressBar.setVisibility(View.GONE);
@@ -442,14 +647,14 @@ public class CameraUIViewImpl implements CameraUIView {
             if(PhotonCamera.getSettings().aspect169 || mode == CameraMode.RAWVIDEO) {
                 // 16:9 video-style layout; see setVideoDummyAspect().
                 setVideoDummyAspect();
-                applyBottomChrome(true);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
+
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -470,8 +675,8 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackground(mShutterMorph);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
+            mShutterFace.setMode(false);
             //cameraFragment.cameraFragmentBinding.layoutBottombar.layoutBottombar.setBackground(null);
             //cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
@@ -484,15 +689,14 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                applyBottomChrome(true);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 
@@ -511,8 +715,8 @@ public class CameraUIViewImpl implements CameraUIView {
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.bracketing_entry_layout, View.VISIBLE);
-            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, enableQuadRes ? View.VISIBLE : View.GONE);
-            mShutterButton.setBackground(mShutterMorph);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.quad_entry_layout, isQuadResAvailable() ? View.VISIBLE : View.GONE);
+            mShutterFace.setMode(false);
             if(PhotonCamera.getSettings().aspect169) {
                 // Set the dummy view's aspect ratio to 16:9
                 if(cameraFragment.displayAspectRatio <= 16f / 9f)
@@ -522,15 +726,14 @@ public class CameraUIViewImpl implements CameraUIView {
                     cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio(String.valueOf(1.0f/avg));
                     //cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("0.580");
                 }
-                applyBottomChrome(true);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackgroundResource(R.drawable.gradient_vector_video);
             } else {
                 cameraFragment.cameraFragmentBinding.getUimodel().setDummyAspectRatio("3:4");
-                applyBottomChrome(false);
-                cameraFragment.cameraFragmentBinding.getRoot().setBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
             }
+            clearBottomChrome();
+            animateRootBackground(Utilities.resolveDrawable(cameraFragment.requireActivity(), R.attr.cameraFragmentBackground));
 
             toggleConstraints(mode);
+            cameraFragment.reassertManualPanelState();
         }
     }
 

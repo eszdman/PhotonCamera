@@ -67,11 +67,36 @@ public class GLBasePipeline implements AutoCloseable {
     public GLTexture getMain(){
         if(texnum == 1) {
             texnum = 2;
+            if (main2 == null) main2 = freshMain();
             return main2;
         } else {
             texnum = 1;
+            if (main1 == null) main1 = freshMain();
             return main1;
         }
+    }
+
+    /**
+     * Re-creates a main slot released after its last reader (see
+     * TileDriver.releaseConsumedInput, which nulls the slot before closing).
+     * Legacy fallback paths - LocalLaplacian2's non-fused reconstruction, the
+     * tail's non-tiled body, CaptureSharpening's legacy body - still call
+     * getMain() for an output slot, and a null slot must not become a null
+     * draw target. The null slot itself is the release marker: probing
+     * liveness from the GL name registry is unsound, because names get
+     * recycled and a closed wrapper can be re-registered by an unrelated
+     * texture, making it look live. Size and format follow getMain3's
+     * contract.
+     */
+    private GLTexture freshMain() {
+        Point size = workSize != null ? workSize
+                : (mParameters != null ? mParameters.rawSize : null);
+        if (size == null) {
+            return null;
+        }
+        return new GLTexture(new Point(size),
+                new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),
+                null, GL_LINEAR, GL_CLAMP_TO_EDGE);
     }
 
     // Swaps main3 with main1 and main2

@@ -34,6 +34,8 @@
     <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
+    <string name="always_show_zoom_bar">Always show zoom bar</string>
+    <string name="always_show_zoom_bar_summary">Keep the zoom slider visible instead of hiding it after inactivity</string>
     <string name="lens_bar_position">Lens Bar Position</string>
     <string name="lens_bar_position_right">Right</string>
     <string name="lens_bar_position_center">Center</string>
@@ -84,10 +86,20 @@
     <string name="compressor">Compressor</string>
     <string name="about">About</string>
     <string name="camera_sounds">Camera Sounds</string>
+    <string name="haptics">Haptic Feedback</string>
+    <string name="haptics_summary">Vibrate on controls, capture and gestures</string>
     <string name="record_video_desc">Record video</string>
     <string name="stop_recording_desc">Stop recording</string>
     <string name="energy_saving">Battery Saver</string>
     <string name="hide_gallery_icon">Hide Gallery Icon</string>
+    <string name="hide_modes">Hide or reorder modes</string>
+    <string name="hide_modes_hint">Drag to reorder. Uncheck a mode to hide it from the selector.</string>
+    <string name="save_location">Save location</string>
+    <string name="save_location_summary">Embed GPS coordinates in saved photos and videos</string>
+    <string name="save_location_denied">Location permission denied — saves won\'t be geotagged</string>
+    <string name="hide_modes_summary_none">All modes shown</string>
+    <string name="hide_modes_summary">%1$d hidden</string>
+    <string name="hide_modes_cannot_hide_all">At least one mode must stay visible</string>
     <string name="theme">Theme</string>
     <string name="theme_follow_system">Follow system</string>
     <string name="theme_light">Light</string>
@@ -206,9 +218,13 @@
     <string name="rawvideo_crop_169">Crop to 16:9</string>
     <string name="photo_settings">Photo Settings</string>
     <string name="video_resolution">Video Resolution</string>
+    <string name="selfie_video_resolution">Selfie Video Resolution</string>
     <string name="pref_video_resolution_key" translatable="false">pref_video_resolution_key</string>
     <string name="pref_video_resolution_default" translatable="false">1920x1080</string>
+    <string name="pref_video_resolution_selfie_key" translatable="false">pref_video_resolution_selfie_key</string>
+    <string name="pref_video_resolution_selfie_default" translatable="false">1920x1080</string>
     <string name="video_res_4k" translatable="false">3840x2160 (4K)</string>
+    <string name="video_res_qhd" translatable="false">2560x1440 (1440p)</string>
     <string name="video_res_fhd" translatable="false">1920x1080 (Full HD)</string>
     <string name="video_res_hd" translatable="false">1280x720 (HD)</string>
     <string name="video_bitrate">Bitrate (Mbit/s)</string>
@@ -216,7 +232,7 @@
     <string name="video_save_storage">Save storage (HEVC/H.265)</string>
     <string name="video_save_storage_summary">Uses HEVC/H.265 instead of AVC/H.264 for smaller files at the same quality. Must be enabled for HDR or 10-bit video.</string>
     <string name="video_hdr">HDR video</string>
-    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video. Requires Save storage (HEVC).</string>
+    <string name="video_hdr_summary">Records 10-bit BT.2020/Rec.2020 HDR video (HLG / PQ / HDR10+). Requires Save storage (HEVC).</string>
     <string name="video_hdr_transfer">HDR Transfer</string>
     <string name="video_hdr_transfer_default" translatable="false">hlg</string>
     <string name="video_color_range">Color range</string>
@@ -244,6 +260,8 @@
     <string name="video_tunable_keys_hdr">HDR video tunable keys</string>
     <string name="video_tunable_summary_hdr">Custom vendor tags applied for HDR video only, on every sensor</string>
     <string name="video_tunable_add_summary_hdr">Add a custom vendor tag applied for HDR video only (type, name, value)</string>
+    <string name="video_scope_back">Back</string>
+    <string name="video_scope_selfie">Selfie</string>
     <string name="audio_settings">Audio Settings</string>
     <string name="audio_bitrate">Bitrate (kbit/s)</string>
     <string name="audio_bitrate_default" translatable="false">128</string>
@@ -275,4 +293,8 @@
     <string name="secure_camera_unlock_gallery_message">Unlock your device to view the gallery</string>
     <string name="secure_camera_gallery_locked">Unlock your device to view the gallery</string>
     <string name="secure_camera_settings_locked">Unlock your device to access settings</string>
+
+    <!-- Gallery EXIF dialog description -->
+    <string name="exif_show_description">Show EXIF description</string>
+    <string name="exif_hide_description">Hide EXIF description</string>
 </resources>

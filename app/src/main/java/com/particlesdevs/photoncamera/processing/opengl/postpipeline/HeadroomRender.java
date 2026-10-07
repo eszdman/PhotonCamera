@@ -97,9 +97,14 @@ public class HeadroomRender extends Node {
         glProg.setVar("displayGain", headroomDisplayGain);
         glProg.setVar("sceneWhite", headroomSceneWhite);
         glProg.setVar("outputExposureScale", Math.max(outputExposureScale, 1.0e-2f));
-        glProg.setVar("activeSize", 2, 2,
-                basePipeline.mParameters.sensorPix.right - basePipeline.mParameters.sensorPix.left - 2,
-                basePipeline.mParameters.sensorPix.bottom - basePipeline.mParameters.sensorPix.top - 2);
+        // Bounds rescaled into the input (draw-target) domain (see
+        // PostPipeline.activeSizeForDomain): sensorPix stays base-domain
+        // while this node now runs at target size after a resize.
+        int[] headActive = pipeline.activeSizeForDomain(input != null ? input.mSize : null);
+        glProg.setVar("activeSize", headActive[0], headActive[1], headActive[2], headActive[3]);
+        float[] headGainFp = pipeline.gainFootprint();
+        glProg.setVar("u_gainMin", headGainFp[0], headGainFp[1]);
+        glProg.setVar("u_gainMax", headGainFp[2], headGainFp[3]);
         Log.d(Name, "displayGain:" + headroomDisplayGain + " sceneWhite:" + headroomSceneWhite
                 + " outputExposureScale:" + outputExposureScale
                 + " intermediateToSRGB:" + Arrays.toString(headroomMatrix));
@@ -145,7 +150,12 @@ public class HeadroomRender extends Node {
         // Deferred-draw node: see Initial (same stale-texture hazard).
         if (((PostPipeline) basePipeline).debugTiledCompare) {
             verifyRegions();
+            return;
         }
+        // The draw consumed the input; nothing downstream reads it (the next
+        // node reads this node's output). See TileDriver.releaseConsumedInput
+        // (~1.16 GB at a 144.5 MP output).
+        TileDriver.releaseConsumedInput(basePipeline, super.previousNode.WorkingTexture, WorkingTexture);
     }
 
     /**

@@ -40,6 +40,13 @@ public class CaptureSharpening extends Node {
         Log.d(Name,"CaptureSharpening specific:"+basePipeline.mParameters.sensorSpecifics);
         csActive = false;
         PostPipeline pp = (PostPipeline) basePipeline;
+        if (pp.tailFusedSink) {
+            // T4b fused: LocalLaplacian2 already streamed its finest bands
+            // through this segment straight into the sink.
+            WorkingTexture = previousNode.WorkingTexture;
+            glProg.closed = true;
+            return;
+        }
         if (pp.tailTiled && pp.mParameters.sensorSpecifics != null) {
             // T4 production path: render the segment in bands (see
             // TileDriver.runTailTiled), then return without legacy draws.
@@ -167,9 +174,7 @@ public class CaptureSharpening extends Node {
         float str = (0.2f + Math.min(PreferenceKeys.getSharpnessValue(), 0.0f))/0.2f;
         float size = basePipeline.mParameters.sensorSpecifics.captureSharpeningS;
         float strength = basePipeline.mParameters.sensorSpecifics.captureSharpeningIntense*str;
-        if (basePipeline.mParameters.isCropped) {
-            strength *= ((PostPipeline) basePipeline).upscaleSharpenScale;
-        }
+        strength *= ((PostPipeline) basePipeline).tailSharpenScale();
         glProg.setDefine("SHARPSTR",strength);
         glProg.setDefine("SHARPSIZEKER",size);
         glProg.setDefine("INSIZE",basePipeline.workSize);
@@ -225,7 +230,8 @@ public class CaptureSharpening extends Node {
             throw new IllegalStateException("tail produce bitmap lock failed");
         }
         try {
-            TileDriver.runTailProduce(this, shp, rot, entry, glproc, wrapped);
+            TileDriver.runTailProduce(this, shp, rot, entry, glproc, wrapped,
+                    pp.debugTiledCompare);
         } finally {
             Allocator.unlockBitmap(sink);
         }
@@ -258,6 +264,17 @@ public class CaptureSharpening extends Node {
      * draws inTile into outTile. Defines and the program bind happen once in
      * Run(), never per band. */
     void renderTile(GLTexture inTile, GLTexture outTile) {
+        renderTile(inTile, outTile, 0, 0);
+    }
+
+    /**
+     * Origin-aware band body: {@code inTile} is bound directly (it may be a
+     * full-size texture) and the shader offsets its sampling by
+     * ({@code originX},{@code originY}) in image coordinates. Explicit origin
+     * on every call — the uniform persists on the shared program.
+     */
+    void renderTile(GLTexture inTile, GLTexture outTile, int originX, int originY) {
+        glProg.setVar("u_inOrigin", originX, originY);
         glProg.setTexture("InputBuffer", inTile);
         WorkingTexture = outTile;
         glProg.drawBlocks(outTile);

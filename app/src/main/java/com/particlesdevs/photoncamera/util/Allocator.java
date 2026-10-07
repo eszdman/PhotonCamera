@@ -74,6 +74,20 @@ public class Allocator{
     public native static void unpack16(ByteBuffer dst, ByteBuffer packed, int pixels, int bits);
 
     /**
+     * Fused {@link #unpack16} + {@link #createF16} for 10-bit packed frames:
+     * decodes the bitstream in cache-resident chunks and writes normalized
+     * fp16 directly into {@code dst} ({@code width*height*2} bytes), avoiding
+     * the 2-byte-per-pixel unpack staging buffer and its round trip through
+     * memory. Returns false (caller falls back to unpack16 + createF16) when
+     * the buffers are undersized or the geometry is invalid. Output is
+     * bit-identical to the two-step path: same 10-bit regrouping, same
+     * per-site black/white normalization.
+     */
+    public native static boolean unpackNormalizeF16TenBit(ByteBuffer dst, ByteBuffer packed,
+                                                          int width, int height,
+                                                          float whiteLevel, float[] blackLevel);
+
+    /**
      * Converts one tile of tightly packed RGBA8888 into 8-bit YUV420
      * full-range BT.709 (2x2 box-averaged chroma), writing the Y/U/V plane
      * buffers of an encoder input {@code Image} (strides in bytes). Edge

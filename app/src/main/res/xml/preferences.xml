@@ -42,6 +42,14 @@
                 android:icon="@drawable/ic_camera_sounds"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_haptics_key"
+                android:defaultValue="@bool/pref_haptics_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/haptics"
+                android:summary="@string/haptics_summary"
+                android:icon="@drawable/ic_vibration"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_hide_gallery_icon_key"
                 android:defaultValue="@bool/pref_hide_gallery_icon_default"
                 android:layout="@layout/preference_with_margin"
@@ -49,6 +57,29 @@
                 android:summary=""
                 android:icon="@drawable/ic_watermark"
                 />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.HideReorderModesPreference
+                android:key="@string/pref_hide_modes_key"
+                android:persistent="false"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/hide_modes"
+                android:summary=""
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_save_location_key"
+                android:defaultValue="@bool/pref_save_location_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/save_location"
+                android:summary="@string/save_location_summary"
+                android:icon="@drawable/ic_location_on"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_always_show_zoom_bar_key"
+                android:defaultValue="@bool/pref_always_show_zoom_bar_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/always_show_zoom_bar"
+                android:summary="@string/always_show_zoom_bar_summary"
+                android:icon="@drawable/ic_zoom_slider" />
         <ListPreference
                 android:key="@string/pref_lens_bar_position_key"
                 android:defaultValue="@string/pref_lens_bar_position_default"
@@ -119,6 +150,15 @@
                     android:entries="@array/video_resolution_entries"
                     android:entryValues="@array/video_resolution_entryvalues"
                     android:defaultValue="@string/pref_video_resolution_default"/>
+            <ListPreference
+                    android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_resolution_selfie_key"
+                    android:title="@string/selfie_video_resolution"
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_saturation"
+                    android:entries="@array/video_resolution_entries"
+                    android:entryValues="@array/video_resolution_entryvalues"
+                    android:defaultValue="@string/pref_video_resolution_selfie_default"/>
             <com.particlesdevs.photoncamera.ui.settings.custompreferences.UniversalSeekBarPreference
                     android:layout="@layout/preference_seekbar"
                     android:key="@string/pref_video_bitrate_key"

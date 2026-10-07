@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.ui.settings;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ActivityOptions;
 import android.content.ComponentName;
@@ -28,6 +29,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.fragment.app.DialogFragment;
 import androidx.fragment.app.FragmentTransaction;
+import androidx.preference.EditTextPreference;
 import androidx.preference.Preference;
 import androidx.preference.PreferenceFragmentCompat;
 import androidx.preference.PreferenceManager;
@@ -40,11 +42,14 @@ import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.app.base.BaseActivity;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.pro.SupportedDevice;
 import com.particlesdevs.photoncamera.settings.BackupRestoreUtil;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
 import com.particlesdevs.photoncamera.settings.TunablePreferenceGenerator;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.HideReorderModesPreference;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.ResetPreferences;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.util.Log;
@@ -64,6 +69,11 @@ import static com.particlesdevs.photoncamera.settings.PreferenceKeys.SCOPE_GLOBA
 public class SettingsActivity extends BaseActivity implements PreferenceFragmentCompat.OnPreferenceStartScreenCallback {
     public static boolean toRestartApp;
     private static int sCameraMode = -1;
+    /**
+     * Intent extra: the video tunables/session-type entries are scoped to the
+     * front (selfie) camera's resolution instead of the back camera's.
+     */
+    public static final String EXTRA_VIDEO_SELFIE = "video_selfie";
     
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -194,8 +204,18 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
         private boolean sensorConfigPreferencesGenerated = false;
         private boolean videoTunablePreferencesGenerated = false;
         private ActivityResultLauncher<String[]> lutImportLauncher;
+        private ActivityResultLauncher<String[]> locationPermissionLauncher;
         /** Viewfinder background mode before the current settings change. */
         private String viewfinderBackgroundBefore;
+        /**
+         * Video scope: the per-resolution tunable lists and HDR/SDR session
+         * types follow the lens Settings was opened from.
+         */
+        private boolean videoScopeSelfie;
+        private String videoScopeResolution;
+        private int videoScopeFpsMode;
+        private EditTextPreference hdrSessionTypePref;
+        private EditTextPreference sdrSessionTypePref;
 
         @Override
         public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
@@ -207,6 +227,17 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onCreate(savedInstanceState);
             activity = getActivity();
             mContext = getContext();
+            // Video tunables/session types are scoped to the lens Settings was
+            // opened from; the resolution is read live so a resolution change
+            // re-scopes the entries.
+            videoScopeSelfie = activity != null && activity.getIntent() != null
+                    && activity.getIntent().getBooleanExtra(EXTRA_VIDEO_SELFIE, false);
+            videoScopeResolution = videoScopeSelfie
+                    ? PreferenceKeys.getSelfieVideoResolution()
+                    : PreferenceKeys.getVideoResolution();
+            // The frame rate comes from the camera's video fps setting for the
+            // active lens (there is no fps control on this screen).
+            videoScopeFpsMode = PreferenceKeys.getCurrentLensVideoFpsMode();
             mSettingsManager = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSettingsManager();
             supportedDevice = Objects.requireNonNull(PhotonCamera.getInstance(activity)).getSupportedDevice();
             Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
@@ -229,6 +260,10 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     }
             );
             TunablePngPreference.setImportLauncher(lutImportLauncher);
+
+            locationPermissionLauncher = registerForActivityResult(
+                    new ActivityResultContracts.RequestMultiplePermissions(),
+                    this::onLocationPermissionResult);
             
             // Check if we're opening the tunable submenu specifically
             String rootKey = getArguments() != null ? getArguments().getString(PreferenceFragmentCompat.ARG_PREFERENCE_ROOT) : null;
@@ -258,9 +293,18 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             
             filterPreferencesByMode();
             applySaveHeicUi();
+            // Capture the session-type entries before re-keying them to the
+            // video scope; applyVideoUi() then gates their visibility through
+            // these references (the legacy keys no longer match after this).
+            hdrSessionTypePref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+            sdrSessionTypePref = findPreference(mContext.getString(R.string.pref_video_sdr_session_type_key));
+            rescopeVideoSettings();
             applyVideoUi();
+            setupVideoResolutionScope();
             showHideHdrxSettings();
             setFramesSummary();
+            updateHideModesSummary();
+            setupSaveLocationPreference();
             setVersionDetails();
             setHdrxTitle();
             viewfinderBackgroundBefore = PreferenceKeys.getViewfinderBackground();
@@ -358,7 +402,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     Log.w("SettingsActivity", "PreferenceScreen is null, cannot generate video tunable preferences");
                     return;
                 }
-                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(mContext, screen, config);
+                com.particlesdevs.photoncamera.settings.VideoTunablePreferenceGenerator.generatePreferences(
+                        mContext, screen, config, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode);
             } catch (Exception e) {
                 Log.e("SettingsActivity", "ERROR in generateVideoTunablePreferences", e);
                 e.printStackTrace();
@@ -558,7 +603,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                 if (hdrTunablePref != null) {
                     hdrTunablePref.setVisible(hdrOn);
                 }
-                Preference hdrSessionPref = findPreference(mContext.getString(R.string.pref_video_hdr_session_type_key));
+                Preference hdrSessionPref = hdrSessionTypePref;
                 if (hdrSessionPref != null) {
                     hdrSessionPref.setVisible(hdrOn);
                 }
@@ -579,6 +624,84 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             } catch (Exception e) {
                 Log.e("SettingsFragment", "applyVideoUi failed", e);
             }
+        }
+
+        /**
+         * Re-keys the HDR/SDR session-type entries to the current video scope
+         * (lens + resolution) and refreshes the scoped labels. Called on open
+         * and whenever the matching resolution preference changes, so changing
+         * the resolution changes exactly the values that can be set/seen.
+         */
+        private void rescopeVideoSettings() {
+            if (videoScopeResolution == null || videoScopeResolution.isEmpty()) {
+                videoScopeResolution = videoScopeSelfie
+                        ? PreferenceKeys.getSelfieVideoResolution()
+                        : PreferenceKeys.getVideoResolution();
+            }
+            if (hdrSessionTypePref != null) {
+                hdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoScope
+                        .sessionTypeKey(true, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+                hdrSessionTypePref.setText(PreferenceKeys.getVideoHdrSessionType(
+                        videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+            }
+            if (sdrSessionTypePref != null) {
+                sdrSessionTypePref.setKey(com.particlesdevs.photoncamera.settings.VideoScope
+                        .sessionTypeKey(false, videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+                sdrSessionTypePref.setText(PreferenceKeys.getVideoSdrSessionType(
+                        videoScopeSelfie, videoScopeResolution, videoScopeFpsMode));
+            }
+            updateVideoScopeLabels();
+        }
+
+        /** "1920x1080 · 60fps · Back" label for the scoped video entries. */
+        private String videoScopeLabel() {
+            return com.particlesdevs.photoncamera.settings.VideoScope.label(
+                    mContext, videoScopeResolution, videoScopeFpsMode, videoScopeSelfie);
+        }
+
+        private void updateVideoScopeLabels() {
+            String scope = videoScopeLabel();
+            Preference sdrTunable = findPreference("pref_video_tunable_submenu");
+            if (sdrTunable != null) {
+                sdrTunable.setTitle(mContext.getString(R.string.video_tunable_keys_sdr) + " \u00B7 " + scope);
+            }
+            Preference hdrTunable = findPreference("pref_video_hdr_tunable_submenu");
+            if (hdrTunable != null) {
+                hdrTunable.setTitle(mContext.getString(R.string.video_tunable_keys_hdr) + " \u00B7 " + scope);
+            }
+            if (hdrSessionTypePref != null) {
+                hdrSessionTypePref.setTitle(mContext.getString(R.string.video_hdr_session_type) + " \u00B7 " + scope);
+            }
+            if (sdrSessionTypePref != null) {
+                sdrSessionTypePref.setTitle(mContext.getString(R.string.video_sdr_session_type) + " \u00B7 " + scope);
+            }
+        }
+
+        /**
+         * Re-scopes the video entries when the resolution of the lens Settings
+         * was opened from changes. The other lens's resolution keeps its own
+         * scope until Settings is reopened from that lens.
+         */
+        private void setupVideoResolutionScope() {
+            Preference backResolution = findPreference(mContext.getString(R.string.pref_video_resolution_key));
+            if (backResolution != null) {
+                backResolution.setOnPreferenceChangeListener(
+                        (preference, newValue) -> onVideoResolutionChanged(false, newValue));
+            }
+            Preference selfieResolution = findPreference(mContext.getString(R.string.pref_video_resolution_selfie_key));
+            if (selfieResolution != null) {
+                selfieResolution.setOnPreferenceChangeListener(
+                        (preference, newValue) -> onVideoResolutionChanged(true, newValue));
+            }
+        }
+
+        private boolean onVideoResolutionChanged(boolean selfie, Object newValue) {
+            if (selfie != videoScopeSelfie || newValue == null) {
+                return true;
+            }
+            videoScopeResolution = newValue.toString();
+            rescopeVideoSettings();
+            return true;
         }
 
         /**
@@ -634,6 +757,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             super.onResume();
             // Update toolbar title when fragment resumes (e.g., after navigating back)
             setupToolbar();
+            // Re-sync in case the permission was revoked in system settings.
+            setupSaveLocationPreference();
         }
 
 
@@ -809,6 +934,115 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                     e.printStackTrace();
                 }
             }
+            if (key.equals(PreferenceKeys.Key.KEY_HIDE_MODES.mValue)) {
+                enforceAtLeastOneVisibleMode();
+                updateHideModesSummary();
+            }
+        }
+
+        /**
+         * Summary for "Hide or reorder modes": "All modes shown" when empty,
+         * otherwise "N hidden".
+         */
+        private void updateHideModesSummary() {
+            try {
+                Preference pref = findPreference(mContext.getString(R.string.pref_hide_modes_key));
+                if (pref instanceof HideReorderModesPreference) {
+                    ((HideReorderModesPreference) pref).updateSummary();
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "updateHideModesSummary failed", e);
+            }
+        }
+
+        /**
+         * Prevents hiding all modes: at least one mode must stay visible. If
+         * the user checked every box, PHOTO is forced back to visible and a
+         * toast explains why.
+         */
+        private void enforceAtLeastOneVisibleMode() {
+            try {
+                java.util.Set<String> hidden = PreferenceKeys.getHiddenModes();
+                if (hidden.size() >= CameraMode.values().length) {
+                    hidden.remove(String.valueOf(CameraMode.PHOTO.ordinal()));
+                    PreferenceKeys.setHiddenModes(hidden);
+                    if (activity != null) {
+                        activity.runOnUiThread(() -> Toast.makeText(mContext,
+                                mContext.getString(R.string.hide_modes_cannot_hide_all),
+                                Toast.LENGTH_SHORT).show());
+                    }
+                }
+            } catch (Exception e) {
+                Log.e("SettingsFragment", "enforceAtLeastOneVisibleMode failed", e);
+            }
+        }
+
+        /**
+         * Wires the "Save location" switch: enabling it requires the runtime
+         * location permission, disabling always succeeds. The checked state is
+         * re-synced on resume so a permission revoked in system settings turns
+         * the switch off again.
+         */
+        private void setupSaveLocationPreference() {
+            Preference pref = findPreference(mContext.getString(R.string.pref_save_location_key));
+            if (!(pref instanceof ManagedSwitchPreference)) {
+                return;
+            }
+            ManagedSwitchPreference switchPref = (ManagedSwitchPreference) pref;
+            // TwoStatePreference asks the change listener before toggling, so
+            // returning false keeps the switch off while the permission dialog
+            // is up; the grant callback turns it on programmatically.
+            switchPref.setOnPreferenceChangeListener((preference, newValue) -> {
+                if (!Boolean.TRUE.equals(newValue)) {
+                    return true;
+                }
+                if (LocationProvider.hasPermission(mContext)) {
+                    return true;
+                }
+                locationPermissionLauncher.launch(new String[]{
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION});
+                return false;
+            });
+            if (PreferenceKeys.isSaveLocationOn() && !LocationProvider.hasPermission(mContext)) {
+                setSaveLocation(switchPref, false);
+            } else {
+                switchPref.setChecked(PreferenceKeys.isSaveLocationOn());
+            }
+        }
+
+        private void setSaveLocation(ManagedSwitchPreference pref, boolean value) {
+            pref.setChecked(value);
+            PreferenceKeys.setSaveLocation(value);
+        }
+
+        private void onLocationPermissionResult(java.util.Map<String, Boolean> result) {
+            Preference pref = findPreference(mContext.getString(R.string.pref_save_location_key));
+            if (!(pref instanceof ManagedSwitchPreference)) {
+                return;
+            }
+            ManagedSwitchPreference switchPref = (ManagedSwitchPreference) pref;
+            boolean granted = Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_FINE_LOCATION))
+                    || Boolean.TRUE.equals(result.get(Manifest.permission.ACCESS_COARSE_LOCATION));
+            if (granted) {
+                setSaveLocation(switchPref, true);
+                return;
+            }
+            setSaveLocation(switchPref, false);
+            View root = mRootView != null ? mRootView
+                    : (activity != null ? activity.findViewById(android.R.id.content) : null);
+            if (root != null) {
+                Snackbar.make(root, mContext.getString(R.string.save_location_denied), Snackbar.LENGTH_LONG)
+                        .setAction(R.string.perm_open_settings, v -> openAppSettings())
+                        .show();
+            }
+        }
+
+        private void openAppSettings() {
+            Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                    Uri.fromParts("package", mContext.getPackageName(), null));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
         }
 
         private void setHdrxTitle() {

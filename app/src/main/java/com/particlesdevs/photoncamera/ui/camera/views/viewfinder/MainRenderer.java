@@ -41,8 +41,21 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private volatile boolean mMirrorPreview;
 
     /**
+     * Transform queued by {@link #setOrientation(int)}/{@link #setMirror(boolean)}
+     * and applied on the GL thread only once the frame it belongs to has been
+     * latched. Applying it earlier would re-draw the previous camera's frozen
+     * frame with the new camera's rotation/mirror (the 180 degree flash on a
+     * facing flip) and would write {@link #mTexRotateMatrix} while the GL
+     * thread is reading it.
+     */
+    private volatile int mPendingOrientation;
+    private volatile boolean mOrientationPending;
+    private volatile boolean mPendingMirror;
+    private volatile boolean mMirrorPending;
+
+    /**
      * Live frosted-glass region (quick settings bar, lens/zoom pills, manual
-     * bar, knob wheel). Set from the UI thread; read on the GL thread every
+     * bar plus slider rows). Set from the UI thread; read on the GL thread every
      * frame. {@code null} or an empty list means "no panel blur".
      */
     public static final class PanelBlurSpec {
@@ -61,30 +74,10 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         public final float blurRadius;
         /** Panel alpha, so the backdrop fades with the panel. */
         public final float alpha;
-        /**
-         * Manual-palette blob mode: when {@code pillTop} is non-zero the region
-         * is the palette bubble (its rect starts {@code pillTop} below the
-         * panel's top — the reserved, usually empty dome zone above it is never
-         * blurred), optionally with the wheel dome of {@code domeHeight} grown
-         * out of its top, blended in through shoulder arcs of
-         * {@code shoulderRadius} (mirrors ManualPaletteBackground). Zero
-         * pillTop draws the plain rounded rect over the whole panel rect.
-         */
-        public final float pillTop;
-        public final float domeHeight;
-        public final float shoulderRadius;
 
         public PanelBlurSpec(boolean enabled, float centerX, float centerY,
                              float halfW, float halfH, float angle,
                              float cornerRadius, float blurRadius, float alpha) {
-            this(enabled, centerX, centerY, halfW, halfH, angle, cornerRadius,
-                    blurRadius, alpha, 0f, 0f, 0f);
-        }
-
-        public PanelBlurSpec(boolean enabled, float centerX, float centerY,
-                             float halfW, float halfH, float angle,
-                             float cornerRadius, float blurRadius, float alpha,
-                             float pillTop, float domeHeight, float shoulderRadius) {
             this.enabled = enabled;
             this.centerX = centerX;
             this.centerY = centerY;
@@ -94,9 +87,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             this.cornerRadius = cornerRadius;
             this.blurRadius = blurRadius;
             this.alpha = alpha;
-            this.pillTop = pillTop;
-            this.domeHeight = domeHeight;
-            this.shoulderRadius = shoulderRadius;
         }
     }
 
@@ -164,8 +154,11 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mBlur2dProgram;
     private int mPanelBlurProgram;
     private int mEdgeBlurProgram;
+    private int mAnalysisProgram;
     private int uCornerRadius;
     private int uSharpOrigin;
+    private int uSnapshotAlpha;
+    private int uSnapshotSampler;
     private int uEdgeViewSize;
     private int uEdgeSharpOrigin;
     private int uEdgeSharpSize;
@@ -193,9 +186,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int uPanelAngle;
     private int uPanelRadius;
     private int uPanelAlpha;
-    private int uPanelPillTop;
-    private int uPanelDomeHeight;
-    private int uPanelShoulderRadius;
     /** Clamp rect for the separable blur passes, in FBO UV space. */
     private float mBlurClampMinX;
     private float mBlurClampMinY = 1f;
@@ -210,6 +200,68 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private int mBlurH;
     private int mViewW = 1;
     private int mViewH = 1;
+
+    /**
+     * Snapshot of the previous camera's rendered frame, used to crossfade a
+     * mode/aspect switch between the old and the new capture. Taken with a
+     * GPU-side framebuffer copy inside a rendered frame; alpha 1 shows it,
+     * 0 shows the live preview.
+     */
+    private int mSnapshotTex;
+    private volatile boolean mSnapshotRequested;
+    private volatile boolean mSnapshotValid;
+    private volatile float mSnapshotAlpha;
+
+    /** Queues a snapshot of the next rendered frame (GPU-side, no bitmap). */
+    public void requestSnapshot() {
+        mSnapshotRequested = true;
+        mView.requestRender();
+    }
+
+    /**
+     * Snapshot crossfade progress: 1 shows the snapshot (the previous capture),
+     * 0 the live preview. Reaching 0 invalidates the snapshot.
+     */
+    public void setSnapshotAlpha(float alpha) {
+        float clamped = Math.max(0f, Math.min(1f, alpha));
+        if (Math.abs(clamped - mSnapshotAlpha) < 0.003f) {
+            return;
+        }
+        mSnapshotAlpha = clamped;
+        if (clamped <= 0.003f) {
+            mSnapshotValid = false;
+        }
+        mView.requestRender();
+    }
+
+    /**
+     * Pre-peaking analysis target used by the histogram/waveform scopes. The
+     * camera texture is sampled once into this small offscreen buffer so the
+     * scopes never see the focus-peaking overlay baked into the sharp pass.
+     */
+    public static final int ANALYSIS_WIDTH = 256;
+    public static final int ANALYSIS_HEIGHT = 192;
+    private int mAnalysisFbo;
+    private int mAnalysisTex;
+    private ByteBuffer mAnalysisBuffer;
+    private int uAnalysisTexRotateMatrix;
+    private int uAnalysisMirror;
+    private AnalysisCallback mPendingAnalysis;
+
+    public interface AnalysisCallback {
+        void onAnalysisFrame(byte[] rgba, int width, int height);
+    }
+
+    /**
+     * Queues one analysis readback (GL thread). The callback receives a copy of
+     * the RGBA bytes for the frame rendered after the request and runs on the
+     * GL thread; a newer request replaces an unserviced one.
+     */
+    public void requestAnalysis(AnalysisCallback callback) {
+        if (callback == null) return;
+        mPendingAnalysis = callback;
+        mView.requestRender();
+    }
 
     /**
      * Frames to observe before an ISZ lens transition is considered settled.
@@ -229,9 +281,27 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     private final IszSettleCounter mSettleCounter = new IszSettleCounter(ISZ_SETTLE_FRAMES);
 
     /**
-     * Begins settle tracking for an ISZ lens-switch mask. Re-arming resets the
-     * counter. Tracking stops on its own at the threshold; a stuck flag with
-     * no frames is inert. Safe to call from any thread.
+     * One-shot listener posted to the view once settle tracking completes, so
+     * callers can sequence work on the newly live preview (e.g. the aspect
+     * switch fade reveal). Re-arming replaces a listener that has not fired.
+     */
+    private volatile Runnable mSettleListener;
+
+    /**
+     * Begins settle tracking with an explicit frame threshold, reporting
+     * completion on the view's thread once live rendering resumes. Safe to call
+     * from any thread.
+     */
+    public void beginSettleTracking(Runnable onSettled, int frames) {
+        mSettleCounter.reset(frames);
+        mSettleListener = onSettled;
+        mSettleTracking = true;
+    }
+
+    /**
+     * Begins settle tracking for an ISZ lens-switch mask. Tracking stops on its
+     * own at the threshold; a stuck flag with no frames is inert. Safe to call
+     * from any thread.
      */
     public void beginSettleTracking() {
         mSettleCounter.reset();
@@ -269,7 +339,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         // A program can fail to build (unreadable asset, driver hiccup); retry
         // rarely so the pipeline can heal itself without hammering the GL thread.
         if (mSharpProgram == 0 || mBlurOesProgram == 0 || mBlur2dProgram == 0
-                || mPanelBlurProgram == 0 || mEdgeBlurProgram == 0) {
+                || mPanelBlurProgram == 0 || mEdgeBlurProgram == 0
+                || mAnalysisProgram == 0) {
             if (--mProgramRetryCountdown <= 0) {
                 ensureGlPrograms();
                 mProgramRetryCountdown = PROGRAM_RETRY_FRAMES;
@@ -280,7 +351,18 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             if (mUpdateST) {
                 mSTexture.updateTexImage();
                 mUpdateST = false;
+                // A fresh frame is on the texture, so it is safe to apply a
+                // transform queued for the camera that produced it. Renders
+                // before this keep the previous frame's transform, which is
+                // what stops the frozen viewfinder frame from flashing 180
+                // degrees (and mirrored) while a facing flip opens.
+                applyPendingTransform();
             }
+        }
+
+        // Scopes sample the camera texture before the peaking shader runs.
+        if (mPendingAnalysis != null) {
+            runAnalysisPass();
         }
 
         // Sharp preview, letterboxed into the viewfinder rect when the surface
@@ -334,6 +416,16 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glUniform2f(resolution, sharpWidth, sharpHeight);
         GLES20.glUniform1f(uCornerRadius, mRoundCorners ? mRoundCornerRadiusPx : 0f);
         GLES20.glUniform2f(uSharpOrigin, sharpLeft, sharpBottom);
+        // Mode/aspect switch crossfade: the previous capture's snapshot is
+        // mixed over the live preview until its alpha reaches zero.
+        boolean snapshot = mSnapshotValid && mSnapshotTex != 0 && mSnapshotAlpha > 0.003f;
+        GLES20.glUniform1f(uSnapshotAlpha, snapshot ? mSnapshotAlpha : 0f);
+        if (snapshot) {
+            GLES20.glUniform1i(uSnapshotSampler, 1);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        }
         bindQuadAttributes(mSharpProgram);
         // The blur passes bind 2D textures to unit 0; re-bind the camera texture.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -341,10 +433,61 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         // GLES20.glFlush();
 
+        // Snapshot the just-drawn sharp preview for the mode/aspect switch
+        // crossfade. It must happen inside the frame (the back buffer is
+        // undefined after the swap) and before the panels, so the snapshot is
+        // exactly the camera capture without any frosted backdrops.
+        if (mSnapshotRequested) {
+            captureSnapshot(sharpLeft, sharpBottom, sharpWidth, sharpHeight);
+        }
+
         // Live frosted-glass backdrops behind the visible camera panels.
         if (blurReady && hasPanels) {
             compositePanels(blur, sharpLeft, sharpBottom, sharpWidth, sharpHeight);
         }
+    }
+
+    /** Creates the snapshot texture once (GL thread only). */
+    private boolean ensureSnapshotTarget() {
+        if (mSnapshotTex != 0) {
+            return true;
+        }
+        int[] tex = new int[1];
+        GLES20.glGenTextures(1, tex, 0);
+        if (tex[0] == 0) {
+            return false;
+        }
+        mSnapshotTex = tex[0];
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
+        GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_LINEAR);
+        return true;
+    }
+
+    /**
+     * Copies the sharp rect of the current framebuffer (the just-drawn
+     * preview) into the snapshot texture, so the crossfade samples exactly the
+     * previous capture. Runs on the GL thread.
+     */
+    private void captureSnapshot(int sharpLeft, int sharpBottom, int sharpWidth, int sharpHeight) {
+        mSnapshotRequested = false;
+        if (!ensureSnapshotTarget()) {
+            mSnapshotValid = false;
+            return;
+        }
+        try {
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mSnapshotTex);
+            GLES20.glCopyTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGB,
+                    Math.max(0, sharpLeft), Math.max(0, sharpBottom),
+                    Math.max(1, sharpWidth), Math.max(1, sharpHeight), 0);
+        } catch (Exception e) {
+            android.util.Log.w("MainRenderer", "snapshot capture failed", e);
+            mSnapshotValid = false;
+            return;
+        }
+        mSnapshotValid = true;
     }
 
     /**
@@ -461,9 +604,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             GLES20.glUniform1f(uPanelAngle, (float) Math.toRadians(-spec.angle));
             GLES20.glUniform1f(uPanelRadius, spec.cornerRadius);
             GLES20.glUniform1f(uPanelAlpha, spec.alpha);
-            GLES20.glUniform1f(uPanelPillTop, spec.pillTop);
-            GLES20.glUniform1f(uPanelDomeHeight, spec.domeHeight);
-            GLES20.glUniform1f(uPanelShoulderRadius, spec.shoulderRadius);
             GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
         }
         GLES20.glDisable(GLES20.GL_BLEND);
@@ -522,6 +662,9 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
         // The EGL context is fresh: drop any GL resources from the previous one.
         releaseBlurTargets();
+        releaseAnalysisTarget();
+        mSnapshotTex = 0;
+        mSnapshotValid = false;
 
         initTex();
         mSTexture = new SurfaceTexture(hTex[0]);
@@ -533,6 +676,7 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         mBlur2dProgram = 0;
         mPanelBlurProgram = 0;
         mEdgeBlurProgram = 0;
+        mAnalysisProgram = 0;
         mProgramRetryCountdown = PROGRAM_RETRY_FRAMES;
         ensureGlPrograms();
 
@@ -562,6 +706,13 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 resolution = GLES20.glGetUniformLocation(mSharpProgram, "resolution");
                 uCornerRadius = GLES20.glGetUniformLocation(mSharpProgram, "uCornerRadius");
                 uSharpOrigin = GLES20.glGetUniformLocation(mSharpProgram, "uSharpOrigin");
+                uSnapshotAlpha = GLES20.glGetUniformLocation(mSharpProgram, "uSnapshotAlpha");
+                uSnapshotSampler = GLES20.glGetUniformLocation(mSharpProgram, "sSnapshot");
+                // The snapshot sampler must live on its own texture unit: two
+                // sampler types sharing a unit makes the driver reject the draw
+                // (the sharp pass would silently stop rendering, leaving only
+                // the blurred backdrop on screen).
+                GLES20.glUniform1i(uSnapshotSampler, 1);
                 GLES20.glVertexAttribPointer(vPosition, 2, GLES20.GL_FLOAT, false, 4 * 2, pVertex);
                 GLES20.glVertexAttribPointer(vTexCoord, 2, GLES20.GL_FLOAT, false, 4 * 2, pTexCoord);
                 GLES20.glEnableVertexAttribArray(vPosition);
@@ -607,9 +758,6 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                     uPanelAngle = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAngle");
                     uPanelRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uRadius");
                     uPanelAlpha = GLES20.glGetUniformLocation(mPanelBlurProgram, "uAlpha");
-                    uPanelPillTop = GLES20.glGetUniformLocation(mPanelBlurProgram, "uPillTop");
-                    uPanelDomeHeight = GLES20.glGetUniformLocation(mPanelBlurProgram, "uDomeHeight");
-                    uPanelShoulderRadius = GLES20.glGetUniformLocation(mPanelBlurProgram, "uShoulderRadius");
                 }
             }
         }
@@ -632,6 +780,16 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 mEdgeBlurRadiusPx = mView.getResources().getDimension(R.dimen.cam_panel_blur_radius);
             }
         }
+
+        if (mAnalysisProgram == 0) {
+            mAnalysisProgram = loadShader(loadAsset("shaders/preview/main_vs.glsl"),
+                    loadAsset("shaders/preview/analysis_fs.glsl"));
+            if (mAnalysisProgram != 0) {
+                uAnalysisTexRotateMatrix =
+                        GLES20.glGetUniformLocation(mAnalysisProgram, "uTexRotateMatrix");
+                uAnalysisMirror = GLES20.glGetUniformLocation(mAnalysisProgram, "mirror");
+            }
+        }
     }
 
     public void onSurfaceChanged(GL10 unused, int width, int height) {
@@ -640,6 +798,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         GLES30.glViewport(0, 0, width, height);
         // Blur targets are sized from the surface; let them be recreated lazily.
         releaseBlurTargets();
+        // The snapshot texture holds the sharp rect and is sampled relative to
+        // the current rect, so a surface resize does not invalidate it.
     }
 
     private boolean ensureBlurTargets() {
@@ -714,6 +874,74 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
         mBlurH = 0;
     }
 
+    private boolean ensureAnalysisTarget() {
+        if (mAnalysisFbo != 0 && mAnalysisTex != 0) {
+            return true;
+        }
+        releaseAnalysisTarget();
+        mAnalysisTex = createBlurTexture(ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
+        mAnalysisFbo = createBlurFramebuffer(mAnalysisTex);
+        if (mAnalysisTex == 0 || mAnalysisFbo == 0) {
+            releaseAnalysisTarget();
+            return false;
+        }
+        return true;
+    }
+
+    private void releaseAnalysisTarget() {
+        if (mAnalysisFbo != 0) {
+            int[] fbo = new int[]{mAnalysisFbo};
+            GLES30.glDeleteFramebuffers(1, fbo, 0);
+            mAnalysisFbo = 0;
+        }
+        if (mAnalysisTex != 0) {
+            int[] tex = new int[]{mAnalysisTex};
+            GLES20.glDeleteTextures(1, tex, 0);
+            mAnalysisTex = 0;
+        }
+        mAnalysisBuffer = null;
+    }
+
+    /**
+     * Renders the camera texture into the analysis target and reads it back.
+     * Mirrors the sharp pass's rotation/mirror so the scope's columns match the
+     * displayed image, but applies no focus peaking. GL thread only.
+     */
+    private void runAnalysisPass() {
+        AnalysisCallback callback = mPendingAnalysis;
+        mPendingAnalysis = null;
+        if (callback == null || mAnalysisProgram == 0 || !ensureAnalysisTarget()) {
+            return;
+        }
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, mAnalysisFbo);
+        GLES30.glViewport(0, 0, ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
+        GLES20.glDisable(GLES20.GL_BLEND);
+        GLES20.glUseProgram(mAnalysisProgram);
+        GLES20.glUniformMatrix4fv(uAnalysisTexRotateMatrix, 1, false, mTexRotateMatrix, 0);
+        GLES20.glUniform1i(uAnalysisMirror, mMirrorPreview ? 1 : 0);
+        bindQuadAttributes(mAnalysisProgram);
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, hTex[0]);
+        GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
+
+        int bytes = ANALYSIS_WIDTH * ANALYSIS_HEIGHT * 4;
+        if (mAnalysisBuffer == null || mAnalysisBuffer.capacity() < bytes) {
+            mAnalysisBuffer = ByteBuffer.allocateDirect(bytes).order(ByteOrder.nativeOrder());
+        }
+        mAnalysisBuffer.position(0);
+        GLES20.glPixelStorei(GLES20.GL_PACK_ALIGNMENT, 1);
+        GLES20.glReadPixels(0, 0, ANALYSIS_WIDTH, ANALYSIS_HEIGHT,
+                GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, mAnalysisBuffer);
+
+        byte[] copy = new byte[bytes];
+        mAnalysisBuffer.position(0);
+        mAnalysisBuffer.get(copy);
+
+        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, 0);
+        GLES30.glViewport(0, 0, mViewW, mViewH);
+        callback.onAnalysisFrame(copy, ANALYSIS_WIDTH, ANALYSIS_HEIGHT);
+    }
+
     public SurfaceTexture getmSTexture() {
         return mSTexture;
     }
@@ -741,7 +969,13 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
                 // the frozen pre-switch frame stays on screen.
                 mView.queueEvent(() -> {
                     try {
-                        if (mSettleTracking) st.updateTexImage();
+                        if (mSettleTracking) {
+                            st.updateTexImage();
+                            // The latched frame belongs to the incoming
+                            // camera; a render during the freeze must use its
+                            // transform, not the frozen one's.
+                            applyPendingTransform();
+                        }
                     } catch (Exception ignored) {
                         // Surface gone mid-transition (e.g. paused): drop it.
                     }
@@ -750,6 +984,11 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
             }
             // Settled: fall through to live rendering of the newest frame.
             mSettleTracking = false;
+            Runnable settled = mSettleListener;
+            mSettleListener = null;
+            if (settled != null) {
+                mView.post(settled);
+            }
         }
         mUpdateST = true;
         mView.requestRender();
@@ -832,7 +1071,8 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     }
 
     public void setMirror(boolean mirrorPreview) {
-        mMirrorPreview = mirrorPreview;
+        mPendingMirror = mirrorPreview;
+        mMirrorPending = true;
     }
 
     private int getPeakEnabled() {
@@ -853,7 +1093,26 @@ public class MainRenderer implements GLSurfaceView.Renderer, SurfaceTexture.OnFr
     }
 
     public void setOrientation(int or) {
-        android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0, or, 0f, 0f, 1f);
+        mPendingOrientation = or;
+        mOrientationPending = true;
+    }
+
+    /**
+     * Applies a transform queued by {@link #setOrientation(int)} or
+     * {@link #setMirror(boolean)}. Must run on the GL thread and only once the
+     * texture has just been updated with a frame from the camera that transform
+     * belongs to.
+     */
+    private void applyPendingTransform() {
+        if (mOrientationPending) {
+            android.opengl.Matrix.setRotateM(mTexRotateMatrix, 0,
+                    mPendingOrientation, 0f, 0f, 1f);
+            mOrientationPending = false;
+        }
+        if (mMirrorPending) {
+            mMirrorPreview = mPendingMirror;
+            mMirrorPending = false;
+        }
     }
 
     public void setTransform(@NonNull android.graphics.Matrix matrix) {

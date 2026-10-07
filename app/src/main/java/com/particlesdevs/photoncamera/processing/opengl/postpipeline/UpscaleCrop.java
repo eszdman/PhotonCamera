@@ -20,28 +20,59 @@ import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
 
 /**
- * Expands a cropped capture to the requested full-frame output size.
+ * Expands or shrinks the capture to the requested output size.
+ *
+ * <p>Output size is the zoom-expanded full size when cropped, otherwise the
+ * input size, scaled by the active per-sensor factor ({@code upscaleFactor} /
+ * {@code upscaleFactorQb} on {@link com.particlesdevs.photoncamera.processing.render.Parameters}).
+ * Applies to cropped and uncropped shots alike; Disabled (default) keeps the
+ * legacy behavior (crops expand, uncropped passthrough).</p>
  *
  * <p>When KernelNet params are available (exported by the merge pass, or
- * inferred on the single-frame path by {@link KernelNetPrep}), the crop is
+ * inferred on the single-frame path by {@link KernelNetPrep}), the resize is
  * reconstructed with a locally anisotropic Gaussian kernel (Wronski et al.,
  * "Procedural Kernel Networks", section 4.3) steered by those params -
  * edge-aligned interpolation at no additional inference cost, plus an
- * optional edge-aligned unsharp term for acutance at extreme zoom. Otherwise
+ * optional edge-aligned unsharp term for acutance at extreme zoom. Used for
+ * both up and down resizes. Otherwise
  * the pipeline's existing bicubic GPU interpolation path is used.</p>
  */
 public final class UpscaleCrop extends Node {
 
-    @Tunable(title = "KernelNet upscale sigma scale", category = "Upscale", description = "Fine trim on the KernelNet map sigmas after the automatic map-to-crop rescaling (1.0 = calibrated)", min = 0.1f, max = 4.0f, step = 0.05f, defaultValue = 0.9f)
+    /**
+     * SR-only acutance boost: the reconstruction is the ceiling at equal
+     * coverage in good light (bench: the calibrated soft kernel reaches
+     * ~0.61x of a native edge's slope), and the recovery feeds it a
+     * de-aliased, noise-suppressed input that supports more edge crispness.
+     * Sharpening via the existing edge-gated, Weber-capped acutance - not a
+     * narrower kernel, which rings (measured 2x native high-frequency tails
+     * when the 0.68 trim shipped) - recovers it with a bounded overshoot.
+     * Bench: bounded acutance lifts the soft kernel from 0.61x to ~0.87x of
+     * the native slope at ~6% overshoot, while the narrower-kernel route
+     * reaches only 0.72x.
+     */
+    private static final float SR_SHARP_MULT = 1.25f;
+
+    /**
+     * SR-only reconstruction-kernel scale: the drizzle path's input is the
+     * fused deposit (already blurred by the 1-output-px deposit splat), so the
+     * calibrated legacy sigma leaves it softer than Disabled on real texture.
+     * Bench (real-texture crop, 9f): real-texture MTF50 0.225 -> 0.425 cyc/out
+     * (Disabled 0.419), correlation unchanged, synthetic artifacts flat or
+     * better. Applied on top of the user's sigmaScale, SR path only.
+     */
+    private static final float SR_SIGMA_MULT = 0.45f;
+
+    @Tunable(title = "KernelNet upscale sigma scale", category = "Upscale", description = "Fine trim on the KernelNet map sigmas after the automatic map-to-crop rescaling (1.0 = calibrated). Host sim against the true scene: fidelity improves monotonically with sharpening (texture error 0.062 at 0.75 vs 0.037 at 0.25, saturating there) and an upsampling Gaussian cannot create aliasing, so the calibrated 0.75 was simply soft", min = 0.1f, max = 4.0f, step = 0.05f, defaultValue = 0.55f)
     float sigmaScale;
 
     @Tunable(title = "KernelNet upscale abs min sigma", category = "Upscale", description = "Absolute floor on the reconstruction kernel sigma in crop pixels (numerical guard against tap-weight collapse)", min = 0.05f, max = 1.0f, step = 0.01f, defaultValue = 0.25f)
     float absMinPx;
 
-    @Tunable(title = "KernelNet upscale min sigma (output px)", category = "Upscale", description = "Additional sigma floor measured in output pixels - keeps the reconstruction equally crisp at every zoom factor (lower = sharper at extreme zoom)", min = 0.1f, max = 8.0f, step = 0.05f, defaultValue = 1.25f)
+    @Tunable(title = "KernelNet upscale min sigma (output px)", category = "Upscale", description = "Additional sigma floor measured in output pixels - keeps the reconstruction equally crisp at every zoom factor (lower = sharper at extreme zoom). Lowered alongside the sigma scale so the floor does not re-soften what the scale sharpened (0.4 output px = 0.2 crop px at 2x, still at the sim's saturation point)", min = 0.1f, max = 8.0f, step = 0.05f, defaultValue = 0.4f)
     float outFloorPx;
 
-    @Tunable(title = "KernelNet upscale max sigma", category = "Upscale", description = "Cap on the reconstruction kernel sigma in crop pixels (kept below radius/2 so the window rim never clips the kernel)", min = 0.5f, max = 6.0f, step = 0.1f, defaultValue = 1.2f)
+    @Tunable(title = "KernelNet upscale max sigma", category = "Upscale", description = "Cap on the reconstruction kernel sigma in crop pixels (kept below radius/2 so the window rim never clips the kernel)", min = 0.5f, max = 6.0f, step = 0.1f, defaultValue = 1.0f)
     float sigmaMaxPx;
 
     @Tunable(title = "KernelNet upscale blend", category = "Upscale", description = "Mix between bicubic (0) and the anisotropic KernelNet reconstruction (1)", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 1.0f)
@@ -50,14 +81,32 @@ public final class UpscaleCrop extends Node {
     @Tunable(title = "KernelNet upscale radius", category = "Upscale", description = "Half-width of the anisotropic reconstruction window in crop pixels (5 = 11x11 taps). Must stay above sharpWide*sigmaMax*2 so the wide unsharp pass fits the window", min = 1, max = 5, step = 1, defaultValue = 5)
     int kernelRadius;
 
-    @Tunable(title = "KernelNet upscale max elongation", category = "Upscale", description = "Caps the sigma ratio max(s1,s2)/min(s1,s2) - prevents knife-thin edge kernels", min = 1.0f, max = 8.0f, step = 0.5f, defaultValue = 7.0f)
+    @Tunable(title = "KernelNet upscale max elongation", category = "Upscale", description = "Caps the sigma ratio max(s1,s2)/min(s1,s2) - prevents knife-thin edge kernels", min = 1.0f, max = 8.0f, step = 0.5f, defaultValue = 8.0f)
     float maxElong;
 
-    @Tunable(title = "KernelNet upscale acutance", category = "Upscale", description = "Edge-aligned unsharp-mask amount: sharpened = aniso + amt*gate*(aniso - wider aniso), where gate is the used fraction of maxElong (0 in flats, 1 on strong edges); 0 keeps the output strictly convex", min = 0.0f, max = 1.5f, step = 0.05f, defaultValue = 0.75f)
+    @Tunable(title = "KernelNet upscale gate curve", category = "Upscale", description = "Exponent reshaping the edge-confidence gate for the unsharp term (fraction of allowed elongation). Below 1 steepens so medium edges sharpen too; 1 is linear; flats stay near 0 either way", min = 0.1f, max = 2.0f, step = 0.05f, defaultValue = 0.3f)
+    float gateExp;
+
+    @Tunable(title = "KernelNet split chroma", category = "Upscale", description = "Reconstruct luma with the anisotropic kernels and take chroma from bicubic (1) instead of filtering all channels anisotropically (0) - same detail, less color moire", min = 0, max = 1, step = 1, defaultValue = 1)
+    int splitChroma;
+
+    @Tunable(title = "KernelNet upscale acutance", category = "Upscale", description = "Edge-aligned unsharp-mask amount: sharpened = aniso + amt*gate*(aniso - wider aniso), where gate is the used fraction of maxElong (0 in flats, 1 on strong edges); 0 keeps the output strictly convex", min = 0.0f, max = 1.5f, step = 0.05f, defaultValue = 1.4f)
     float sharpAmt;
 
-    @Tunable(title = "KernelNet upscale acutance width", category = "Upscale", description = "Sigma multiplier of the wide pass used by the unsharp term (higher = softer wide pass, stronger bandpass). Effective value is capped at radius/(2*sigmaMax) so the wide kernel fits the window", min = 1.1f, max = 4.0f, step = 0.05f, defaultValue = 2.2f)
+    @Tunable(title = "KernelNet upscale acutance width", category = "Upscale", description = "Sigma multiplier of the wide pass used by the unsharp term (higher = softer wide pass, stronger bandpass). Effective value is capped at radius/(2*sigmaMax) so the wide kernel fits the window. Kept at 2.2: lowering it moves the edge-aligned boost up into the band where the sensor's own aliasing lives (visible as staircase on diagonals), and the diagonal-edge simulation shows the chain is already 3x less aliased than the native 1x there", min = 1.1f, max = 4.0f, step = 0.05f, defaultValue = 2.2f)
     float sharpWide;
+
+    @Tunable(title = "KernelNet upscale acutance limit", category = "Upscale", description = "Soft cap on the acutance term as a fraction of the local level (Weber-like). A linear unsharp overshoots in proportion to edge contrast, so the strongest - highlight - edges got the worst halo: the tripod bench shows a ~25-level dark notch on the pot edge in the 2x JPEG that the drizzle's own raw does not have, and the resolve is a convex mix while the tone curve is monotone, so the unsharp is provably the source. The cap crushes the dark-side undershoot, keeps a mild bright-side crispening, and leaves fine texture at the full amount. 0 disables the acutance; 1 is effectively unlimited", min = 0.0f, max = 1.0f, step = 0.005f, defaultValue = 0.04f)
+    float acutRel = 0.04f;
+
+    @Tunable(title = "KernelNet downscale min sigma", category = "Upscale", description = "Frozen sigma floor in input pixels used when downscaling (zoom > 1): unlike the upscale path it is NOT multiplied by zoom, so kernels stay tight and crisp. Capped at the effective max below", min = 0.1f, max = 8.0f, step = 0.05f, defaultValue = 0.65f)
+    float downFloorPx;
+
+    @Tunable(title = "KernelNet downscale max-sigma growth", category = "Upscale", description = "Scale-aware AA growth: effective max = min(sigmaMax, downFloor + growth*(zoomMax-1)). 0 keeps the tightest cap at all downscale factors; higher lets strong downscales widen toward sigmaMax for antialiasing", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.5f)
+    float downSigmaGrowth;
+
+    @Tunable(title = "KernelNet downscale acutance growth", category = "Upscale", description = "Scale-aware sharpness: effective sharpAmt = sharpAmt*(1+growth*log2(zoomMax)) on downscales, recovering acutance lost to the wider AA kernel. 0 disables the boost", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.75f)
+    float downSharpMpy;
 
     @Tunable(title = "Debug: dump kernelnet params", category = "Upscale", description = "Renders the KernelNet params map (s1, s2, rho as RGB) into the debug overlay", min = 0, max = 1, step = 1, defaultValue = 0)
     int debugParams;
@@ -73,9 +122,16 @@ public final class UpscaleCrop extends Node {
     private boolean anisoDone = false;
     private Point anisoTarget = null;
     private float anisoZoomX = 1f;
-    private float anisoZoomY = 1f;
+    // Package visibility: the head driver's window math reads this.
+    float anisoZoomY = 1f;
     private float anisoMinX = 0f;
     private float anisoMinY = 0f;
+    private float anisoSigmaMaxEff = 1.0f;
+    private int anisoRadiusEff = 5;
+    private float anisoSharpAmtEff = 1.4f;
+    // Program bound by the aniso branch for the head driver's per-band phase
+    // switch.
+    int tileProgram = 0;
 
     public UpscaleCrop() {
         super("", "UpscaleCrop");
@@ -86,28 +142,65 @@ public final class UpscaleCrop extends Node {
     }
 
     /**
-     * Downstream nodes (LocalLaplacian, CaptureSharpening, CorrectingFlow,
-     * Sharpen2) draw into the pipeline's main ping-pong textures, which
-     * Bayer2Float created at crop size. Once the crop has been expanded to
-     * the full-frame output size, those targets must be rebuilt to match.
+     * Output-sized draw target from the main ping-pong: the main that is not
+     * the input, rebuilt at {@code size} up-front. The old shape drew into a
+     * fresh texture and then rebuilt both mains in resizeMainTextures, so
+     * three output-sized allocations were live at once (the fresh output
+     * plus both mains - ~3.5 GB at a 144 MP output) and the fresh texture
+     * was never closed, so it rode the whole post. The other main is exactly
+     * what the downstream nodes ping-pong into; the input slot is rebuilt by
+     * {@link #rebuildPartnerMain} after the draw, keeping the toggle
+     * coherent (the next drawing node's getMain() returns the input slot).
      */
-    private void resizeMainTextures(Point size) {
-        GLFormat fmt = new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim);
-        GLTexture[] mains = {basePipeline.main1, basePipeline.main2, basePipeline.main3};
-        for (int i = 0; i < mains.length; i++) {
-            if (mains[i] != null) {
-                mains[i].close();
-            }
-            // main3 is demand-allocated and dead past the demosaic stage:
-            // never resurrect it here (getMain3 re-creates on demand).
-            if (i == 2 && mains[i] == null) {
-                continue;
-            }
-            mains[i] = new GLTexture(size, fmt, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+    private GLTexture takeOutputMain(GLTexture input, Point size) {
+        GLTexture out = basePipeline.getMain();
+        if (out == input) {
+            // Never draw over the input: take the other slot explicitly and
+            // keep texnum pointing at the input so the next getMain() hands
+            // the rebuilt input slot to the next drawing node.
+            out = (input == basePipeline.main1) ? basePipeline.main2 : basePipeline.main1;
+            basePipeline.texnum = (out == basePipeline.main2) ? 2 : 1;
         }
-        basePipeline.main1 = mains[0];
-        basePipeline.main2 = mains[1];
-        basePipeline.main3 = mains[2];
+        if (out == null) {
+            // No ping-pong slot (Bayer2Float normally creates both).
+            return new GLTexture(size, input.mFormat, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        }
+        if (size.equals(out.mSize)) {
+            return out;
+        }
+        GLTexture fresh = new GLTexture(size, input.mFormat, null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        if (out == basePipeline.main1) {
+            basePipeline.main1 = fresh;
+        } else if (out == basePipeline.main2) {
+            basePipeline.main2 = fresh;
+        }
+        out.close();
+        return fresh;
+    }
+
+    /**
+     * Rebuilds the crop-sized partner main slot at the output size after the
+     * draw. The input is dead here in every production path (this node was
+     * its last reader), and the downstream ping-pong must never draw into a
+     * stale-size main. If the input was not one of the mains, the idle
+     * partner slot is rebuilt instead and the input is left alone.
+     */
+    private void rebuildPartnerMain(GLTexture input, GLTexture out, Point size) {
+        GLTexture stale = (input == basePipeline.main1 || input == basePipeline.main2)
+                ? input
+                : ((out == basePipeline.main1) ? basePipeline.main2 : basePipeline.main1);
+        if (stale == null || stale == out) {
+            return;
+        }
+        GLTexture fresh = new GLTexture(size,
+                new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim),
+                null, GL_LINEAR, GL_CLAMP_TO_EDGE);
+        if (stale == basePipeline.main1) {
+            basePipeline.main1 = fresh;
+        } else if (stale == basePipeline.main2) {
+            basePipeline.main2 = fresh;
+        }
+        stale.close();
     }
 
     /** Frees a malloc-backed result buffer exactly once; null/view-safe. */
@@ -194,21 +287,18 @@ public final class UpscaleCrop extends Node {
             basePipeline.main3 = null;
         }
 
-        if (basePipeline.mParameters.fullRawSize == null ||
+        if (basePipeline.mParameters.fullRawSize == null &&
+                com.particlesdevs.photoncamera.processing.render.Parameters.isResizeDisabled(
+                        basePipeline.mParameters.getActiveUpscaleFactor()) &&
                 !basePipeline.mParameters.isCropped) {
-            // Non-cropped: KernelNet params have no consumer in this path, so
-            // the ESD4D result ferry must not ride through the whole render
-            // (and leak until process death if left to close()).
+            // Fully native path with no resize requested: params have no
+            // consumer, free the ferry instead of leaking it to close().
             freeUnusedKernelParams(pp);
             WorkingTexture = input;
             return;
         }
 
-        Point fullSize = basePipeline.mParameters.fullRawSize;
-
-        if (fullSize.x <= 0 ||
-                fullSize.y <= 0 ||
-                input.mSize.x <= 0 ||
+        if (input.mSize.x <= 0 ||
                 input.mSize.y <= 0) {
             freeUnusedKernelParams(pp);
             WorkingTexture = input;
@@ -216,22 +306,28 @@ public final class UpscaleCrop extends Node {
         }
 
         /*
-         * Keep output dimensions divisible by four, matching the crop/output
-         * sizing convention already used by PostPipeline.
+         * Output size: zoom-expanded full size when cropped, otherwise the
+         * input size, scaled by the active per-sensor factor. Keeps output
+         * dimensions divisible by four, matching the crop/output sizing
+         * convention already used by PostPipeline. Applies to cropped and
+         * uncropped shots alike.
          */
-        Point target = new Point(
-                fullSize.x & ~3,
-                fullSize.y & ~3);
+        // Derive the output target from the CROP the pipeline started from,
+        // not from the current input: on the SR output-grid drizzle path the
+        // input is already at the target, and deriving from it would scale a
+        // second time (2x -> 4x). Identical for the raw-grid input.
+        Point target = com.particlesdevs.photoncamera.processing.render.Parameters.computeResizedTarget(
+                basePipeline.mParameters,
+                basePipeline.mParameters != null && basePipeline.mParameters.rawSize != null
+                        ? basePipeline.mParameters.rawSize : input.mSize);
 
-        if (target.x < 4) {
-            target.x = 4;
-        }
-
-        if (target.y < 4) {
-            target.y = 4;
-        }
-
-        if (target.equals(input.mSize)) {
+        // No resize needed - but on the SR output-grid drizzle path the input
+        // arrives already at the target and MUST still be reconstructed: the
+        // drizzle is the raw deposit (each sample a ~1-output-px splat), so
+        // skipping the reconstruction exposes its sample lattice as a
+        // pixelation grid across detail and edges. Only the non-SR case
+        // passes through.
+        if (target.equals(input.mSize) && !pp.srFullInjected) {
             freeUnusedKernelParams(pp);
             WorkingTexture = input;
             return;
@@ -282,10 +378,15 @@ public final class UpscaleCrop extends Node {
                     || rho < -2.0f || rho > 2.0f
                     || ls1 < 0.0f || ls1 > 4.0f || ls2 < 0.0f || ls2 > 4.0f
                     || lrho < -2.0f || lrho > 2.0f) {
+                Log.e(Name, "KernelNet map failed the sanity check, bicubic fallback");
                 hasParams = false;
             }
         }
 
+        // Output-sized draw target from the main ping-pong (see
+        // takeOutputMain): chosen before the draw so no fresh output
+        // texture ever coexists with the rebuilt mains.
+        GLTexture out = takeOutputMain(input, target);
         if (hasParams) {
             kernelsMapTex = new GLTexture(paramsSize,
                     new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_LINEAR, GL_CLAMP_TO_EDGE);
@@ -306,35 +407,105 @@ public final class UpscaleCrop extends Node {
             dumpParams(params, paramsSize);
 
             /*
-             * Per-axis sigma floor in crop pixels: a constant floor in output
-             * pixels keeps the reconstruction equally crisp at every zoom
-             * factor, with an absolute crop-pixel floor so the tap weights
-             * never collapse numerically. The floor is capped at sigmaMaxPx:
-             * clamp(s, min, max) with min > max is undefined in GLSL.
+             * Per-axis sigma floor in input pixels, scale-aware:
+             * - Upscale (zoom <= 1): legacy constant floor in output pixels
+             *   (outFloorPx*zoom) keeps the reconstruction equally crisp at
+             *   every zoom factor, with an absolute input-pixel floor so tap
+             *   weights never collapse. Capped at sigmaMaxPx: clamp(s, min,
+             *   max) with min > max is undefined in GLSL.
+             * - Downscale (zoom > 1): frozen floor (downFloorPx, NOT multiplied
+             *   by zoom) keeps kernels tight and crisp; the effective max grows
+             *   slowly with zoom for antialiasing: min(sigmaMax,
+             *   downFloor+growth*(zoomMax-1)). Floor is re-capped at that
+             *   effective max per axis.
              */
             float zoomX = input.mSize.x / (float) target.x;
             float zoomY = input.mSize.y / (float) target.y;
-            float minX = Math.min(Math.max(absMinPx, outFloorPx * zoomX), sigmaMaxPx);
-            float minY = Math.min(Math.max(absMinPx, outFloorPx * zoomY), sigmaMaxPx);
+            float zoomMax = Math.max(zoomX, zoomY);
+            float minX;
+            float minY;
+            float sigmaMaxEff;
+            float sharpAmtEff;
+            int radiusEff = Math.min(Math.max(kernelRadius, 1), 5);
+            if (zoomMax <= 1.0f + 1e-4f) {
+                minX = Math.min(Math.max(absMinPx, outFloorPx * zoomX), sigmaMaxPx);
+                minY = Math.min(Math.max(absMinPx, outFloorPx * zoomY), sigmaMaxPx);
+                sigmaMaxEff = sigmaMaxPx;
+                sharpAmtEff = sharpAmt;
+            } else {
+                float downExcess = zoomMax - 1.0f;
+                sigmaMaxEff = Math.min(sigmaMaxPx, downFloorPx + downSigmaGrowth * downExcess);
+                sigmaMaxEff = Math.max(sigmaMaxEff, absMinPx);
+                float downFloorCapped = Math.min(Math.max(absMinPx, downFloorPx), sigmaMaxEff);
+                // Per-axis freeze: an axis that still upscales (mixed aspect)
+                // keeps the legacy output-pixel floor on that axis.
+                minX = zoomX > 1.0f ? downFloorCapped
+                        : Math.min(Math.max(absMinPx, outFloorPx * zoomX), sigmaMaxEff);
+                minY = zoomY > 1.0f ? downFloorCapped
+                        : Math.min(Math.max(absMinPx, outFloorPx * zoomY), sigmaMaxEff);
+                sharpAmtEff = sharpAmt
+                        * (1.0f + downSharpMpy * (float) (Math.log(zoomMax) / Math.log(2.0)));
+                if (sharpAmtEff < 0.0f) sharpAmtEff = 0.0f;
+                if (sharpAmtEff > 1.5f) sharpAmtEff = 1.5f;
+            }
 
-            GLTexture out = new GLTexture(target, input.mFormat);
             glProg.useAssetProgram("upscalecrop/anisoupscale");
+            tileProgram = glProg.mCurrentProgramActive;
             anisoDone = true;
             anisoTarget = target;
             anisoZoomX = zoomX;
             anisoZoomY = zoomY;
             anisoMinX = minX;
             anisoMinY = minY;
-            rebindAniso(input, input, 0, 0);
-            glProg.drawBlocks(out);
+            anisoSigmaMaxEff = sigmaMaxEff;
+            anisoRadiusEff = radiusEff;
+            // The SR path reconstruction: same kernel, more edge-gated acutance
+            // (bounded by acutRel), so the recovered detail reaches native
+            // crispness without the ringing a narrower kernel caused.
+            anisoSharpAmtEff = sharpAmtEff
+                    * (pp.srFullInjected ? SR_SHARP_MULT : 1.0f);
+            boolean headFused = false;
+            if (headEnabled(pp)) {
+                SRBandApply ba = null;
+                int self = pp.Nodes.indexOf(this);
+                for (int k = self + 1; k < pp.Nodes.size(); k++) {
+                    Node n = pp.Nodes.get(k);
+                    if (n instanceof SRBandApply) {
+                        ba = (SRBandApply) n;
+                        break;
+                    }
+                }
+                try {
+                    headFused = TileDriver.runHeadProduce(this, ba, input, out);
+                } catch (Throwable t) {
+                    Log.e("TiledHarness", "head produce failed, legacy fallback", t);
+                    headFused = false;
+                }
+            }
+            if (headFused) {
+                Log.d("TiledHarness", "head produce engaged " + target.x + "x" + target.y);
+            } else {
+                rebindAniso(input, input, 0, 0);
+                glProg.drawBlocks(out);
+            }
             glProg.closed = true;
             WorkingTexture = out;
-            if (((PostPipeline) basePipeline).debugTiledCompare) {
+            if (!headFused && ((PostPipeline) basePipeline).debugTiledCompare) {
                 verifyAnisoRegions(input);
             }
         } else {
-            WorkingTexture = glUtils.interpolate(input, target);
+            Log.e(Name, "SR reconstruction: KernelNet params unavailable (ferry="
+                    + (pp.kernelParams != null) + " size=" + pp.kernelParamsSize
+                    + "), bicubic fallback - the SR path is NOT engaged");
+            WorkingTexture = glUtils.interpolate(input, out);
         }
+
+        // The crop-sized input (a main in every production path) is dead
+        // past the draw above: this node was its last reader. Rebuild the
+        // slot at the output size for the downstream ping-pong. Replaces
+        // the old resizeMainTextures call, which rebuilt both slots and
+        // would now close this node's output.
+        rebuildPartnerMain(input, out, target);
 
         // CPU copies served their purpose (params now on GPU, or unused on
         // the bicubic path): release so the ~128 MB result (50 MP) doesn't
@@ -354,7 +525,6 @@ public final class UpscaleCrop extends Node {
          * intentionally keeps the crop-region size: RotateWatermark sizes its
          * sampling from its actual input texture now.)
          */
-        resizeMainTextures(target);
         basePipeline.workSize = new Point(target);
     }
 
@@ -366,20 +536,53 @@ public final class UpscaleCrop extends Node {
     private void rebindAniso(GLTexture fullIn, GLTexture input, int o0, int wy0) {
         glProg.setVar("fullSize", anisoTarget);
         glProg.setVar("scaleRatio", 1.0f / anisoZoomX, 1.0f / anisoZoomY);
-        glProg.setVar("sigmaScale", sigmaScale);
+        glProg.setVar("sigmaScale", sigmaScale * (basePipeline instanceof PostPipeline
+                && ((PostPipeline) basePipeline).srFullInjected ? SR_SIGMA_MULT : 1.0f));
         glProg.setVar("sigmaMinPx", anisoMinX, anisoMinY);
-        glProg.setVar("sigmaMaxPx", sigmaMaxPx);
+        glProg.setVar("sigmaMaxPx", anisoSigmaMaxEff);
         glProg.setVar("strength", anisoStrength);
-        glProg.setVar("kernelRadius", kernelRadius);
-        glProg.setVar("sharpAmt", sharpAmt);
+        glProg.setVar("kernelRadius", anisoRadiusEff);
+        glProg.setVar("sharpAmt", anisoSharpAmtEff);
         glProg.setVar("sharpWide", sharpWide);
+        glProg.setVar("acutRel", acutRel);
         glProg.setVar("maxElong", maxElong);
+        glProg.setVar("gateExp", gateExp);
+        glProg.setVar("srElongCap", (basePipeline instanceof PostPipeline
+                && ((PostPipeline) basePipeline).srFullInjected) ? 1.4f : 1.0f);
+        glProg.setVar("splitChroma", splitChroma);
         glProg.setVar("debugMode", debugUpscale);
         glProg.setTexture("InputBuffer", input);
         glProg.setTexture("KernelsMap", kernelsMapTex);
         glProg.setVar("u_tileOrigin", 0, o0);
         glProg.setVar("u_winOrigin", 0, wy0);
         glProg.setVar("u_winFullSize", (float) fullIn.mSize.x, (float) fullIn.mSize.y);
+    }
+
+    /**
+     * Head-driver band body: rebinds (the driver alternates the aniso, detail
+     * and resolve programs per band), re-issues the whole aniso bind and
+     * draws output rows [outOriginY, outOriginY + out.mSize.y). {@code inTile}
+     * holds the crop window starting at crop row {@code winOriginY}.
+     */
+    boolean renderAnisoTile(GLTexture fullIn, GLTexture inTile, GLTexture out,
+                            int outOriginY, int winOriginY) {
+        if (!anisoDone || kernelsMapTex == null || inTile == null || out == null) {
+            return false;
+        }
+        glProg.rebindProgram(tileProgram);
+        rebindAniso(fullIn, inTile, outOriginY, winOriginY);
+        glProg.drawBlocks(out);
+        return true;
+    }
+
+    /**
+     * Head produce engages only outside the oracle harness and only on the
+     * full-SR segment (the case it was introduced for: the output-sized
+     * ping-pong mains would otherwise coexist with the crop input at the
+     * LMK peak). SRPreResolve publishes the segment flag before this node.
+     */
+    private boolean headEnabled(PostPipeline pp) {
+        return pp.tiledHeadProduce && !pp.debugTiledCompare && pp.srFullInjected;
     }
 
     /**

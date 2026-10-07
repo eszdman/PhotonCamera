@@ -540,7 +540,10 @@ public class GLUtils {
         glProg.setDefine("TSAMP",in.mFormat.getTemSamp());
         glProg.setDefine("INSIZE", in.mSize);
         glProg.setDefine("GRADSHIFT",gradientShift);
-        if(out.mFormat.mChannels >= 3) glProg.setDefine("TEXSIZE", 3);
+        // TEXSIZE selects the luma operator on the INPUT (sum3 of rgb), not
+        // the output layout: 2-channel (RG16F) gradient targets still need
+        // the 3-channel operator, only a 1-channel output gets the scalar one.
+        if(out.mFormat.mChannels >= 2) glProg.setDefine("TEXSIZE", 3);
         glProg.useUtilProgram("convdiff",false);
         glProg.setVar("rotation",rotation);
         glProg.setTexture("InputBuffer",in);
