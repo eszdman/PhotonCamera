@@ -54,6 +54,16 @@ public class ESD3D2 extends Node {
     )
     float moire = 1.5f;
 
+    @Tunable(title = "Tone-Aware Boost", category = "Denoise", defaultValue = 1, min = 0, max = 1, step = 1,
+            description = "Scale denoise sigma by the tonemap's shadow gain (sqrt brightness ratio as variance), so shadows are filtered to their post-tonemap visibility"
+    )
+    boolean toneAwareBoost;
+
+    @Tunable(title = "Tone-Aware Strength", category = "Denoise", min = 0.0f, max = 3.0f, defaultValue = 1.0f, step = 0.05f,
+            description = "Strength of the tone-aware shadow sigma boost"
+    )
+    float toneAwareStrength;
+
     @Tunable(title = "Use Color Denoising", category = "Denoise", defaultValue = 1, min = 0, max = 1, step = 1,
             description = "Whether to apply subsampling denoising to color channels (in addition to luma)"
     )
@@ -82,6 +92,8 @@ public class ESD3D2 extends Node {
             glProg.setDefine("NOISEO", NoiseO);
             glProg.setDefine("MOIRE", moire);
             glProg.setDefine("LUMA", luma);
+            glProg.setDefine("TONEAWARE", toneAwareBoost);
+            glProg.setDefine("TONESTRENGTH", toneAwareStrength);
 
             glProg.setDefine("INSIZE", basePipeline.mParameters.rawSize);
             //float ks = 1.0f + Math.min((basePipeline.noiseS+basePipeline.noiseO) * 3.0f * noiseToKernelSize, 34.f);

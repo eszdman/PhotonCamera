@@ -2,7 +2,8 @@ precision highp float;
 // esd3d2_steered_prod: consensus weights + guided 3x3 reference + tensor
 // steering. A tap must match BOTH the raw center (strict -> keeps edges
 // sharp) and the self-guided reference (stable -> no tap-selection flips);
-// the two robust weights are multiplied. Zero new tunables.
+// the two robust weights are multiplied. Optional tone-aware shadow sigma
+// (TONEAWARE / TONESTRENGTH defines).
 // Requires GradBuffer (gx, gy) in .rg.
 precision highp sampler2D;
 uniform sampler2D InputBuffer;
@@ -31,6 +32,8 @@ out vec4 Output;
 #define INTENSE 1.0
 #define MOIRE 1.0
 #define LUMA 0.0
+#define TONEAWARE 0
+#define TONESTRENGTH 1.0
 #define PI 3.1415926535897932384626433832795
 
 float normpdf(in float x, in float sigma)
@@ -91,8 +94,22 @@ void main() {
     vec3 final_colour = vec3(0.0);
     vec3 final_colour2 = vec3(0.0);
     float sigX = 2.5;
-    float sigY = max(NOISES*noisefactor + NOISEO, 0.0000001);
-    //float sigY = max(NOISES*noisefactor + NOISES*NOISES * 3.0/8.0 + NOISEO, 0.0000001);
+    // Deep-shadow sigma boost. Below the noise model's read-noise crossover
+    // (NOISEO/NOISES) the signal is read-noise dominated, and every later
+    // shadow-lifting stage (AE gain -> Reinhard -> sRGB encode -> shadows
+    // curve) amplifies the residual by its local slope ~ sqrt(x)/x. Pass that
+    // ratio as variance (sigma^2 *= 1/x) but ONLY inside the crossover zone:
+    // above it the boost fades out and sigma is stock, so midtones and
+    // highlights are untouched. The cap keeps the weights from degenerating
+    // into a box blur at x -> 0.
+    float nfRaw = max(max(cavg.r, max(cavg.g, cavg.b)), 0.0001);
+    float xC = clamp(NOISEO/max(NOISES,0.000000001), 0.0001, 0.02);
+    float deepFade = 1.0 - smoothstep(0.25*xC, 2.0*xC, nfRaw);
+    float toneBoost = 1.0;
+#if TONEAWARE == 1
+    toneBoost = 1.0 + (min(1.0/nfRaw, 144.0) - 1.0) * deepFade * TONESTRENGTH;
+#endif
+    float sigY = max((NOISES*noisefactor + NOISEO) * toneBoost, 0.0000001);
     vec3 chromaDiff = (abs(cavg-cinX)+abs(cavg-cinY)+abs(cavg-cinXY)+abs(cavg-cin))/4.0;
     //chromaDiff *= (length(chromaDiff)/(length(chromaDiff)+sigY*64.0));
     chromaDiff *= max(abs(xDelta),abs(yDelta));
