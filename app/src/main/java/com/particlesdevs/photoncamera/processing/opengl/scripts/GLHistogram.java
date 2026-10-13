@@ -29,6 +29,11 @@ public class GLHistogram implements AutoCloseable{
     public String CustomProgram = "";
     public String CustomShader = "";
     public float input1, input2;
+    /** Additive bin bias (bin units) for the standard histogram shader:
+     * shifts sub-zero texels into positive bins instead of clamping at 0.
+     * Leave 0 for legacy behavior (ABL uses it to resolve the sub-black
+     * noise tail). */
+    public float binOffset = 0.f;
     /** Optional row-major 3x3 kernel pre-filter for custom shaders that
      * support it (merge/noisehist with SPATIAL_KERNEL): null = identity. */
     public float[] customKernel;
@@ -107,6 +112,7 @@ public class GLHistogram implements AutoCloseable{
         glProg.setVar("exposure", exposure[0] * histMpy, exposure[1] * histMpy, exposure[2] * histMpy, exposure[3] * histMpy);
         glProg.setVar("input1", input1);
         glProg.setVar("input2", input2);
+        glProg.setVar("binOffset", binOffset);
         glProg.setBufferCompute("histogramRed",buffers[0]);
         glProg.setBufferCompute("histogramGreen",buffers[1]);
         glProg.setBufferCompute("histogramBlue",buffers[2]);

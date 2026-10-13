@@ -5,6 +5,10 @@ uniform sampler2D inTexture;
 uniform vec4 exposure;
 uniform float input1;
 uniform float input2;
+// Additive bin bias (bin units) for the standard binning: shifts sub-zero
+// texels into positive bins so consumers can resolve content below their
+// search anchor. 0.0 = legacy behavior.
+uniform float binOffset;
 #define COL_R 1
 #define COL_G 1
 #define COL_B 1
@@ -75,7 +79,10 @@ void main() {
             ivec2 storePos = (base2 + ivec2(kx, ky))*SCALE;
             if (storePos.x < imgsize.x && storePos.y < imgsize.y) {
                 vec4 texColor = texture(inTexture,(vec2(storePos) + 0.5)/vec2(imgsize));
-                uvec4 texColorUint = clamp(uvec4(exposure * texColor), uvec4(0), uvec4(HISTSIZE - 1));
+                // Clamp in float space BEFORE the uint cast: converting a
+                // negative float to uint is undefined, so sub-zero texels
+                // must saturate to bin 0 deterministically.
+                uvec4 texColorUint = uvec4(clamp(exposure * texColor + binOffset, 0.0, float(HISTSIZE - 1)));
                 #if COL_CUSTOM == 1
                     CUSTOM_PROGRAM;
                 #endif
