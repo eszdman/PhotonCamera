@@ -61,7 +61,8 @@ public class SaverImplementation {
                 ImageFrame frame = ImageFrame.fromCrop(
                         image.getPlanes()[0].getBuffer(), image.getFormat(),
                         logicalW, logicalH, rowStride, pixelStride, cropRegion,
-                        PhotonCamera.getSettings().binning);
+                        PhotonCamera.getSettings().binning,
+                        ImageFrame.cfaPatternFromSensor());
                 if (frame == null) return null;
                 frame.timestamp = image.getTimestamp();
                 return frame;
@@ -86,7 +87,8 @@ public class SaverImplementation {
         ImageFrame frame;
         synchronized (Allocator.class) {
             Allocator.binning = doBinning;
-            frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, rowStride, offset, capacity);
+            frame = new ImageFrame(image.getPlanes()[0].getBuffer(), image.getFormat(), width, rowStride, offset, capacity,
+                    ImageFrame.cfaPatternFromSensor());
         }
         frame.timestamp = image.getTimestamp();
         if (doBinning) {

@@ -42,6 +42,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
 
+import com.particlesdevs.photoncamera.api.VendorTagUtils;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.HorizonIndicatorView;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.ViewfinderHudView;
 import com.particlesdevs.photoncamera.util.Log;
@@ -1256,23 +1257,20 @@ public class CameraFragment extends Fragment {
         // Tripod indicator
         boolean isTripod = PhotonCamera.getGyro() != null && PhotonCamera.getGyro().getTripod();
 
-        // OIS hardware & runtime active status
-        boolean oisSupported = false;
+        // OIS hardware & runtime active status. On/Auto are shown as active
+        // (Auto leaves the decision to the HAL, whose default keeps OIS on).
+        boolean oisSupported = VendorTagUtils.isOisSupported(chars);
         boolean oisActive = true;
-        if (chars != null) {
-            int[] stabModes = chars.get(CameraCharacteristics.LENS_INFO_AVAILABLE_OPTICAL_STABILIZATION);
-            oisSupported = (stabModes != null && stabModes.length > 1);
-            if (oisSupported && captureController != null) {
-                int oisMode = captureController.oisMode;
-                if (oisMode == 2) {
-                    oisActive = false;
-                } else if (oisMode == 1) {
-                    CameraMode curMode = PhotonCamera.getSettings().selectedMode;
-                    boolean isContinuous = (curMode == CameraMode.UNLIMITED);
-                    oisActive = !(isTripod || isContinuous);
-                } else {
-                    oisActive = true;
-                }
+        if (oisSupported && captureController != null) {
+            int oisMode = captureController.oisMode;
+            if (oisMode == 2) {
+                // Off
+                oisActive = false;
+            } else if (oisMode == 3) {
+                // Auto (tripod, unlimited off)
+                CameraMode curMode = PhotonCamera.getSettings().selectedMode;
+                boolean isContinuous = (curMode == CameraMode.UNLIMITED);
+                oisActive = !(isTripod || isContinuous);
             }
         }
 

@@ -2,9 +2,11 @@ package com.particlesdevs.photoncamera.processing;
 
 import android.graphics.ImageFormat;
 import android.graphics.Rect;
+import android.hardware.camera2.CameraCharacteristics;
 import android.media.Image;
 import com.particlesdevs.photoncamera.util.Log;
 
+import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.ZoomController;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
@@ -45,14 +47,14 @@ public class ImageFrame {
         return timestamp;
     }
 
-    public ImageFrame(ByteBuffer in, int format, int width, int row_stride, int shift, int capacity) {
+    public ImageFrame(ByteBuffer in, int format, int width, int row_stride, int shift, int capacity, int cfa) {
         ByteBuffer direct;
         if (Allocator.binning) {
             int height = capacity / row_stride;
             if (format == 0x25) {
-                direct = Allocator.allocateAndCopyConvertBinning(capacity, in, width, row_stride, shift);
+                direct = Allocator.allocateAndCopyConvertBinning(capacity, in, width, row_stride, shift, cfa);
             } else {
-                direct = Allocator.allocateAndCopyBinning(capacity, in, width, height, row_stride);
+                direct = Allocator.allocateAndCopyBinning(capacity, in, width, height, row_stride, cfa);
             }
         } else {
             if(format == 0x25){
@@ -63,6 +65,25 @@ public class ImageFrame {
         }
         direct.position(0);
         buffer = direct;
+    }
+
+    /**
+     * Sensor CFA arrangement read directly from
+     * {@link CameraCharacteristics#SENSOR_INFO_COLOR_FILTER_ARRANGEMENT}:
+     * 0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR; -1 when unavailable (the native
+     * binning kernels then keep the legacy phase-pure green behaviour).
+     * Pass the returned value into the binning ImageFrame paths.
+     */
+    public static int cfaPatternFromSensor() {
+        try {
+            CameraCharacteristics characteristics = CaptureController.mCameraCharacteristics;
+            Integer cfa = characteristics != null
+                    ? characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT)
+                    : null;
+            return cfa != null ? cfa : -1;
+        } catch (Throwable ignored) {
+            return -1;
+        }
     }
 
     public ImageFrame(ByteBuffer in) {
@@ -87,10 +108,13 @@ public class ImageFrame {
      * @param pixelStride source pixel stride in bytes
      * @param crop      crop rectangle in source pixel space (clamped inside)
      * @param binning   whether to additionally apply 2x2 Bayer binning
+     * @param cfa       sensor CFA arrangement (0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR;
+     *                  -1 keeps the legacy phase-pure green binning)
      * @return a frame whose buffer is the tightly-packed cropped region
      */
     public static ImageFrame fromCrop(ByteBuffer in, int format, int srcWidth, int srcHeight,
-                                      int rowStride, int pixelStride, Rect crop, boolean binning) {
+                                      int rowStride, int pixelStride, Rect crop, boolean binning,
+                                      int cfa) {
         int left = Math.max(0, crop.left);
         int top = Math.max(0, crop.top);
         int right = Math.min(srcWidth, crop.right);
@@ -98,7 +122,7 @@ public class ImageFrame {
         int cropW = Math.max(0, right - left);
         int cropH = Math.max(0, bottom - top);
         if (cropW <= 0 || cropH <= 0) {
-            return new ImageFrame(in, format, srcWidth, rowStride, 0, in.capacity());
+            return new ImageFrame(in, format, srcWidth, rowStride, 0, in.capacity(), cfa);
         }
         left = cropW % 2 == 0 ? left : Math.max(0, left + 1);
         top = cropH % 2 == 0 ? top : Math.max(0, top + 1);
@@ -123,7 +147,7 @@ public class ImageFrame {
             int shift = rowStride * top + (colPx / 4) * 5;
             int cap = rowStride * cropH;
             if (binning) {
-                direct = Allocator.allocateAndCopyConvertBinning(cap, in, cropW, rowStride, shift);
+                direct = Allocator.allocateAndCopyConvertBinning(cap, in, cropW, rowStride, shift, cfa);
             } else {
                 direct = Allocator.allocateAndCopyConvert(cap, in, cropW, rowStride, shift);
             }
@@ -131,7 +155,7 @@ public class ImageFrame {
             // RAW16 (2 bytes/pixel)
             int shift = rowStride * top + left * 2;
             if (binning) {
-                direct = Allocator.allocateAndCopyCropBinning(cropW, cropH, in, rowStride, shift);
+                direct = Allocator.allocateAndCopyCropBinning(cropW, cropH, in, rowStride, shift, cfa);
             } else {
                 direct = Allocator.allocateAndCopyCrop(cropW * 2, cropH, in, rowStride, shift);
             }
@@ -154,16 +178,16 @@ public class ImageFrame {
     }
 
     /**
-     * Convenience overload of {@link #fromCrop(ByteBuffer, int, int, int, int, int, Rect, boolean)}
+     * Convenience overload of {@link #fromCrop(ByteBuffer, int, int, int, int, int, Rect, boolean, int)}
      * that takes a pre-computed {@link ZoomController.CropRegion} (which carries the
      * crop origin and dimensions) instead of a {@link Rect}.
      */
     public static ImageFrame fromCrop(ByteBuffer in, int format, int srcWidth, int srcHeight,
                                       int rowStride, int pixelStride,
-                                      ZoomController.CropRegion crop, boolean binning) {
+                                      ZoomController.CropRegion crop, boolean binning, int cfa) {
         Rect rect = new Rect(crop.originX, crop.originY,
                 crop.originX + crop.width, crop.originY + crop.height);
-        ImageFrame frame = fromCrop(in, format, srcWidth, srcHeight, rowStride, pixelStride, rect, binning);
+        ImageFrame frame = fromCrop(in, format, srcWidth, srcHeight, rowStride, pixelStride, rect, binning, cfa);
         if (frame == null) return null;
         frame.fullWidth = crop.fullWidth;
         frame.fullHeight = crop.fullHeight;

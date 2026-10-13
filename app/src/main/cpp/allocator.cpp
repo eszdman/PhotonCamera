@@ -194,30 +194,62 @@ static void decodeRaw10Row(const uint8_t* row_start, uint16_t* dst, int width) {
     }
 }
 
-// Helper: Bayer-aware 2x2 binning matching dngCreator::applyBayerBinning.
-// Each output pixel combines 4 same-colour pixels from a 4x4 input block.
+// Helper: CFA-aware 2x2 binning matching dngCreator::applyBayerBinning
+// (sum mode). R/B outputs sum 4 same-colour pixels from their own lattice;
+// green outputs mix the two green phases 2+2 in a quincunx diamond around
+// the output anchor, so G1/G2 sensitivity imbalance cannot print a
+// checkerboard into the binned green channel. cfa uses the DngCreator enum
+// (0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR); unknown values keep the legacy
+// phase-pure behaviour for green as a safe fallback.
 // input is width*height uint16_t (packed, no stride padding).
 static void applyBayerBinning(const uint16_t* input, uint16_t* output,
                                int srcWidth, int srcHeight,
-                               int outWidth, int outHeight) {
+                               int outWidth, int outHeight, int cfa) {
+    // Unknown patterns (negative or > 3) keep the legacy phase-pure
+    // behaviour for every slot as a safe fallback.
+    const bool knownCfa = (cfa >= 0 && cfa <= 3);
+    const bool oddDiag = (cfa == 0 || cfa == 3);
     for (int oy = 0; oy < outHeight; oy++) {
-        int blockStartRow = (oy / 2) * 4;
-        int dr    = oy % 2;
-        int inRow  = blockStartRow + dr;
-        int inRow2 = (inRow + 2 < srcHeight) ? inRow + 2 : srcHeight - 1;
-
+        const int Y = 2 * oy + 1; // green anchor row (odd)
         for (int ox = 0; ox < outWidth; ox++) {
-            int blockStartCol = (ox / 2) * 4;
-            int dc    = ox % 2;
-            int inCol  = blockStartCol + dc;
-            int inCol2 = (inCol + 2 < srcWidth) ? inCol + 2 : srcWidth - 1;
-
-            uint32_t sum =
-                (uint32_t)input[inRow  * srcWidth + inCol ] +
-                (uint32_t)input[inRow  * srcWidth + inCol2] +
-                (uint32_t)input[inRow2 * srcWidth + inCol ] +
-                (uint32_t)input[inRow2 * srcWidth + inCol2];
-
+            const int X = 2 * ox + 1; // green anchor col (odd)
+            const bool greenSlot = knownCfa && (oddDiag ? (oy % 2) != (ox % 2)
+                                                        : (oy % 2) == (ox % 2));
+            uint32_t sum;
+            if (greenSlot && oddDiag) {
+                // vertical pair on even-row greens (odd cols) +
+                // horizontal pair on odd-row greens (even cols)
+                int xp = (X + 1 < srcWidth - 1) ? X + 1 : srcWidth - 2;   // even col
+                int yp = (Y + 1 < srcHeight - 1) ? Y + 1 : srcHeight - 2; // even row
+                sum =
+                    (uint32_t)input[(Y - 1) * srcWidth + X]        +
+                    (uint32_t)input[yp        * srcWidth + X]      +
+                    (uint32_t)input[ Y        * srcWidth + (X - 1)] +
+                    (uint32_t)input[ Y        * srcWidth + xp];
+            } else if (greenSlot) {
+                // diagonal pair on (even,even) greens +
+                // vertical pair on (odd,odd) greens
+                int xp  = (X + 1 < srcWidth - 1) ? X + 1 : srcWidth - 2;   // even col
+                int yp  = (Y + 1 < srcHeight - 1) ? Y + 1 : srcHeight - 2; // even row
+                int ym  = (Y - 2 > 1) ? Y - 2 : 1;                         // odd row
+                int yp2 = (Y + 2 < srcHeight) ? Y + 2 : srcHeight - 1;     // odd row
+                sum =
+                    (uint32_t)input[(Y - 1) * srcWidth + (X - 1)] +
+                    (uint32_t)input[yp      * srcWidth + xp]      +
+                    (uint32_t)input[ym      * srcWidth + X]       +
+                    (uint32_t)input[yp2     * srcWidth + X];
+            } else {
+                // R/B: 2x2 box on the slot's own colour lattice
+                int inRow  = (oy / 2) * 4 + (oy % 2);
+                int inCol  = (ox / 2) * 4 + (ox % 2);
+                int inRow2 = (inRow + 2 < srcHeight) ? inRow + 2 : srcHeight - 1;
+                int inCol2 = (inCol + 2 < srcWidth) ? inCol + 2 : srcWidth - 1;
+                sum =
+                    (uint32_t)input[inRow  * srcWidth + inCol ] +
+                    (uint32_t)input[inRow  * srcWidth + inCol2] +
+                    (uint32_t)input[inRow2 * srcWidth + inCol ] +
+                    (uint32_t)input[inRow2 * srcWidth + inCol2];
+            }
             output[oy * outWidth + ox] = (uint16_t)(sum > 65535u ? 65535u : sum);
         }
     }
@@ -229,7 +261,8 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvertBinning(JNIEnv *env, jclass clazz,
                                                                                   jint capacity, jobject originBuffer,
-                                                                                  jint width, jint row_stride, jint offset) {
+                                                                                  jint width, jint row_stride, jint offset,
+                                                                                  jint cfa) {
     int height = capacity / row_stride;
     int out_width  = width  / 2;
     int out_height = height / 2;
@@ -268,7 +301,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvertBinning
         decodeRaw10Row(input + row * row_stride, decoded + row * width, width);
     }
 
-    applyBayerBinning(decoded, allocation, width, height, out_width, out_height);
+    applyBayerBinning(decoded, allocation, width, height, out_width, out_height, cfa);
     free(decoded);
 
     memoryCount += output_size;
@@ -277,7 +310,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyConvertBinning
     return buffer;
 }
 
-// Applies Bayer-aware 2x2 sum binning on a cropped region of a RAW16 buffer.
+// Applies CFA-aware 2x2 sum binning on a cropped region of a RAW16 buffer.
 // Equivalent to allocateAndCopyCrop followed by binning, but done in a single
 // pass (only the cropped region is binned). offset points to the crop's
 // top-left; cropWidth/cropHeight are the crop dimensions (full, un-binned).
@@ -287,7 +320,8 @@ JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCropBinning(JNIEnv *env, jclass clazz,
                                                                               jint cropWidth, jint cropHeight,
                                                                               jobject originBuffer,
-                                                                              jint row_stride, jint offset) {
+                                                                              jint row_stride, jint offset,
+                                                                              jint cfa) {
     int out_width  = cropWidth  / 2;
     int out_height = cropHeight / 2;
     int output_size = out_width * out_height * (int)sizeof(uint16_t);
@@ -317,38 +351,23 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyCropBinning(JN
         free(allocation);
         return nullptr;
     }
-    const uint8_t* src = static_cast<const uint8_t*>(ptr) + offset;
-    auto* rowA = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));
-    auto* rowB = static_cast<uint16_t*>(malloc(cropWidth * sizeof(uint16_t)));
-    if (rowA == nullptr || rowB == nullptr) {
-        LOGD("allocateAndCopyCropBinning: failed to allocate row buffers");
-        free(rowA);
-        free(rowB);
+    // The binning kernel touches rows Y-2..Y+2 per output row, so de-stride
+    // the whole crop into a packed buffer first and run the shared kernel.
+    auto* packed = static_cast<uint16_t*>(malloc((size_t)cropWidth * (size_t)cropHeight * sizeof(uint16_t)));
+    if (packed == nullptr) {
+        LOGD("allocateAndCopyCropBinning: failed to allocate crop buffer");
         free(allocation);
         return nullptr;
     }
-    for (int oy = 0; oy < out_height; oy++) {
-        int blockStartRow = (oy / 2) * 4;
-        int dr    = oy % 2;
-        int inRow  = blockStartRow + dr;
-        int inRow2 = (inRow + 2 < cropHeight) ? inRow + 2 : cropHeight - 1;
-        memcpy(rowA, src + inRow  * row_stride, cropWidth * sizeof(uint16_t));
-        memcpy(rowB, src + inRow2 * row_stride, cropWidth * sizeof(uint16_t));
-        uint16_t* outRow = allocation + oy * out_width;
-        for (int ox = 0; ox < out_width; ox++) {
-            int blockStartCol = (ox / 2) * 4;
-            int dc    = ox % 2;
-            int inCol  = blockStartCol + dc;
-            int inCol2 = (inCol + 2 < cropWidth) ? inCol + 2 : cropWidth - 1;
-
-            uint32_t sum = (uint32_t)rowA[inCol] + (uint32_t)rowA[inCol2]
-                         + (uint32_t)rowB[inCol] + (uint32_t)rowB[inCol2];
-            outRow[ox] = (uint16_t)(sum > 65535u ? 65535u : sum);
-        }
+    const uint8_t* src = static_cast<const uint8_t*>(ptr) + offset;
+    for (int row = 0; row < cropHeight; row++) {
+        memcpy(packed + (size_t)row * cropWidth,
+               src + (size_t)row * row_stride,
+               cropWidth * sizeof(uint16_t));
     }
-
-    free(rowA);
-    free(rowB);
+    applyBayerBinning(packed, allocation, cropWidth, cropHeight,
+                      out_width, out_height, cfa);
+    free(packed);
 
     memoryCount += output_size;
     LOGD("allocateAndCopyCropBinning: %dx%d -> %dx%d, memory %ld MB",
@@ -362,7 +381,8 @@ extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyBinning(JNIEnv *env, jclass clazz,
                                                                            jint capacity, jobject originBuffer,
-                                                                           jint width, jint height, jint row_stride) {
+                                                                           jint width, jint height, jint row_stride,
+                                                                           jint cfa) {
     int out_width  = width  / 2;
     int out_height = height / 2;
     int output_size = out_width * out_height * (int)sizeof(uint16_t);
@@ -386,7 +406,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyBinning(JNIEnv
     int stride_pixels = row_stride / (int)sizeof(uint16_t);
     if (stride_pixels == width) {
         applyBayerBinning(static_cast<const uint16_t*>(ptr), allocation,
-                          width, height, out_width, out_height);
+                          width, height, out_width, out_height, cfa);
     } else {
         // De-stride into a packed buffer first
         int full_size = width * height * (int)sizeof(uint16_t);
@@ -400,7 +420,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_allocateAndCopyBinning(JNIEnv
         for (int row = 0; row < height; row++) {
             memcpy(packed + row * width, src + row * row_stride, width * sizeof(uint16_t));
         }
-        applyBayerBinning(packed, allocation, width, height, out_width, out_height);
+        applyBayerBinning(packed, allocation, width, height, out_width, out_height, cfa);
         free(packed);
     }
 

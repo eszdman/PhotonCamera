@@ -39,10 +39,13 @@ public class Allocator{
      * @param offset         byte offset to the crop's top-left corner
      */
     public native static ByteBuffer allocateAndCopyCrop(int cropWidthBytes, int cropHeight, ByteBuffer origin, int row_stride, int offset);
-    public native static ByteBuffer allocateAndCopyCropBinning(int cropWidth, int cropHeight, ByteBuffer origin, int row_stride, int offset);
+    /** CFA-aware binning; cfa: 0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR (unknown keeps legacy green). */
+    public native static ByteBuffer allocateAndCopyCropBinning(int cropWidth, int cropHeight, ByteBuffer origin, int row_stride, int offset, int cfa);
     public native static ByteBuffer allocateAndCopyConvert(int capacity, ByteBuffer origin, int width, int row_stride, int offset);
-    public native static ByteBuffer allocateAndCopyConvertBinning(int capacity, ByteBuffer origin, int width, int row_stride, int offset);
-    public native static ByteBuffer allocateAndCopyBinning(int capacity, ByteBuffer origin, int width, int height, int row_stride);
+    /** CFA-aware binning; cfa: 0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR (unknown keeps legacy green). */
+    public native static ByteBuffer allocateAndCopyConvertBinning(int capacity, ByteBuffer origin, int width, int row_stride, int offset, int cfa);
+    /** CFA-aware binning; cfa: 0=RGGB, 1=GRBG, 2=GBRG, 3=BGGR (unknown keeps legacy green). */
+    public native static ByteBuffer allocateAndCopyBinning(int capacity, ByteBuffer origin, int width, int height, int row_stride, int cfa);
 
     /**
      * Converts a packed uint16 raw frame (width*height, sensor site order

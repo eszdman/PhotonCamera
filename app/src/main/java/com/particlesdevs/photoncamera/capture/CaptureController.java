@@ -243,12 +243,13 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
 
     @SensorConfig(
             title = "OIS Mode",
-            description = "Controls optical stabilization. Auto mode disables OIS on a tripod and in Unlimited to prevent drift",
-            entries = {"On", "Auto", "Off"},
-            entryValues = {"0", "1", "2"},
-            defaultValue = 0
+            description = "Controls optical stabilization. Auto sends no OIS key and lets the camera decide; "
+                    + "Auto (tripod, unlimited off) disables OIS on a tripod and in Unlimited to prevent drift",
+            entries = {"On", "Auto", "Auto (tripod, unlimited off)", "Off"},
+            entryValues = {"0", "1", "3", "2"},
+            defaultValue = 1
     )
-    public int oisMode = 0;
+    public int oisMode = 1;
 
     @SensorConfig(
             title = "Exposure Balance",
@@ -707,7 +708,6 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }
             */
 
-            VendorTagUtils.resultSessionApply(result, getTunablePhysicalId());
             process(result);
             if (mTouchFocus != null) {
                 mTouchFocus.onCaptureResult(result);
@@ -3904,7 +3904,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                         img.getPlanes()[0].getBuffer(), img.getFormat(),
                         logicalW, logicalH, rowStride, pixelStride,
                         zoomController.computeCropRegion(logicalW, logicalH),
-                        PhotonCamera.getSettings().binning);
+                        PhotonCamera.getSettings().binning,
+                        ImageFrame.cfaPatternFromSensor());
                 if (frame == null) { img.close(); continue; }
                 frame.timestamp = img.getTimestamp();
                 img.close();
@@ -3924,7 +3925,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             boolean doBinning2 = PhotonCamera.getSettings().binning;
             synchronized (com.particlesdevs.photoncamera.util.Allocator.class) {
                 Allocator.binning = doBinning2;
-                frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(), width, rowStride, offset, bufCapacity);
+                frame = new ImageFrame(img.getPlanes()[0].getBuffer(), img.getFormat(), width, rowStride, offset, bufCapacity,
+                        ImageFrame.cfaPatternFromSensor());
             }
             frame.timestamp = img.getTimestamp();
             frame.width = width;
@@ -5265,12 +5267,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
     }
 
     /**
-     * Applies Optical Image Stabilization (OIS) to a request. Video mode uses
-     * the global Video OIS toggle (default on) and keeps OIS enabled alongside
-     * EIS; photo modes keep the per-sensor OIS Mode. This is the single
-     * authority for OIS: support detection no longer gates the key, so a HAL
-     * that hides its OIS characteristics still gets the setting attempted,
-     * and unsupported devices simply reject it.
+     * Applies Optical Image Stabilization (OIS) to a request. Video modes use
+     * the global Video OIS setting (On/Auto/Off, default Auto); photo modes
+     * keep the per-sensor OIS Mode. In both, Auto sends no OIS key at all so
+     * the HAL keeps its own default. This is the single authority for OIS.
      *
      * @param builder        the builder for which to configure OIS
      * @param isStillCapture true for still capture requests, false for preview/record
@@ -5281,18 +5281,29 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             int mode;
             String source;
             if (isVideoMode()) {
-                boolean on = PreferenceKeys.isVideoOisOn();
-                mode = on ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON
-                        : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF;
-                source = "video-toggle";
+                String videoOis = PreferenceKeys.getVideoOisMode();
+                if ("auto".equals(videoOis)) {
+                    // Auto: let the HAL decide, the builder is left untouched.
+                    Log.d(TAG, "OIS mode=HAL default (video auto), no key sent");
+                    return;
+                }
+                mode = "off".equals(videoOis)
+                        ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
+                        : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON;
+                source = "video-mode=" + videoOis;
             } else {
                 int sensorMode = this.oisMode;
-                if (sensorMode == 2) {
+                if (sensorMode == 1) {
+                    // Auto: let the HAL decide, the builder is left untouched.
+                    Log.d(TAG, "OIS mode=HAL default (auto), no key sent");
+                    return;
+                } else if (sensorMode == 2) {
                     // Always Off
                     mode = CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF;
                     source = "sensor=off";
-                } else if (sensorMode == 1) {
-                    // Smart Auto: off on a tripod / continuous capture, else on.
+                } else if (sensorMode == 3) {
+                    // Auto (tripod, unlimited off): off on a tripod /
+                    // continuous capture to prevent drift, else on.
                     boolean isTripod = PhotonCamera.getGyro() != null
                             && PhotonCamera.getGyro().getTripod();
                     boolean isContinuousCapture =
@@ -5300,10 +5311,9 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     mode = (isTripod || isContinuousCapture)
                             ? CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_OFF
                             : CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON;
-                    source = "sensor=auto";
+                    source = "sensor=auto-tripod";
                 } else {
-                    // "On" (legacy default): explicitly ON now that
-                    // applyPrev no longer forces OIS for the preview stream.
+                    // "On" (default): explicitly ON.
                     mode = CaptureRequest.LENS_OPTICAL_STABILIZATION_MODE_ON;
                     source = "sensor=on";
                 }

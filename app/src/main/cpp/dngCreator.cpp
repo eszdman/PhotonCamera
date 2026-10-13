@@ -551,11 +551,19 @@ public:
     }
 
     /**
-     * Bayer 2x2 binning: each output pixel combines 4 same-color input pixels
-     * (from a 4x4 input block → 2x2 output Bayer cell), preserving the CFA pattern.
+     * CFA-aware Bayer 2x2 binning: output stays Bayer at half resolution.
      *
-     * useAverage=true  → average the 4 pixels (levels unchanged, for 16-bit full-range input).
-     * useAverage=false → sum the 4 pixels  (white/black levels ×4, for sub-16-bit input).
+     * R and B outputs combine 4 same-colour pixels (2x2 box on their own
+     * lattice). Green outputs mix the two green phases 2+2 in a quincunx
+     * diamond around the output anchor: a vertical pair from the even-row
+     * green lattice plus a horizontal pair from the odd-row lattice (GRBG/
+     * GBRG use the transposed geometry). Mixing both phases into every
+     * green pixel cancels the G1/G2 sensitivity checkerboard that green
+     * line artifacts come from, and the diamond nulls the quincunx alias
+     * folds of the half-resolution green lattice.
+     *
+     * useAverage=true  → average the 4 taps (levels unchanged, for 16-bit full-range input).
+     * useAverage=false → sum the 4 taps      (white/black levels ×4, for sub-16-bit input).
      */
     uint16_t* applyBayerBinning(const void* inputData, int srcWidth, int srcHeight,
                                 int& outWidth, int& outHeight, bool useAverage) {
@@ -563,33 +571,60 @@ public:
         outHeight = srcHeight / 2;
         uint16_t* output = new uint16_t[static_cast<size_t>(outWidth) * static_cast<size_t>(outHeight)];
         const uint16_t* input = reinterpret_cast<const uint16_t*>(inputData);
+        // Greens sit on the (0,1)/(1,0) slots for RGGB(0)/BGGR(3) and on the
+        // (0,0)/(1,1) slots for GRBG(1)/GBRG(2). Unknown patterns fall back
+        // to the legacy phase-pure kernel for every slot.
+        const bool knownCfa = (metadata.cfa >= 0 && metadata.cfa <= 3);
+        const bool oddDiag = (metadata.cfa == 0 || metadata.cfa == 3);
 
         for (int oy = 0; oy < outHeight; oy++) {
-            // Within the Bayer cell: row offset dr ∈ {0,1}; map to 4-row input block
-            int blockStartRow = (oy / 2) * 4;
-            int dr    = oy % 2;
-            int inRow  = blockStartRow + dr;
-            int inRow2 = std::min(inRow + 2, srcHeight - 1); // next same-color row
-
+            const int Y = 2 * oy + 1; // green anchor row (odd)
             for (int ox = 0; ox < outWidth; ox++) {
-                int blockStartCol = (ox / 2) * 4;
-                int dc    = ox % 2;
-                int inCol  = blockStartCol + dc;
-                int inCol2 = std::min(inCol + 2, srcWidth - 1); // next same-color col
-
-                uint32_t sum =
-                    (uint32_t)input[inRow  * srcWidth + inCol ] +
-                    (uint32_t)input[inRow  * srcWidth + inCol2] +
-                    (uint32_t)input[inRow2 * srcWidth + inCol ] +
-                    (uint32_t)input[inRow2 * srcWidth + inCol2];
-
+                const int X = 2 * ox + 1; // green anchor col (odd)
+                const bool greenSlot = knownCfa && (oddDiag ? (oy % 2) != (ox % 2)
+                                                            : (oy % 2) == (ox % 2));
+                uint32_t sum;
+                if (greenSlot && oddDiag) {
+                    // vertical pair on even-row greens (odd cols) +
+                    // horizontal pair on odd-row greens (even cols)
+                    const int xp = std::min(X + 1, srcWidth  - 2); // even col
+                    const int yp = std::min(Y + 1, srcHeight - 2); // even row
+                    sum =
+                        (uint32_t)input[(Y - 1) * srcWidth + X]       +
+                        (uint32_t)input[yp       * srcWidth + X]      +
+                        (uint32_t)input[ Y       * srcWidth + (X - 1)] +
+                        (uint32_t)input[ Y       * srcWidth + xp];
+                } else if (greenSlot) {
+                    // diagonal pair on (even,even) greens +
+                    // vertical pair on (odd,odd) greens
+                    const int xp  = std::min(X + 1, srcWidth  - 2); // even col
+                    const int yp  = std::min(Y + 1, srcHeight - 2); // even row
+                    const int ym  = std::max(Y - 2, 1);             // odd row
+                    const int yp2 = std::min(Y + 2, srcHeight - 1); // odd row
+                    sum =
+                        (uint32_t)input[(Y - 1) * srcWidth + (X - 1)] +
+                        (uint32_t)input[yp      * srcWidth + xp]      +
+                        (uint32_t)input[ym      * srcWidth + X]       +
+                        (uint32_t)input[yp2     * srcWidth + X];
+                } else {
+                    // R/B: 2x2 box on the slot's own colour lattice
+                    const int inRow  = (oy / 2) * 4 + (oy % 2);
+                    const int inCol  = (ox / 2) * 4 + (ox % 2);
+                    const int inRow2 = std::min(inRow + 2, srcHeight - 1);
+                    const int inCol2 = std::min(inCol + 2, srcWidth - 1);
+                    sum =
+                        (uint32_t)input[inRow  * srcWidth + inCol ] +
+                        (uint32_t)input[inRow  * srcWidth + inCol2] +
+                        (uint32_t)input[inRow2 * srcWidth + inCol ] +
+                        (uint32_t)input[inRow2 * srcWidth + inCol2];
+                }
                 output[oy * outWidth + ox] = useAverage
                     ? static_cast<uint16_t>(sum >> 2)
                     : static_cast<uint16_t>(std::min(sum, (uint32_t)65535u));
             }
         }
-        LOGD("Bayer binning: %dx%d -> %dx%d (%s)", srcWidth, srcHeight, outWidth, outHeight,
-             useAverage ? "average" : "sum");
+        LOGD("Bayer binning: %dx%d -> %dx%d (%s, cfa=%d)", srcWidth, srcHeight, outWidth, outHeight,
+             useAverage ? "average" : "sum", metadata.cfa);
         return output;
     }
 
@@ -608,13 +643,25 @@ public:
             binnedData    = applyBayerBinning(imageData, width, height,
                                               actualWidth, actualHeight, useAverage);
             dataToProcess = binnedData;
+            // Green outputs mix 2 taps from each green lattice (quincunx
+            // diamond), so their black level is 2*(bGe+bGb) when summing or
+            // the mean when averaging — not 4x/1x of a single phase like R/B.
+            const bool oddDiag = (metadata.cfa == 0 || metadata.cfa == 3);
+            const uint32_t gsum =
+                (uint32_t)metadata.black_level[oddDiag ? 1 : 0] +
+                (uint32_t)metadata.black_level[oddDiag ? 2 : 3];
             if (!useAverage) {
                 metadata.white_level = std::min(metadata.white_level * 4.0, 65535.0);
-                for (int i = 0; i < 4; i++) {
-                    uint32_t bl = static_cast<uint32_t>(metadata.black_level[i]) * 4;
-                    metadata.black_level[i] = static_cast<unsigned short>(
-                        std::min(bl, (uint32_t)65535u));
-                }
+            }
+            for (int i = 0; i < 4; i++) {
+                uint32_t bl;
+                if (metadata.cfa_pattern[i] == 1)
+                    bl = useAverage ? (gsum + 1) / 2 : 2u * gsum;
+                else
+                    bl = useAverage ? metadata.black_level[i]
+                                    : static_cast<uint32_t>(metadata.black_level[i]) * 4u;
+                metadata.black_level[i] = static_cast<unsigned short>(
+                    std::min(bl, (uint32_t)65535u));
             }
         }
 
