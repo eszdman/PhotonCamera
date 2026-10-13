@@ -105,7 +105,15 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_TRANSFER, resources.getString(R.string.video_hdr_transfer_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_COLOR_RANGE, resources.getString(R.string.video_color_range_default));
-        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, resources.getBoolean(R.bool.pref_video_ois_default));
+        // Migrate the legacy video OIS boolean ("1"/"0") to the new mode
+        // values ("on"/"auto"/"off") before the default is seeded.
+        String legacyVideoOis = settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, null);
+        if ("1".equals(legacyVideoOis) || "true".equals(legacyVideoOis)) {
+            settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, "on");
+        } else if ("0".equals(legacyVideoOis) || "false".equals(legacyVideoOis)) {
+            settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, "off");
+        }
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, resources.getString(R.string.video_ois_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, resources.getString(R.string.video_session_type_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_USE_LOGICAL_ID, false);
@@ -644,13 +652,9 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_COLOR_RANGE, value);
     }
 
-    /** Video OIS master switch: keeps OIS on even when EIS is active. */
-    public static boolean isVideoOisOn() {
-        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, true);
-    }
-
-    public static void setVideoOisOn(boolean value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, value);
+    /** Video OIS mode: "on", "auto" (no OIS key sent, HAL decides) or "off". */
+    public static String getVideoOisMode() {
+        return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, "auto");
     }
 
     public static String getVideoHdrSessionType() {

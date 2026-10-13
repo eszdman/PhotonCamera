@@ -161,13 +161,16 @@
                     android:entries="@array/video_color_range_entries"
                     android:entryValues="@array/video_color_range_entryvalues"
                     android:defaultValue="@string/video_color_range_default"/>
-            <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
-                    android:key="@string/pref_video_ois_key"
-                    android:defaultValue="true"
+            <ListPreference
                     android:layout="@layout/preference_with_margin"
+                    android:key="@string/pref_video_ois_key"
                     android:title="@string/video_ois"
                     android:summary="@string/video_ois_summary"
-                    android:icon="@drawable/ic_ois"/>
+                    app:useSimpleSummaryProvider="true"
+                    android:icon="@drawable/ic_ois"
+                    android:entries="@array/video_ois_entries"
+                    android:entryValues="@array/video_ois_entryvalues"
+                    android:defaultValue="@string/video_ois_default"/>
             <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                     android:key="@string/pref_video_use_logical_id_key"
                     android:defaultValue="false"

@@ -222,7 +222,8 @@
     <string name="video_color_range">Color range</string>
     <string name="video_color_range_default" translatable="false">limited</string>
     <string name="video_ois">Optical stabilization (OIS)</string>
-    <string name="video_ois_summary">Keeps OIS enabled for video, including when EIS is active.</string>
+    <string name="video_ois_default" translatable="false">auto</string>
+    <string name="video_ois_summary">On keeps OIS enabled for video, including when EIS is active. Auto sends no OIS key and lets the camera decide.</string>
     <string name="video_hdr_session_type">Session Type (HDR)</string>
     <string name="video_sdr_session_type">Session Type (SDR)</string>
     <string name="video_session_type_summary">Session type integer (0 = regular). Empty uses the Sensor Configurations value.</string>

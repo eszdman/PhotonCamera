@@ -7,6 +7,7 @@ import android.widget.LinearLayout;
 
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.particlesdevs.photoncamera.util.BlurSupport;
+import com.google.android.material.materialswitch.MaterialSwitch;
 import com.google.android.material.textfield.MaterialAutoCompleteTextView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
@@ -85,6 +86,20 @@ public class TunableKeyDialog {
         initParams.topMargin = dp(context, 8);
         container.addView(initLayout, initParams);
 
+        // Enabled switch for existing keys, right above the Delete/Cancel/Set
+        // buttons. New keys are always created enabled.
+        final MaterialSwitch enabledSwitch;
+        if (!isNew) {
+            enabledSwitch = new MaterialSwitch(context);
+            enabledSwitch.setText("Enabled");
+            enabledSwitch.setChecked(VendorTagUtils.TunableKey.isEnabled(existing));
+            LinearLayout.LayoutParams switchParams = matchWrap();
+            switchParams.topMargin = dp(context, 12);
+            container.addView(enabledSwitch, switchParams);
+        } else {
+            enabledSwitch = null;
+        }
+
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(context)
                 .setTitle(isNew ? "Add Tunable Key" : "Edit Tunable Key")
                 .setView(container)
@@ -103,6 +118,7 @@ public class TunableKeyDialog {
                     if (!INIT_PHASES[1].equals(key.init)) key.init = INIT_PHASES[0];
                     key.tested = existing != null && existing.tested;
                     key.supported = existing != null && existing.supported;
+                    key.enabled = enabledSwitch == null || enabledSwitch.isChecked();
 
                     List<VendorTagUtils.TunableKey> list = TunableKeyManager.loadKeys(context, sensorId);
                     if (isNew) {

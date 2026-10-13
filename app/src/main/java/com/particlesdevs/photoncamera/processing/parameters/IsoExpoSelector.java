@@ -1,6 +1,5 @@
 package com.particlesdevs.photoncamera.processing.parameters;
 
-import android.content.Context;
 import android.graphics.Rect;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CameraMetadata;
@@ -15,7 +14,6 @@ import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.api.VendorTagUtils;
-import com.particlesdevs.photoncamera.settings.SensorConfigPreferenceGenerator;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -389,13 +387,10 @@ public class IsoExpoSelector {
                 efl = (36.0f / sensorSize.getWidth()) * fl;
             }
 
-            // Explicit and safe OIS capability check via unified VendorTagUtils
-            Context context = PhotonCamera.getSettingsManagerStatic() != null
-                    ? PhotonCamera.getSettingsManagerStatic().getContext() : null;
-            String physicalId = SensorConfigPreferenceGenerator.toPhysicalId(PhotonCamera.getSettings().mCameraID);
-            boolean hasHardwareOis = VendorTagUtils.isOisSupported(context, characteristics, physicalId);
-
-            if (hasHardwareOis) {
+            // OIS is active for the safe-shutter estimate unless the user
+            // forced it Off (the HAL default and the tripod-aware auto mode
+            // keep it on when handheld, which is what the estimate assumes).
+            if (VendorTagUtils.isOisSupported(characteristics)) {
                 oisActive = (captureController == null || captureController.oisMode != 2);
             }
         }
