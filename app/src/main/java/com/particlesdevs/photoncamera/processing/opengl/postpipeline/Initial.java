@@ -72,14 +72,14 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
     @Tunable(title = "Gamma Model X3", category = "Color & Tone", min = -200.0f, max = 200.0f, defaultValue = 129.3564f)
     float gammax3 = 129.3564f;
     
-    @Tunable(title = "Tonemap X1", category = "Color & Tone", min = -2.0f, max = 2.0f, defaultValue = -0.15f)
-    float tonemapx1 =-0.15f;
+    @Tunable(title = "Tonemap X1", category = "Color & Tone", min = -2.0f, max = 2.0f, defaultValue = 0.0f)
+    float tonemapx1;
     
-    @Tunable(title = "Tonemap X2", category = "Color & Tone", min = -5.0f, max = 5.0f, defaultValue = 2.55f)
-    float tonemapx2 = 2.55f;
+    @Tunable(title = "Tonemap X2", category = "Color & Tone", min = -5.0f, max = 5.0f, defaultValue = 2.125f)
+    float tonemapx2;
     
-    @Tunable(title = "Tonemap X3", category = "Color & Tone", min = -5.0f, max = 5.0f, defaultValue = -1.6f)
-    float tonemapx3 = -1.6f;
+    @Tunable(title = "Tonemap X3", category = "Color & Tone", min = -5.0f, max = 5.0f, defaultValue = -1.333f)
+    float tonemapx3;
     
     @Tunable(title = "Saturation Const", category = "Color & Tone", max = 3.0f, defaultValue = 1.0f)
     float saturationConst = 1.f;

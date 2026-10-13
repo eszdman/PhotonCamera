@@ -58,9 +58,9 @@ out vec3 Output;
 #define GAMMAX1 2.8586f
 #define GAMMAX2 -3.1643f
 #define GAMMAX3 1.2899f
-#define TONEMAPX1 -0.15
-#define TONEMAPX2 2.55
-#define TONEMAPX3 -1.6
+#define TONEMAPX1 0.0
+#define TONEMAPX2 2.125
+#define TONEMAPX3 -1.333
 #define SATURATIONC 1.0
 #define SATURATIONGAUSS 1.50
 #define SATURATIONRED 0.7
@@ -131,6 +131,9 @@ float gammaEncode(float x) {
 }
 float gammaEncode0(float x) {
 return x <= 0.0031308f ? x * 12.92f : 1.055f * pow(x, 0.4166667f) - 0.055f;
+}
+vec3 gammaEncode0(vec3 x) {
+return vec3(gammaEncode0(x.r),gammaEncode0(x.g),gammaEncode0(x.b));
 }
 
 float gammaEncode2(float x) {
@@ -404,9 +407,8 @@ float reinhard_extended(float v, float max_white){
     return numerator / (float(1.0f) + v);
 }
 
-vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
+vec3 applyColorSpace(vec3 pRGB, float gainsVal){
     vec3 neutralPoint = vec3(NEUTRALPOINT);
-    //pRGB = clamp(reinhard_extended(pRGB*tonemapGain,max(1.0,tonemapGain)), vec3(0.0), neutralPoint);
     #if CCT == 0
     mat3 corr = intermediateToSRGB;
     #endif
@@ -442,13 +444,12 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
     float vignetteFactor = (br*br/(br*br+noise*noise))*VIGNETTE;
     gainsVal = mix(float(1.0), gainsVal, 1.0);
     //br = clamp(reinhard_extended(br*gainsVal,max(1.0,gainsVal)),0.0,1.0f);
-    //br = clamp(reinhard_extended(br*tonemapGain,max(1.0,tonemapGain)),0.0,1.0f);
 
     // --- SDR display path (unchanged) ---
-    vec3 pRGBsdr = clamp(pRGB*mix(tonemapGain,1.0,LTMMIX), 0.0,1.0);
+    vec3 pRGBsdr = clamp(pRGB*mix(1.0,1.0,LTMMIX), 0.0,1.0);
     pRGBsdr = clamp(reinhard_extended(pRGBsdr*gainsVal,max(1.0,gainsVal)),vec3(0.0),vec3(1.0));
-    pRGBsdr = gammaCorrectPixel2(pRGBsdr);
-    pRGBsdr = tonemap(pRGBsdr, mix(1.0,tonemapGain,LTMMIX));
+    pRGBsdr = gammaEncode0(pRGBsdr);
+    pRGBsdr = tonemap(pRGBsdr, mix(1.0,1.0,LTMMIX));
     pRGBsdr = mix(pRGBsdr*pRGBsdr*pRGBsdr*TONEMAPX3 + pRGBsdr*pRGBsdr*TONEMAPX2 + pRGBsdr*TONEMAPX1, pRGBsdr, min(pRGBsdr*0.8+0.55,1.0));
 
     return pRGBsdr;
@@ -656,44 +657,6 @@ void main() {
     // highlight detail before the exposure curve could fold it in.
     sRGB /= adaptiveWhitePoint;
     #endif
-    vec3 t;
-    //float tonemapGain = textureBicubic(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).r*50.0;
-
-    float tonemapGain = 1.f;
-    #if FUSION == 1
-    // Guided upsampling with Gaussian-weighted linear model
-    //float momentX = 0.0, momentY = 0.0, momentX2 = 0.0, momentXY = 0.0;
-    vec4 moments = vec4(0.0);
-    const float sigma = 1.2;
-    const float sigmaSq2 = 2.0 * sigma * sigma;
-    for (int i = -2; i <= 2; i++) {
-        for (int j = -2; j <= 2; j++) {
-            // Average lightness over 2x2 block to match FusionMap resolution
-            vec2 offset = vec2(float(i), float(j));
-            float lightness = dot(texelFetch(InputBuffer, xy + ivec2(i, j), 0).rgb, vec3(1.0/3.0));
-            //float gain = texelFetch(FusionMap, (xy + ivec2(i, j))/2, 0).r;//getGain(offset);
-            float gain = getGain(offset);
-            //momentX += lightness;
-            //momentY += gain;
-            //momentX2 += lightness * lightness;
-            //momentXY += lightness * gain;
-            moments += vec4(lightness, gain, lightness * lightness, lightness * gain);
-        }
-    }
-    float invWs = 1.0 / 25.0;
-    moments *= invWs; // Normalize by the number of samples (5x5)
-    float meanX = moments.x;
-    float meanY = moments.y;
-    float covXY = moments.w - meanX * meanY;
-    float varX = moments.z - meanX * meanX;
-    // Handle zero variance case with epsilon for stability
-    float a = covXY / (max(varX, 0.0) + 3e-04);
-    vec2 gainAB = vec2(a, meanY - a * meanX);
-    //vec2 gainAB = texture(FusionMap, vec2(gl_FragCoord.xy)/vec2(textureSize(InputBuffer, 0))).rg * FUSIONGAIN;
-    tonemapGain =  gainAB.r * ((luminocity(sRGB))) + gainAB.g;
-    //tonemapGain = mix(1.0,tonemapGain,texture(IntenseCurve, vec2(dot(sRGB.rgb,vec3(1.0/3.0)),0.0)).r);
-    //tonemapGain = max(tonemapGain, 0.5);
-    #endif
     float br = (sRGB.r+sRGB.g+sRGB.b)/3.0;
     vec4 gains = textureBicubicHardware(GainMap, (vec2(xy) + vec2(u_tileOrigin)) / u_fullSize);
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
@@ -712,8 +675,7 @@ void main() {
     //br2 *= br2;
     sRGB.rgb *= br2;
     #endif
-    sRGB = applyColorSpace(sRGB,tonemapGain, gainsVal);
-    //sRGB = vec3(tonemapGain);
+    sRGB = applyColorSpace(sRGB, gainsVal);
     #if LUT == 1
     //sRGB = lookup(sRGB);
     #endif
