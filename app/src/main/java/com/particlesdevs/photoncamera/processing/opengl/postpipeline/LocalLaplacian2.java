@@ -88,9 +88,57 @@ public class LocalLaplacian2 extends Node {
             category = "LLF", min = 0, max = 1, defaultValue = 1, step = 1)
     boolean enabled;
 
-    @Tunable(title = "Detail", description = "Local contrast amplification near the local average; 0 is neutral",
-            category = "LLF", min = -1.0f, max = 4.0f, defaultValue = 0.15f, step = 0.05f)
-    float detail;
+    @Tunable(title = "Adaptive detail", description = "Derive the local-contrast detail per scene from the measured spread, noise, clipping and detail density; off uses the floor",
+            category = "LLF", min = 0, max = 1, defaultValue = 1, step = 1)
+    boolean adaptiveDetail;
+
+    @Tunable(title = "Detail floor", description = "Effective detail for high dynamic range scenes (the safe baseline)",
+            category = "LLF", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.30f)
+    float detailFloor;
+
+    @Tunable(title = "Detail max", description = "Effective detail for the flattest clean scene",
+            category = "LLF", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.50f)
+    float detailMax;
+
+    @Tunable(title = "Detail spread flat", description = "Scene spread at or below which the boost is full",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.30f)
+    float spreadFlat;
+
+    @Tunable(title = "Detail spread full", description = "Scene spread at or above which the boost is off",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.60f)
+    float spreadFull;
+
+    @Tunable(title = "Detail noise clean", description = "Noise at or below which the boost is not attenuated",
+            category = "LLF", min = 0.0f, max = 0.2f, step = 0.001f, defaultValue = 0.008f)
+    float noiseClean;
+
+    @Tunable(title = "Detail noise noisy", description = "Noise at or above which the boost is at its noise floor",
+            category = "LLF", min = 0.0f, max = 0.2f, step = 0.001f, defaultValue = 0.030f)
+    float noiseNoisy;
+
+    @Tunable(title = "Detail noise boost floor", description = "Boost factor at the noisiest scenes",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.30f)
+    float noiseBoostMin;
+
+    @Tunable(title = "Detail clip attenuation", description = "How much highlight clipping suppresses the boost (0 = off)",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.5f)
+    float clipBoostAtten;
+
+    @Tunable(title = "Detail clip reference", description = "Clipped image fraction at which the clip attenuation is full",
+            category = "LLF", min = 0.01f, max = 0.5f, step = 0.01f, defaultValue = 0.05f)
+    float clipRef;
+
+    @Tunable(title = "Detail density low", description = "Local-detail density at or below which the boost is not attenuated",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.02f)
+    float densityLow;
+
+    @Tunable(title = "Detail density high", description = "Local-detail density at or above which the boost is at its density floor",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.15f)
+    float densityHigh;
+
+    @Tunable(title = "Detail density boost floor", description = "Boost factor on already-detailed flat scenes",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.5f)
+    float densityBoostMin;
 
     @Tunable(title = "Highlights", description = "Slope for details darker than the local average; below 1 compresses",
             category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.0f, step = 0.05f)
@@ -116,7 +164,46 @@ public class LocalLaplacian2 extends Node {
      * BRIGHTER than the anchor, the highlights slope to darker ones.
      * Identity when detail = 0 and both slopes = 1.
      */
-    private float remapCurve(float x, float anchor) {
+    /**
+     * Effective detail for this shot: the scene metrics measured by
+     * {@link AutoExposureCurve} (spread, clipping, local-detail density) and
+     * the pre-denoise-slider noise model, mapped through
+     * {@link LlfAdaptiveDetail}. Falls back to the floor when the metrics are
+     * unavailable (tone pipelines without the curve AE) or the policy is off.
+     */
+    private float effectiveDetail() {
+        PostPipeline pipeline = (PostPipeline) basePipeline;
+        if (!adaptiveDetail) {
+            return Math.max(0f, detailFloor);
+        }
+        LlfAdaptiveDetail.Tuning tuning = new LlfAdaptiveDetail.Tuning();
+        tuning.floor = detailFloor;
+        tuning.max = detailMax;
+        tuning.spreadFlat = spreadFlat;
+        tuning.spreadFull = spreadFull;
+        tuning.noiseClean = noiseClean;
+        tuning.noiseNoisy = noiseNoisy;
+        tuning.noiseBoostMin = noiseBoostMin;
+        tuning.clipBoostAtten = clipBoostAtten;
+        tuning.clipRef = clipRef;
+        tuning.densityLow = densityLow;
+        tuning.densityHigh = densityHigh;
+        tuning.densityBoostMin = densityBoostMin;
+        LlfAdaptiveDetail.Scene scene = new LlfAdaptiveDetail.Scene();
+        scene.spread = pipeline.sceneSpread;
+        scene.spreadRobust = pipeline.sceneSpreadRobust;
+        scene.noise = (float) Math.sqrt(Math.max(pipeline.noiseS0, 0f) * 0.5f
+                + Math.max(pipeline.noiseO0, 0f));
+        scene.clipped = pipeline.sceneClippedFrac;
+        scene.density = pipeline.sceneDetailDensity;
+        float detailEff = LlfAdaptiveDetail.effectiveDetail(tuning, scene);
+        Log.d(Name, "adaptive detail: spread=" + scene.spread + " robust=" + scene.spreadRobust
+                + " noise=" + scene.noise + " clip=" + scene.clipped + " density=" + scene.density
+                + " -> " + detailEff);
+        return detailEff;
+    }
+
+    private float remapCurve(float x, float anchor, float detailEff) {
         final float sigma = Math.min(1.f, Math.max(0.001f, midtone));
         final float c = x - anchor;
         float val;
@@ -131,17 +218,17 @@ public class LocalLaplacian2 extends Node {
             final float t = Math.min(-c / (2.f * sigma), 1.f);
             val = anchor - sigma * 2.f * (1.f - t) * t + t * t * (-sigma - sigma * highlights);
         }
-        val += detail * c * (float) Math.exp(-c * c / (2.f * sigma * sigma / 3.f));
+        val += detailEff * c * (float) Math.exp(-c * c / (2.f * sigma * sigma / 3.f));
         return val;
     }
 
-    private GLTexture buildRemapLut() {
+    private GLTexture buildRemapLut(float detailEff) {
         float[] values = new float[LUT_SAMPLES * LUT_ANCHORS];
         int i = 0;
         for (int anchorIdx = 0; anchorIdx < LUT_ANCHORS; anchorIdx++) {
             float anchor = (anchorIdx + 0.5f) / LUT_ANCHORS;
             for (int s = 0; s < LUT_SAMPLES; s++) {
-                values[i++] = remapCurve(s / (float) (LUT_SAMPLES - 1), anchor);
+                values[i++] = remapCurve(s / (float) (LUT_SAMPLES - 1), anchor, detailEff);
             }
         }
         // FLOAT_16 storage is uploaded through direct GL_FLOAT byte buffers
@@ -216,7 +303,8 @@ public class LocalLaplacian2 extends Node {
             return;
         }
 
-        final GLTexture lut = buildRemapLut();
+        float detailEff = effectiveDetail();
+        final GLTexture lut = buildRemapLut(detailEff);
 
         // gaussian[1..levels]: luminance Gaussian pyramid, [0] is the RGB input.
         GLTexture[] gaussian = new GLTexture[MAX_LEVELS + 1];

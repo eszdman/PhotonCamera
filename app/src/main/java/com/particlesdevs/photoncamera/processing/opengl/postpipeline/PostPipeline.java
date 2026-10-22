@@ -71,6 +71,18 @@ public class PostPipeline extends GLBasePipeline {
      */
     public float adaptiveWhitePoint = 1.0f;
     /**
+     * Scene metrics measured by {@link AutoExposureCurve} for the adaptive LLF
+     * detail ({@link LlfAdaptiveDetail}) and reset every shot. Spreads are the
+     * display-domain p2/p5..p98 channel crossing; -1 = unmeasured (no AE this
+     * pipeline, or a failed measurement) and the LLF falls back to its floor.
+     */
+    public float sceneSpread = -1f;
+    public float sceneSpreadRobust = -1f;
+    /** Fraction of the AE response above display white; 0 = neutral. */
+    public float sceneClippedFrac = 0f;
+    /** Fraction of samples carrying local detail; -1 = unmeasured. */
+    public float sceneDetailDensity = -1f;
+    /**
      * Effective clip level of the CFA buffer produced by Bayer2Float: 1.0
      * when nothing is reconstructed, otherwise the white-balanced clip
      * extent (1/min(whitePoint)) that the inpaint-opposed reconstruction can
@@ -249,6 +261,10 @@ public class PostPipeline extends GLBasePipeline {
         noiseO /= 3.f;
         double noisempy = Math.pow(2.0, mSettings.noiseRstr + constShift);
         Log.d("PostPipeline", "noisempy:" + noisempy);
+        // Pre-inflation copy: the adaptive LLF's boost attenuation uses the
+        // scene's noise, not the denoise-slider-scaled value.
+        noiseS0 = noiseS;
+        noiseO0 = noiseO;
         noiseS *= noisempy;
         noiseO *= noisempy;
         Log.d("PostPipeline", "NoiseS:" + noiseS + "\n" + "NoiseO:" + noiseO);
@@ -360,6 +376,10 @@ public class PostPipeline extends GLBasePipeline {
         adaptiveWhitePoint = 1.0f;
         rawClipLevel = 1.0f;
         exposureCurve = null;
+        sceneSpread = -1f;
+        sceneSpreadRobust = -1f;
+        sceneClippedFrac = 0f;
+        sceneDetailDensity = -1f;
         Point targetSliced = new Point(rawSliced.x, rawSliced.y);
         if (parameters.fullRawSize != null && parameters.isCropped) {
             targetSliced = new Point(parameters.fullRawSize.x & ~3, parameters.fullRawSize.y & ~3);
@@ -442,6 +462,14 @@ public class PostPipeline extends GLBasePipeline {
     /** Result of the single-frame KernelNet inference; null until/unless it completes successfully. */
     public java.util.concurrent.atomic.AtomicReference<com.particlesdevs.photoncamera.processing.ml.KernelNetResult> kernelNetSingleResult =
             new java.util.concurrent.atomic.AtomicReference<>();
+
+    /**
+     * Noise model before the denoise-slider inflation, used by the adaptive
+     * LLF detail so its attenuation reflects the scene's noise instead of the
+     * user's denoise setting.
+     */
+    public float noiseS0;
+    public float noiseO0;
 
     /** Called from Initial/ModernInitial/LinearExposure (first pass) to keep the linear scene. */
     public void captureDemosaicLinear(GLTexture tex) {
