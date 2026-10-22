@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.os.CountDownTimer;
 
+import com.particlesdevs.photoncamera.processing.encoder.VideoCodecSupport;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.util.Log;
 import android.view.View;
@@ -278,6 +279,32 @@ final class CameraUIController implements CameraUIEventsListener,
                             CaptureController.setTargetFormat(CaptureController.YUV_FORMAT);
                         this.restartCamera();
                         break;
+                    case VIDEO_HDR: {
+                        boolean enable = value.equals(1);
+                        CaptureController videoController = cameraFragment.captureController;
+                        // HDR is fixed for the active clip; changing it would
+                        // desync the row from the encoder's output.
+                        if (videoController != null && videoController.mIsRecordingVideo) {
+                            cameraFragment.showSnackBar(cameraFragment.getString(
+                                    R.string.video_hdr_recording_locked));
+                            cameraFragment.updateSettingsBar();
+                            break;
+                        }
+                        // Same gate as Settings -> Video -> HDR video: HEVC
+                        // save storage plus a Main10 encoder.
+                        if (enable && !(PreferenceKeys.isVideoHevc()
+                                && VideoCodecSupport.isHdrVideoSupported())) {
+                            cameraFragment.showSnackBar(cameraFragment.getString(
+                                    R.string.video_hdr_unsupported));
+                            cameraFragment.updateSettingsBar();
+                            break;
+                        }
+                        PreferenceKeys.setVideoHdr(enable);
+                        // The video session type is chosen when the preview
+                        // session opens, so reopen it to apply HDR/SDR now.
+                        if (videoController != null) this.restartCamera();
+                        break;
+                    }
                     case QUAD:
                         PreferenceKeys.setQuadBayer(value.equals(1));
                         this.restartCamera();

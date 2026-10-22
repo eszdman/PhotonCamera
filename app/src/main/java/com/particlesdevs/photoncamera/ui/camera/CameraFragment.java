@@ -573,6 +573,9 @@ public class CameraFragment extends Fragment {
         settingsBarEntryProvider.createEntries();
         settingsBarEntryProvider.addObserver(mCameraUIEventsListener);
         settingsBarEntryProvider.addEntries(cameraFragmentBinding.settingsBar);
+        // Video-only row; the mode state shows it when VIDEO is active.
+        cameraFragmentBinding.settingsBar.setChildVisibility(
+                R.id.video_hdr_entry_layout, View.GONE);
     }
 
     public void updateSettingsBar(){

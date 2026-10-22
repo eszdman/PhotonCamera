@@ -23,6 +23,7 @@ import com.particlesdevs.photoncamera.api.CameraMode;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
 import com.particlesdevs.photoncamera.databinding.LayoutBottombuttonsBinding;
 import com.particlesdevs.photoncamera.databinding.LayoutMainTopbarBinding;
+import com.particlesdevs.photoncamera.processing.encoder.VideoCodecSupport;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.TunableInjector;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
@@ -110,6 +111,18 @@ public class CameraUIViewImpl implements CameraUIView {
      */
     private boolean isQuadResAvailable() {
         return enableQuadRes && !CameraManager2.isIszVirtual(PreferenceKeys.getCameraID());
+    }
+
+    /**
+     * The HDR video row follows the video settings switch's availability
+     * gate: it only applies with HEVC save storage and a Main10 encoder.
+     */
+    private boolean isVideoHdrEntryAvailable() {
+        try {
+            return PreferenceKeys.isVideoHevc() && VideoCodecSupport.isHdrVideoSupported();
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void initListeners() {
@@ -600,6 +613,8 @@ public class CameraUIViewImpl implements CameraUIView {
             topbar.setTimerVisible(false);
             syncFpsButton();
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.video_hdr_entry_layout,
+                    isVideoHdrEntryAvailable() ? View.VISIBLE : View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
             // Video mode: RAW, Quad Bayer, Battery Saver and Exposure bracketing do not apply.
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.GONE);
@@ -630,6 +645,7 @@ public class CameraUIViewImpl implements CameraUIView {
             topbar.setFpsVisible(false);
             topbar.setTimerVisible(false);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.video_hdr_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);
@@ -670,6 +686,7 @@ public class CameraUIViewImpl implements CameraUIView {
             setVideoRecordingInfoVisible(false);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.VISIBLE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.video_hdr_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.hdrx_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
@@ -711,6 +728,7 @@ public class CameraUIViewImpl implements CameraUIView {
             setVideoRecordingInfoVisible(false);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.eis_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.fps_entry_layout, View.GONE);
+            cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.video_hdr_entry_layout, View.GONE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.timer_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.saveraw_entry_layout, View.VISIBLE);
             cameraFragment.cameraFragmentBinding.settingsBar.setChildVisibility(R.id.batterysaver_entry_layout, View.VISIBLE);

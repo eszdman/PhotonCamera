@@ -254,6 +254,7 @@
     <string name="video_logical_id_unsupported">That camera id is not a logical camera on this device.</string>
     <string name="video_hevc_unsupported">No HEVC/H.265 video encoder on this device — AVC/H.264 will be used.</string>
     <string name="video_hdr_unsupported">No 10-bit HEVC (Main10) encoder on this device — HDR video unavailable.</string>
+    <string name="video_hdr_recording_locked">Stop recording to change HDR video</string>
     <string name="video_tunable_keys_sdr">SDR video tunable keys</string>
     <string name="video_tunable_summary_sdr">Custom vendor tags applied for SDR video only, on every sensor</string>
     <string name="video_tunable_add_summary_sdr">Add a custom vendor tag applied for SDR video only (type, name, value)</string>

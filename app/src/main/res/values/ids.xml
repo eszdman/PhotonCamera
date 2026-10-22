@@ -33,6 +33,9 @@
     <item name="eis_entry_layout" type="id"/>
     <item name="eis_off_button" type="id"/>
     <item name="eis_on_button" type="id"/>
+    <item name="video_hdr_entry_layout" type="id"/>
+    <item name="video_hdr_off_button" type="id"/>
+    <item name="video_hdr_on_button" type="id"/>
     <item name="saveraw_entry_layout" type="id"/>
     <item name="raw_off_button" type="id"/>
     <item name="raw_on_button" type="id"/>

@@ -8,6 +8,7 @@ public enum SettingType {
     FPS_60,
     GRID,
     EIS,
+    VIDEO_HDR,
     RAW,
     BATTERY_SAVER,
     BRACKETING,
