@@ -180,6 +180,7 @@ public class TouchFocus {
     private final StateWatcher startAck = new StateWatcher("AF/start-ack");
     // Last AF state logged for the active sequence (Integer.MIN_VALUE = none/null).
     private int lastLoggedSeqState = Integer.MIN_VALUE;
+    private int lastHapticAfState = Integer.MIN_VALUE;
     private Runnable timeoutRunnable;
     private boolean timeoutOnBackground;
 
@@ -196,7 +197,8 @@ public class TouchFocus {
         }
 
         // 1. Tactile haptic feedback
-        viewfinderFrame.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.longPress();
 
         // 2. Position, animate and reset dedicated Spot WB indicator box to measuring state
         if (spotWbIndicatorView != null) {
@@ -212,6 +214,8 @@ public class TouchFocus {
                 new SpotWhiteBalanceHelper.SpotWbCallback() {
                     @Override
                     public void onSpotWbMeasured(int kelvin, String tintStr) {
+                        Vibration vibration = PhotonCamera.getVibration();
+                        if (vibration != null) vibration.confirm();
                         if (spotWbIndicatorView != null) {
                             spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
                             spotWbIndicatorView.postDelayed(hideSpotWbRunnable, 2000);
@@ -220,6 +224,8 @@ public class TouchFocus {
 
                     @Override
                     public void onSpotWbFailed(String reason) {
+                        Vibration vibration = PhotonCamera.getVibration();
+                        if (vibration != null) vibration.reject();
                         if (spotWbIndicatorView != null) {
                             spotWbIndicatorView.removeCallbacks(hideSpotWbRunnable);
                             if (spotWbIndicatorView instanceof SpotWbIndicatorView) {
@@ -273,7 +279,8 @@ public class TouchFocus {
      */
     public void cancelSpotWb() {
         if (viewfinderFrame == null || captureController == null) return;
-        viewfinderFrame.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.longPress();
         SpotWhiteBalanceHelper.cancelPendingMeasurement();
         ParamController paramController = captureController.getParamController();
         if (paramController != null && paramController.isSpotWb) {
@@ -304,6 +311,8 @@ public class TouchFocus {
         }
         focusCircleView.removeCallbacks(hideFocusCircleRunnable);
         focusCircleView.post(() -> showFocusCircle(fx, fy));
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) vibration.select();
         startFocusSequence(region);
         focusCircleView.postDelayed(hideFocusCircleRunnable, AUTO_HIDE_DELAY_MS);
     }
@@ -348,8 +357,22 @@ public class TouchFocus {
                 Log.w(TAG, "lock after " + (SystemClock.elapsedRealtime() - scanAckAtElapsed)
                         + "ms of scan; lens " + focusAtScanAck + " -> " + captureController.mFocus + " diopters");
             }
+            notifyFocusHaptic(afstate);
             ((FocusCircleView) focusCircleView).setAfState(afstate);
         }
+    }
+
+    private void notifyFocusHaptic(int afstate) {
+        if (afstate == lastHapticAfState) return;
+        Vibration vibration = PhotonCamera.getVibration();
+        if (vibration != null) {
+            if (afstate == CameraMetadata.CONTROL_AF_STATE_FOCUSED_LOCKED) {
+                vibration.focusLocked();
+            } else if (afstate == CameraMetadata.CONTROL_AF_STATE_NOT_FOCUSED_LOCKED) {
+                vibration.focusFailed();
+            }
+        }
+        lastHapticAfState = afstate;
     }
 
     private void setInitialAFAE() {

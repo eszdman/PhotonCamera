@@ -16,6 +16,8 @@ public final class ImageFile extends MediaFile {
     private final long lastModified;
     private final long size;
     private final String absolutePath;
+    private final String extension;
+    private final boolean video;
 
     public ImageFile(long id, Uri fileUri, String displayName, long lastModified, long size, String absolutePath) {
         this.id = id;
@@ -24,6 +26,8 @@ public final class ImageFile extends MediaFile {
         this.lastModified = lastModified;
         this.size = size;
         this.absolutePath = absolutePath;
+        this.extension = extensionOf(displayName);
+        this.video = isVideoExtension(extension);
     }
 
     @Override
@@ -78,5 +82,15 @@ public final class ImageFile extends MediaFile {
 
     public String getAbsolutePath() {
         return absolutePath;
+    }
+
+    @Override
+    public String getExtension() {
+        return extension;
+    }
+
+    @Override
+    public boolean isVideo() {
+        return video;
     }
 }

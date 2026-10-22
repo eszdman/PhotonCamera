@@ -1,20 +1,13 @@
 package com.particlesdevs.photoncamera.circularbarlib.control.models;
 
 import android.content.Context;
-import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
-import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
-import com.particlesdevs.photoncamera.circularbarlib.R;
 import com.particlesdevs.photoncamera.circularbarlib.camera.ExposureIndex;
-import com.particlesdevs.photoncamera.circularbarlib.camera.IsoExpoSelector;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobItemInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.ShadowTextDrawable;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderItem;
 
 import java.util.ArrayList;
 
@@ -24,12 +17,12 @@ import java.util.ArrayList;
 public class ShutterModel extends ManualModel<Long> {
 
     public ShutterModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Long> range,
-                        ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
-        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent,v);
+                        ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent);
     }
 
     @Override
-    protected void fillKnobInfoList() {
+    protected void fillSliderItems() {
 
         long exposureTimeValue;
         Range<Long> range = super.range;
@@ -37,8 +30,8 @@ public class ShutterModel extends ManualModel<Long> {
             return;
         }
 
-        KnobItemInfo auto = getNewAutoItem(ManualParamModel.EXPOSURE_AUTO, null);
-        getKnobInfoList().add(auto);
+        SliderItem auto = getNewAutoItem(ManualParamModel.EXPOSURE_AUTO, null);
+        getSliderItems().add(auto);
         currentInfo = auto;
 
         ArrayList<String> candidates = new ArrayList<>();
@@ -46,7 +39,6 @@ public class ShutterModel extends ManualModel<Long> {
 
         long minexp = range.getLower();
         if (minexp < 1000) minexp = 1000;
-        //minexp += 5000 - minexp % 5000;
         long maxexp = range.getUpper();
         Log.v("ExpModel", "Max exp:" + maxexp);
         Log.v("ExpModel", "Min exp:" + minexp);
@@ -96,65 +88,24 @@ public class ShutterModel extends ManualModel<Long> {
             values.add(valuesPos.get(i));
         }
 
-        int indicatorCount = 0;
         int preferredIntervalCount = 4;
         int tick = 0;
         int tickShift = candidatesNeg.size()%preferredIntervalCount;
         while (tick < candidates.size()) {
-            ShadowTextDrawable drawable = new ShadowTextDrawable();
-            drawable.setTextAppearance(context, R.style.ManualModeKnobText);
-            ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-            drawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
             int prefMpy = 1;
             if(candidates.get(tick).length() > 5) prefMpy = 2;
+            String label = null;
             if ((tick-tickShift) % (preferredIntervalCount*prefMpy) == 0) {
-                String text = candidates.get(tick);
-                drawable.setText(text);
-                drawableSelected.setText(text);
-                indicatorCount++;
+                label = candidates.get(tick);
             }
-            StateListDrawable stateDrawable = new StateListDrawable();
-            stateDrawable.addState(new int[]{-android.R.attr.state_selected}, drawable);
-            stateDrawable.addState(new int[]{android.R.attr.state_selected}, drawableSelected);
-//            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick - candidates.size(), (double) values.get(tick)));
-            getKnobInfoList().add(new KnobItemInfo(stateDrawable, candidates.get(tick), tick + 1, (double) values.get(tick)));
+            getSliderItems().add(new SliderItem(candidates.get(tick), label, tick + 1, (double) values.get(tick)));
             tick++;
         }
-        int angle = findPreferredKnobViewAngle(indicatorCount);
-        int angleMax = context.getResources().getInteger(R.integer.manual_exposure_knob_view_angle_half);
-        if (angle > angleMax) {
-            angle = angleMax;
-        }
-        knobInfo = new KnobInfo(0, angle, 0, candidates.size(), context.getResources().getInteger(R.integer.manual_exposure_knob_view_auto_angle));
     }
 
     @Override
-    public void onRotationStateChanged(KnobView knobView, KnobView.RotationState rotationState) {
-
-    }
-
-    @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
-        currentInfo = knobItemInfo;
-        manualParamModel.setCurrentExposureValue(knobItemInfo.value);
-    }
-
-    private int findPreferredIntervalCount(int totalCount) {
-        int result = 12;
-        int minRemainder = Integer.MAX_VALUE;
-        int i = 9;
-        while (i >= 5 && (((float) (totalCount - 1)) / ((float) i)) + 1.0f <= 7.0f) {
-            int remainder = ((totalCount % i) + (i - 1)) % i;
-            if (minRemainder > remainder) {
-                minRemainder = remainder;
-                result = i;
-            }
-            i--;
-        }
-        return result;
-    }
-
-    private int findPreferredKnobViewAngle(int indicatorCount) {
-        return (indicatorCount - 1) * 30;
+    public void onSelectedSliderItemChanged(SliderItem newItem) {
+        currentInfo = newItem;
+        manualParamModel.setCurrentExposureValue(newItem.value);
     }
 }

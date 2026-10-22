@@ -3,6 +3,8 @@ package com.particlesdevs.photoncamera.control;
 import android.os.CountDownTimer;
 import android.widget.TextView;
 
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
@@ -10,6 +12,7 @@ public class CountdownTimer extends CountDownTimer {
     private final TextView tv;
     private final TimerCallback callback;
     private final long interval;
+    private final boolean hapticTicks;
 
     /**
      * @param millisInFuture    The number of millis in the future from the call
@@ -19,14 +22,26 @@ public class CountdownTimer extends CountDownTimer {
      *                          {@link #onTick(long)} callbacks.
      */
     public CountdownTimer(TextView tv, long millisInFuture, long countDownInterval, TimerCallback callback) {
+        this(tv, millisInFuture, countDownInterval, true, callback);
+    }
+
+    public CountdownTimer(TextView tv, long millisInFuture, long countDownInterval,
+                          boolean hapticTicks, TimerCallback callback) {
         super(millisInFuture, countDownInterval);
         this.callback = callback;
         this.tv = tv;
         this.interval = countDownInterval;
+        this.hapticTicks = hapticTicks;
     }
 
     @Override
     public void onTick(long millisUntilFinished) {
+        if (hapticTicks) {
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) {
+                vibration.countdownTick();
+            }
+        }
         long seconds = TimeUnit.MILLISECONDS.toSeconds(millisUntilFinished) + 1;
         tv.post(() -> {
             tv.setScaleX(3);
@@ -39,6 +54,12 @@ public class CountdownTimer extends CountDownTimer {
 
     @Override
     public void onFinish() {
+        if (hapticTicks) {
+            Vibration vibration = PhotonCamera.getVibration();
+            if (vibration != null) {
+                vibration.countdownFinal();
+            }
+        }
         tv.post(() -> {
             tv.setText("");
             tv.setAlpha(1);

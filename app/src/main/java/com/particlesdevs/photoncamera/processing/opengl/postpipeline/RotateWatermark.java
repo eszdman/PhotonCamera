@@ -22,7 +22,10 @@ import static android.opengl.GLES20.GL_NEAREST;
 import static android.opengl.GLES20.GL_REPEAT;
 
 public class RotateWatermark extends Node {
-    private int rotate;
+    // Rotation in degrees (0/90/180/270) as the pipeline selected it. Package
+    // visibility: the fused-tail gate reads it before bindShot (which derives
+    // tileRot from it).
+    int rotate;
     private boolean watermarkNeeded;
     private GLImage watermark;
     private GLImage noise;
@@ -98,7 +101,17 @@ public class RotateWatermark extends Node {
             Log.d(Name,"Failed to load watermark or noise texture:" + Log.getStackTraceString(e));
         }
 
-        glProg.setTexture("InputBuffer", previousNode.WorkingTexture);
+        // The fused/tiled driver binds this stage's input per band (and
+        // restores a placeholder afterwards), and it binds before the tail
+        // nodes have run - previousNode.WorkingTexture is still null there.
+        // Binding null prints a spurious "Wrong Texture:InputBuffer" trace
+        // and leaves the sampler unset until the first band; skip it and let
+        // the driver bind the real input. The legacy Run path always has a
+        // live input (Sharpen2 ran before this node).
+        GLTexture in = previousNode != null ? previousNode.WorkingTexture : null;
+        if (in != null) {
+            glProg.setTexture("InputBuffer", in);
+        }
         int rot = -1;
         Log.d(Name,"Rotation:"+rotate);
         switch (rotate){

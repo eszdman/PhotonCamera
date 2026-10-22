@@ -83,7 +83,14 @@
     @Tunable(title = "Adaptive WhitePoint", category = "Auto Exposure", defaultValue = 1, min = 0, max = 1, step = 1, description = "Measure the scene white above display white and divide the input by it in initial.glsl, folding over-range highlight detail below display white")
     boolean adaptiveWhitePointEnable;
 
+    @Tunable(title = "LLF detail scan range", category = "LLF", min = 0.005f, max = 0.5f, step = 0.005f, defaultValue = 0.05f, description = "Display-domain luma-Laplacian magnitude mapped to the top bin of the detail histogram feeding the adaptive LLF detail")
+    float detailRange;
+
+    @Tunable(title = "LLF detail threshold", category = "LLF", min = 0.0f, max = 0.2f, step = 0.005f, defaultValue = 0.02f, description = "Display-domain luma-Laplacian magnitude above which a pixel counts as carrying local detail for the adaptive LLF detail")
+    float detailThresh;
+
         private static final int CURVE_SIZE = 1024;
+        private static final int DETAIL_BINS = 64;
 
         public AutoExposureCurve() {
             super("", "AutoExposureCurve");
@@ -145,6 +152,12 @@
                 histogram.close();
             }
 
+            // Local-detail density for the adaptive LLF: one small extra
+            // histogram of display-domain luma-Laplacian magnitudes on the same
+            // input. A failure leaves it unmeasured, which the LLF treats as
+            // neutral.
+            float detailDensity = measureDetailDensity(previousNode.WorkingTexture);
+
             // Map the linear bins to the display domain (bin units) so the
             // gain math below estimates the display-referred exposure. Bin i
             // of channel c covers linear i/(bins-1)*extent[c], evaluated at
@@ -202,6 +215,16 @@
             }
             ((PostPipeline) basePipeline).adaptiveWhitePoint = adaptiveWhitePoint;
 
+            // Per-shot scene spread for the adaptive LLF (see
+            // LlfAdaptiveDetail): channel-crossing low/high percentiles in the
+            // display domain the tone output uses. Two variants so the LLF can
+            // move its low edge from p2 to the noise-robust p5 on noisy scenes.
+            int[] histNorms = new int[]{histNormR, histNormG, histNormB};
+            PostPipeline pipeline = (PostPipeline) basePipeline;
+            pipeline.sceneSpread = LlfAdaptiveDetail.spread(result, mapped, bins, histNorms, 0f);
+            pipeline.sceneSpreadRobust = LlfAdaptiveDetail.spread(result, mapped, bins, histNorms, 1f);
+            pipeline.sceneDetailDensity = detailDensity;
+
             float normL = 0.0f;
             float normR = 0.0f;
             for (int i = 0; i < bins; i++) {
@@ -243,6 +266,7 @@
                     }
                 }
                 float clippedFrac = totalCnt > 0 ? clipped / (float) totalCnt : 0.0f;
+                ((PostPipeline) basePipeline).sceneClippedFrac = clippedFrac;
                 knee = Math2.mix(kneeMax, kneeLo, Math.min(clippedFrac / Math.max(kneeRef, 1.0e-4f), 1.0f));
                 Log.d(Name, "Highlight shoulder: clipped:" + clippedFrac + " knee:" + knee + " tolerance:" + clipTolerance);
             }
@@ -354,6 +378,36 @@
                 mpy = gainMax;
             }
             return mpy;
+        }
+
+        /**
+         * Local-detail density (fraction of sampled pixels whose display-domain
+         * luma-Laplacian magnitude reaches {@link #detailThresh}) measured with
+         * one extra custom histogram on the same input. Returns -1 when the
+         * measurement is unavailable; the LLF treats that as neutral.
+         */
+        private float measureDetailDensity(GLTexture input) {
+            try {
+                GLHistogram detailHist = new GLHistogram(glProg, DETAIL_BINS);
+                detailHist.Custom = true;
+                detailHist.CustomShader = "LLFStat/detailhist";
+                detailHist.Rc = true;
+                detailHist.Gc = false;
+                detailHist.Bc = false;
+                detailHist.Ac = false;
+                detailHist.input1 = Math.max(detailRange, 1.0e-4f);
+                detailHist.input2 = 0f;
+                int[] counts;
+                try {
+                    counts = detailHist.Compute(input)[0];
+                } finally {
+                    detailHist.close();
+                }
+                float threshBin = detailThresh / detailHist.input1 * (DETAIL_BINS - 1);
+                return LlfAdaptiveDetail.density(counts, Math.round(threshBin));
+            } catch (Throwable t) {
+                return -1f;
+            }
         }
 
         /**

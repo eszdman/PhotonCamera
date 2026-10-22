@@ -39,7 +39,10 @@ public class Settings {
     public int theme;
     public boolean remosaic;//TODO
     public boolean eisPhoto;
+    /** Frame-rate selection for photo and motion modes. */
     public int fpsMode;
+    /** Frame-rate selection for video and RAW video. */
+    public int videoFpsMode;
     public int alignAlgorithm;
 
     public int colorMethod;
@@ -85,7 +88,8 @@ public class Settings {
         remosaic = PreferenceKeys.isRemosaicOn();
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
-        fpsMode = PreferenceKeys.getFpsMode();
+        fpsMode = PreferenceKeys.getCurrentLensFpsMode();
+        videoFpsMode = PreferenceKeys.getCurrentLensVideoFpsMode();
         hdrxNR = PreferenceKeys.isHdrxNrOn();
         ultraHdr = PreferenceKeys.isUltraHdrOn();
         alignAlgorithm = PreferenceKeys.getAlignMethodValue();
@@ -101,6 +105,34 @@ public class Settings {
 
     public void saveID() {
         PreferenceKeys.setCameraID(mCameraID);
+    }
+
+    /**
+     * Frame-rate selection for the currently selected mode. Both groups read
+     * their per-lens value live (video is kept separate from the photo keys),
+     * so a lens or Quad Bayer switch applies as soon as the camera reopens,
+     * without waiting for a settings reload.
+     */
+    public int getActiveFpsMode() {
+        if (selectedMode == CameraMode.VIDEO || selectedMode == CameraMode.RAWVIDEO) {
+            return PreferenceKeys.getCurrentLensVideoFpsMode();
+        }
+        return PreferenceKeys.getCurrentLensFpsMode();
+    }
+
+    /**
+     * Effective max frame count: the global {@link #frameCount} divided by the
+     * per-sensor Quad Bayer divisor when Quad Bayer is on and the divisor is
+     * set, otherwise the cached global. Resolved live (like
+     * {@link #getActiveFpsMode()}) so a Quad Bayer toggle or sensor switch
+     * applies without waiting for a settings reload.
+     */
+    public int getActiveFrameCount() {
+        try {
+            return PreferenceKeys.getActiveFrameCountValue();
+        } catch (Exception e) {
+            return frameCount;
+        }
     }
 
     /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */

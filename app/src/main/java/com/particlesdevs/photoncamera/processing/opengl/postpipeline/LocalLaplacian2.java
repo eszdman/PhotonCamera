@@ -88,9 +88,57 @@ public class LocalLaplacian2 extends Node {
             category = "LLF", min = 0, max = 1, defaultValue = 1, step = 1)
     boolean enabled;
 
-    @Tunable(title = "Detail", description = "Local contrast amplification near the local average; 0 is neutral",
-            category = "LLF", min = -1.0f, max = 4.0f, defaultValue = 0.15f, step = 0.05f)
-    float detail;
+    @Tunable(title = "Adaptive detail", description = "Derive the local-contrast detail per scene from the measured spread, noise, clipping and detail density; off uses the floor",
+            category = "LLF", min = 0, max = 1, defaultValue = 1, step = 1)
+    boolean adaptiveDetail;
+
+    @Tunable(title = "Detail floor", description = "Effective detail for high dynamic range scenes (the safe baseline)",
+            category = "LLF", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.30f)
+    float detailFloor;
+
+    @Tunable(title = "Detail max", description = "Effective detail for the flattest clean scene",
+            category = "LLF", min = 0.0f, max = 2.0f, step = 0.05f, defaultValue = 0.50f)
+    float detailMax;
+
+    @Tunable(title = "Detail spread flat", description = "Scene spread at or below which the boost is full",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.30f)
+    float spreadFlat;
+
+    @Tunable(title = "Detail spread full", description = "Scene spread at or above which the boost is off",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.60f)
+    float spreadFull;
+
+    @Tunable(title = "Detail noise clean", description = "Noise at or below which the boost is not attenuated",
+            category = "LLF", min = 0.0f, max = 0.2f, step = 0.001f, defaultValue = 0.008f)
+    float noiseClean;
+
+    @Tunable(title = "Detail noise noisy", description = "Noise at or above which the boost is at its noise floor",
+            category = "LLF", min = 0.0f, max = 0.2f, step = 0.001f, defaultValue = 0.030f)
+    float noiseNoisy;
+
+    @Tunable(title = "Detail noise boost floor", description = "Boost factor at the noisiest scenes",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.30f)
+    float noiseBoostMin;
+
+    @Tunable(title = "Detail clip attenuation", description = "How much highlight clipping suppresses the boost (0 = off)",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.5f)
+    float clipBoostAtten;
+
+    @Tunable(title = "Detail clip reference", description = "Clipped image fraction at which the clip attenuation is full",
+            category = "LLF", min = 0.01f, max = 0.5f, step = 0.01f, defaultValue = 0.05f)
+    float clipRef;
+
+    @Tunable(title = "Detail density low", description = "Local-detail density at or below which the boost is not attenuated",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.02f)
+    float densityLow;
+
+    @Tunable(title = "Detail density high", description = "Local-detail density at or above which the boost is at its density floor",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.01f, defaultValue = 0.15f)
+    float densityHigh;
+
+    @Tunable(title = "Detail density boost floor", description = "Boost factor on already-detailed flat scenes",
+            category = "LLF", min = 0.0f, max = 1.0f, step = 0.05f, defaultValue = 0.5f)
+    float densityBoostMin;
 
     @Tunable(title = "Highlights", description = "Slope for details darker than the local average; below 1 compresses",
             category = "LLF", min = 0.0f, max = 2.0f, defaultValue = 0.0f, step = 0.05f)
@@ -116,7 +164,46 @@ public class LocalLaplacian2 extends Node {
      * BRIGHTER than the anchor, the highlights slope to darker ones.
      * Identity when detail = 0 and both slopes = 1.
      */
-    private float remapCurve(float x, float anchor) {
+    /**
+     * Effective detail for this shot: the scene metrics measured by
+     * {@link AutoExposureCurve} (spread, clipping, local-detail density) and
+     * the pre-denoise-slider noise model, mapped through
+     * {@link LlfAdaptiveDetail}. Falls back to the floor when the metrics are
+     * unavailable (tone pipelines without the curve AE) or the policy is off.
+     */
+    private float effectiveDetail() {
+        PostPipeline pipeline = (PostPipeline) basePipeline;
+        if (!adaptiveDetail) {
+            return Math.max(0f, detailFloor);
+        }
+        LlfAdaptiveDetail.Tuning tuning = new LlfAdaptiveDetail.Tuning();
+        tuning.floor = detailFloor;
+        tuning.max = detailMax;
+        tuning.spreadFlat = spreadFlat;
+        tuning.spreadFull = spreadFull;
+        tuning.noiseClean = noiseClean;
+        tuning.noiseNoisy = noiseNoisy;
+        tuning.noiseBoostMin = noiseBoostMin;
+        tuning.clipBoostAtten = clipBoostAtten;
+        tuning.clipRef = clipRef;
+        tuning.densityLow = densityLow;
+        tuning.densityHigh = densityHigh;
+        tuning.densityBoostMin = densityBoostMin;
+        LlfAdaptiveDetail.Scene scene = new LlfAdaptiveDetail.Scene();
+        scene.spread = pipeline.sceneSpread;
+        scene.spreadRobust = pipeline.sceneSpreadRobust;
+        scene.noise = (float) Math.sqrt(Math.max(pipeline.noiseS0, 0f) * 0.5f
+                + Math.max(pipeline.noiseO0, 0f));
+        scene.clipped = pipeline.sceneClippedFrac;
+        scene.density = pipeline.sceneDetailDensity;
+        float detailEff = LlfAdaptiveDetail.effectiveDetail(tuning, scene);
+        Log.d(Name, "adaptive detail: spread=" + scene.spread + " robust=" + scene.spreadRobust
+                + " noise=" + scene.noise + " clip=" + scene.clipped + " density=" + scene.density
+                + " -> " + detailEff);
+        return detailEff;
+    }
+
+    private float remapCurve(float x, float anchor, float detailEff) {
         final float sigma = Math.min(1.f, Math.max(0.001f, midtone));
         final float c = x - anchor;
         float val;
@@ -131,17 +218,17 @@ public class LocalLaplacian2 extends Node {
             final float t = Math.min(-c / (2.f * sigma), 1.f);
             val = anchor - sigma * 2.f * (1.f - t) * t + t * t * (-sigma - sigma * highlights);
         }
-        val += detail * c * (float) Math.exp(-c * c / (2.f * sigma * sigma / 3.f));
+        val += detailEff * c * (float) Math.exp(-c * c / (2.f * sigma * sigma / 3.f));
         return val;
     }
 
-    private GLTexture buildRemapLut() {
+    private GLTexture buildRemapLut(float detailEff) {
         float[] values = new float[LUT_SAMPLES * LUT_ANCHORS];
         int i = 0;
         for (int anchorIdx = 0; anchorIdx < LUT_ANCHORS; anchorIdx++) {
             float anchor = (anchorIdx + 0.5f) / LUT_ANCHORS;
             for (int s = 0; s < LUT_SAMPLES; s++) {
-                values[i++] = remapCurve(s / (float) (LUT_SAMPLES - 1), anchor);
+                values[i++] = remapCurve(s / (float) (LUT_SAMPLES - 1), anchor, detailEff);
             }
         }
         // FLOAT_16 storage is uploaded through direct GL_FLOAT byte buffers
@@ -216,7 +303,8 @@ public class LocalLaplacian2 extends Node {
             return;
         }
 
-        final GLTexture lut = buildRemapLut();
+        float detailEff = effectiveDetail();
+        final GLTexture lut = buildRemapLut(detailEff);
 
         // gaussian[1..levels]: luminance Gaussian pyramid, [0] is the RGB input.
         GLTexture[] gaussian = new GLTexture[MAX_LEVELS + 1];
@@ -281,27 +369,34 @@ public class LocalLaplacian2 extends Node {
             reconstructed = remapBase(gaussian[levels], lut);
         }
 
+        boolean fusedTail = false;
         for (int level = coarseStart - 1; level >= 0; level--) {
             boolean finest = level == 0;
             GLTexture fine = finest ? input : gaussian[level];
             GLTexture coarse = gaussian[level + 1];
-            GLTexture output = finest
-                    ? basePipeline.getMain()
-                    : new GLTexture(fine.mSize, new GLFormat(GLFormat.DataType.FLOAT_16));
+            boolean fusedHere = finest
+                    && tryFusedTail(fine, coarse, reconstructed, lut, input);
+            GLTexture output = fusedHere ? null
+                    : (finest ? basePipeline.getMain()
+                    : new GLTexture(fine.mSize, new GLFormat(GLFormat.DataType.FLOAT_16)));
 
-            glProg.setDefine("FINE_RGB", finest ? 1 : 0);
-            glProg.setDefine("FINAL_OUTPUT", finest ? 1 : 0);
-            glProg.useAssetProgram("local_laplacian2/reconstruct");
-            glProg.setTexture("FineBuffer", fine);
-            glProg.setTexture("CoarseBuffer", coarse);
-            glProg.setTexture("ReconstructedBuffer", reconstructed);
-            glProg.setTexture("RemapLut", lut);
-            glProg.setVar("coarseSize", coarse.mSize);
-            glProg.drawBlocks(output);
-            if (finest && ((PostPipeline) basePipeline).debugTiledCompare) {
-                verifyFinestRegions(output);
+            if (!fusedHere) {
+                glProg.setDefine("FINE_RGB", finest ? 1 : 0);
+                glProg.setDefine("FINAL_OUTPUT", finest ? 1 : 0);
+                glProg.useAssetProgram("local_laplacian2/reconstruct");
+                glProg.setTexture("FineBuffer", fine);
+                glProg.setTexture("CoarseBuffer", coarse);
+                glProg.setTexture("ReconstructedBuffer", reconstructed);
+                glProg.setTexture("RemapLut", lut);
+                glProg.setVar("coarseSize", coarse.mSize);
+                glProg.drawBlocks(output);
+                if (finest && ((PostPipeline) basePipeline).debugTiledCompare) {
+                    verifyFinestRegions(output);
+                }
+                glProg.close();
+            } else {
+                fusedTail = true;
             }
-            glProg.close();
 
             reconstructed.close();
             coarse.close();
@@ -309,7 +404,15 @@ public class LocalLaplacian2 extends Node {
         }
 
         lut.close();
-        WorkingTexture = reconstructed;
+        if (fusedTail) {
+            // The finest bands streamed straight through the tiled tail into
+            // the sink: no full output ever existed. Keep a valid placeholder
+            // for the pipeline's bookkeeping; the tail nodes early-return on
+            // pp.tailFusedSink and nothing downstream reads the output.
+            WorkingTexture = input;
+        } else {
+            WorkingTexture = reconstructed;
+        }
         // The cropped-recrop path feeds this node a full-frame UpscaleCrop
         // output that is not one of the pipeline's ping-pong mains and has no
         // other owner; free it now instead of holding it through the tail and
@@ -317,6 +420,137 @@ public class LocalLaplacian2 extends Node {
         // (needed by the legacy/fused tail), so those are left alone.
         if (!isPipelineMain(input)) {
             input.close();
+        }
+    }
+
+    /** Finest-band state for the fused tail produce (null outside the call). */
+    private GLTexture fusedFine, fusedCoarse, fusedReconstructed, fusedLut;
+
+    /**
+     * Binds the finest reconstruct program and its buffers. Shared by the
+     * loop and the fused band source: the tail stages rebind the shared
+     * program between bands, so the source must re-establish this state on
+     * every produce call.
+     */
+    private void bindFinest(GLTexture fine, GLTexture coarse, GLTexture reconstructed, GLTexture lut) {
+        glProg.setDefine("FINE_RGB", 1);
+        glProg.setDefine("FINAL_OUTPUT", 1);
+        glProg.useAssetProgram("local_laplacian2/reconstruct");
+        glProg.setTexture("FineBuffer", fine);
+        glProg.setTexture("CoarseBuffer", coarse);
+        glProg.setTexture("ReconstructedBuffer", reconstructed);
+        glProg.setTexture("RemapLut", lut);
+        glProg.setVar("coarseSize", coarse.mSize);
+    }
+
+    /** Fused band source: one finest-reconstruction band, rows [w0, w1). */
+    private GLTexture produceFinestBand(int w0, int w1, boolean columns) {
+        bindFinest(fusedFine, fusedCoarse, fusedReconstructed, fusedLut);
+        GLTexture tile = columns
+                ? new GLTexture(new android.graphics.Point(w1 - w0, fusedFine.mSize.y),
+                        new GLFormat(GLFormat.DataType.FLOAT_16, 4))
+                : new GLTexture(new android.graphics.Point(fusedFine.mSize.x, w1 - w0),
+                        new GLFormat(GLFormat.DataType.FLOAT_16, 4));
+        glProg.setVar("u_tileOrigin", columns ? w0 : 0, columns ? 0 : w0);
+        glProg.drawBlocks(tile);
+        glProg.setVar("u_tileOrigin", 0, 0);
+        return tile;
+    }
+
+    /**
+     * Fused tail: while the pyramid is alive, stream the finest reconstruction
+     * bands through the tiled tail straight into the sink instead of
+     * materializing the full output (the last full-frame allocation before the
+     * sink; ~1.15 GB at a 144 MP output). Returns false, leaving the legacy
+     * path untouched, when the segment, rotation or sink does not qualify; a
+     * failure mid-produce also falls back (the legacy path re-renders the full
+     * output and re-streams the sink).
+     */
+    private boolean tryFusedTail(GLTexture fine, GLTexture coarse, GLTexture reconstructed,
+                                 GLTexture lut, GLTexture placeholder) {
+        try {
+            PostPipeline pp = (PostPipeline) basePipeline;
+            if (!pp.tiledFuseLaplacian || pp.debugTiledCompare || !pp.tailTiled) {
+                Log.d("TiledHarness", "fused tail declined: tunable=" + pp.tiledFuseLaplacian
+                        + " harness=" + pp.debugTiledCompare + " tailTiled=" + pp.tailTiled);
+                return false;
+            }
+            android.graphics.Bitmap sink = pp.sinkBitmap;
+            if (sink == null) {
+                Log.d("TiledHarness", "fused tail declined: no sink bitmap");
+                return false;
+            }
+            CaptureSharpening cap = null;
+            Sharpen2 shp = null;
+            RotateWatermark rot = null;
+            java.util.List<Node> nodes = pp.Nodes;
+            int self = nodes.indexOf(this);
+            for (int k = self + 1; k < nodes.size(); k++) {
+                Node n = nodes.get(k);
+                if (cap == null && n instanceof CaptureSharpening) {
+                    cap = (CaptureSharpening) n;
+                } else if (shp == null && n instanceof Sharpen2) {
+                    shp = (Sharpen2) n;
+                } else if (n instanceof RotateWatermark) {
+                    rot = (RotateWatermark) n;
+                    break;
+                }
+            }
+            if (cap == null || shp == null || rot == null) {
+                Log.d("TiledHarness", "fused tail declined: segment cap=" + (cap != null)
+                        + " shp=" + (shp != null) + " rot=" + (rot != null));
+                return false;
+            }
+            int imgW = fine.mSize.x, imgH = fine.mSize.y;
+            // The sink is transposed for 90/270 (the band source renders
+            // columns there); the reconstruct is pointwise in absolute coords
+            // and clamps against the full level textures, so a column band is
+            // exactly as bit-exact as a row band. tileRot is only assigned by
+            // bindShot (called below), so read the degrees the constructor set.
+            boolean transposed = rot.rotate == 90 || rot.rotate == 270;
+            int expW = transposed ? imgH : imgW;
+            int expH = transposed ? imgW : imgH;
+            if (sink.getWidth() != expW || sink.getHeight() != expH) {
+                Log.d("TiledHarness", "fused tail declined: sink " + sink.getWidth() + "x"
+                        + sink.getHeight() + " expected " + expW + "x" + expH
+                        + " rotate=" + rot.rotate);
+                return false;
+            }
+            com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing glproc =
+                    basePipeline.glint != null ? basePipeline.glint.glProcessing : null;
+            if (glproc == null) {
+                Log.d("TiledHarness", "fused tail declined: no sink proc");
+                return false;
+            }
+            cap.bindShot();
+            shp.bindShot(new android.graphics.Point(imgW, imgH));
+            rot.bindShot(new android.graphics.Point(imgW, imgH));
+            java.nio.ByteBuffer wrapped =
+                    com.particlesdevs.photoncamera.util.Allocator.wrapBitmap(sink);
+            if (wrapped == null) {
+                Log.d("TiledHarness", "fused tail declined: bitmap lock failed");
+                return false;
+            }
+            try {
+                fusedFine = fine;
+                fusedCoarse = coarse;
+                fusedReconstructed = reconstructed;
+                fusedLut = lut;
+                TileDriver.runTailProduceFused(cap, shp, rot, this::produceFinestBand,
+                        placeholder, imgW, imgH, glproc, wrapped, false);
+            } finally {
+                fusedFine = null;
+                fusedCoarse = null;
+                fusedReconstructed = null;
+                fusedLut = null;
+                com.particlesdevs.photoncamera.util.Allocator.unlockBitmap(sink);
+            }
+            pp.tailFusedSink = true;
+            Log.d("TiledHarness", "laplacian fused tail engaged " + imgW + "x" + imgH);
+            return true;
+        } catch (Throwable t) {
+            Log.e("TiledHarness", "laplacian fused tail failed, legacy full output", t);
+            return false;
         }
     }
 

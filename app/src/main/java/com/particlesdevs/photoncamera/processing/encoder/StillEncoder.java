@@ -128,6 +128,19 @@ public final class StillEncoder {
             notifyHeicFallback();
             return encodeJpegSibling(dest, sdr, gain, exif);
         }
+        // The SDR base encode does not depend on the gain map, so start it on
+        // a worker before the gain-map normalization passes and join it at the
+        // mux. Saves ~130 ms of serial encode time per show.
+        UltraHdrHeicEncoder.BaseEncodeJob baseJob = null;
+        boolean ultraHdrHeic = wantUhdr && HeicSupport.isUltraHdrHeicSupported();
+        if (ultraHdrHeic) {
+            try {
+                baseJob = UltraHdrHeicEncoder.startBaseEncode(sdr);
+            } catch (Throwable t) {
+                Log.e(TAG, "SDR base pre-encode failed to start, encoding in order", t);
+                baseJob = null;
+            }
+        }
         GainMapComputer.Result res = null;
         if (wantUhdr) {
             try {
@@ -137,16 +150,32 @@ public final class StillEncoder {
                 res = null;
             }
         }
-        if (res != null && HeicSupport.isUltraHdrHeicSupported()) {
+        if (res != null && baseJob != null) {
             try {
-                UltraHdrHeicEncoder.encodeToFile(dest, sdr, res, exif);
+                UltraHdrHeicEncoder.encodeWithBase(dest, sdr, res, exif, baseJob);
                 return new Result(true, dest);
             } catch (Throwable e) {
                 Log.e(TAG, "HEIC Ultra HDR encode failed, SDR HEIC fallback", e);
                 recycleQuietly(res.gainMap);
             }
         } else if (res != null) {
-            Log.d(TAG, "Ultra HDR gain map available but HEIC gain maps need API 34+; SDR HEIC");
+            if (ultraHdrHeic) {
+                // The pre-encode could not start; fall back to the classic
+                // in-order Ultra HDR HEIC path rather than losing the gain map.
+                try {
+                    UltraHdrHeicEncoder.encodeToFile(dest, sdr, res, exif);
+                    return new Result(true, dest);
+                } catch (Throwable e) {
+                    Log.e(TAG, "HEIC Ultra HDR encode failed, SDR HEIC fallback", e);
+                    recycleQuietly(res.gainMap);
+                }
+            } else {
+                Log.d(TAG, "Ultra HDR gain map available but HEIC gain maps need API 34+; SDR HEIC");
+            }
+        } else if (baseJob != null) {
+            // Gain map unavailable: drop the pre-encode and let the SDR path
+            // below do its own encode.
+            baseJob.abort();
         }
         if (exif != null) {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());

@@ -17,6 +17,7 @@
             android:orientation="vertical">
 
         <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/bottombar_content"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 app:layout_constraintBottom_toBottomOf="parent"

@@ -1,60 +1,45 @@
 package com.particlesdevs.photoncamera.circularbarlib.control.models;
 
 import android.content.Context;
-import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
-import android.os.Build;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
+import com.particlesdevs.photoncamera.circularbarlib.api.ManualInstanceProvider;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobItemInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobViewChangedListener;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.ShadowTextDrawable;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.ManualSliderView;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderChangedListener;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderItem;
 
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The base model class for data model to be attached to {@link KnobView} instances
- * <p>
- * Also responsible for updating {@link ManualParamModel}
- * <p>
- * Created by KillerInk on 31/Aug/2020
- * Modified by Vibhor
+ * Base model for a manual control attached to a {@link ManualSliderView}.
+ *
+ * <p>Also responsible for updating {@link ManualParamModel}.
  *
  * @param <T> the type of data contained by the model
  */
-public abstract class ManualModel<T extends Comparable<? super T>> implements KnobViewChangedListener, IModel {
+public abstract class ManualModel<T extends Comparable<? super T>> implements SliderChangedListener, IModel {
     protected final ManualParamModel manualParamModel;
-    private final List<KnobItemInfo> knobInfoList;
+    private final List<SliderItem> sliderItems;
     private final ValueChangedEvent valueChangedEvent;
-    private final Vibrator vibrator;
-    private final VibrationEffect tick;
     protected CameraCharacteristics cameraCharacteristics;
     protected Range<T> range;
-    protected KnobInfo knobInfo;
-    protected KnobItemInfo currentInfo, autoModel;
+    protected SliderItem currentInfo, autoModel;
     protected Context context;
 
-    public ManualModel(Context context, CameraCharacteristics cameraCharacteristics, Range<T> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
+    public ManualModel(Context context, CameraCharacteristics cameraCharacteristics, Range<T> range, ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
         this.context = context;
         this.cameraCharacteristics = cameraCharacteristics;
         this.range = range;
         this.valueChangedEvent = valueChangedEvent;
         this.manualParamModel = manualParamModel;
-        this.vibrator = v;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            this.tick = VibrationEffect.createPredefined(VibrationEffect.EFFECT_TICK);
-        } else this.tick = VibrationEffect.createOneShot(9,255);
-        knobInfoList = new ArrayList<>();
-        fillKnobInfoList();
+        sliderItems = new ArrayList<>();
+        fillSliderItems();
     }
 
     public void setAutoTxt() {
@@ -66,63 +51,36 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
             valueChangedEvent.onValueChanged(txt);
     }
 
-    protected KnobItemInfo getNewAutoItem(double defaultVal, String defaultText) {
-        ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-        String auto_string = context.getString(R.string.manual_mode_auto);
-        if (defaultText != null)
-            auto_string = defaultText;
-        autoDrawable.setText(auto_string);
-        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
-        ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
-        autoDrawableSelected.setText(auto_string);
-        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
-        StateListDrawable autoStateDrawable = new StateListDrawable();
-        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
-        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
-        autoModel = new KnobItemInfo(autoStateDrawable, auto_string, 0, defaultVal);
+    protected SliderItem getNewAutoItem(double defaultVal, String defaultText) {
+        String autoString = context.getString(R.string.manual_mode_auto);
+        if (defaultText != null) {
+            autoString = defaultText;
+        }
+        autoModel = new SliderItem(autoString, autoString, 0, defaultVal);
         return autoModel;
     }
 
-//    public KnobItemInfo getItemInfo(String text, double val, int tick) {
-//        ShadowTextDrawable autoDrawable = new ShadowTextDrawable();
-//        autoDrawable.setText(text);
-//        autoDrawable.setTextAppearance(context, R.style.ManualModeKnobText);
-//        ShadowTextDrawable autoDrawableSelected = new ShadowTextDrawable();
-//        autoDrawableSelected.setText(text);
-//        autoDrawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
-//        StateListDrawable autoStateDrawable = new StateListDrawable();
-//        autoStateDrawable.addState(new int[]{-android.R.attr.state_selected}, autoDrawable);
-//        autoStateDrawable.addState(new int[]{android.R.attr.state_selected}, autoDrawableSelected);
-//        return new KnobItemInfo(autoStateDrawable, text, tick, val);
-//    }
-
-    protected abstract void fillKnobInfoList();
+    protected abstract void fillSliderItems();
 
     @Override
-    public List<KnobItemInfo> getKnobInfoList() {
-        return knobInfoList;
+    public List<SliderItem> getSliderItems() {
+        return sliderItems;
     }
 
     @Override
-    public KnobItemInfo getCurrentInfo() {
+    public SliderItem getCurrentInfo() {
         return currentInfo;
     }
 
     @Override
-    public KnobInfo getKnobInfo() {
-        return knobInfo;
-    }
-
-    @Override
-    public void onSelectedKnobItemChanged(KnobView knobView, KnobItemInfo knobItemInfo, final KnobItemInfo knobItemInfo2) {
-        Log.d(ManualModel.class.getSimpleName(), "onSelectedKnobItemChanged");
-        vibrator.vibrate(tick);
-        //vibrator.cancel();
-        applySelection(knobItemInfo, knobItemInfo2);
+    public void onSelectedItemChanged(ManualSliderView view, SliderItem oldItem, final SliderItem newItem) {
+        Log.d(ManualModel.class.getSimpleName(), "onSelectedItemChanged");
+        ManualInstanceProvider.getHapticPerformer().tick();
+        applySelection(oldItem, newItem);
     }
 
     public void resetModel() {
-        vibrator.vibrate(tick);
+        ManualInstanceProvider.getHapticPerformer().click();
         resetModelSilently();
     }
 
@@ -135,20 +93,17 @@ public abstract class ManualModel<T extends Comparable<? super T>> implements Kn
         applySelection(null, autoModel);
     }
 
-    private void applySelection(KnobItemInfo knobItemInfo, final KnobItemInfo knobItemInfo2) {
-        if (knobItemInfo == knobItemInfo2)
+    private void applySelection(SliderItem oldItem, final SliderItem newItem) {
+        if (oldItem == newItem) {
             return;
-        onSelectedKnobItemChanged(knobItemInfo2);
-        if (knobItemInfo != null) {
-            knobItemInfo.drawable.setState(new int[]{-android.R.attr.state_selected});
         }
-        if (knobItemInfo2 != null) {
-            knobItemInfo2.drawable.setState(new int[]{android.R.attr.state_selected});
-            fireValueChangedEvent(knobItemInfo2.text);
+        onSelectedSliderItemChanged(newItem);
+        if (newItem != null) {
+            fireValueChangedEvent(newItem.text);
         }
     }
 
-    public abstract void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo2);
+    public abstract void onSelectedSliderItemChanged(SliderItem newItem);
 
     public interface ValueChangedEvent {
         void onValueChanged(String value);

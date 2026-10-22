@@ -130,7 +130,11 @@ public class Amaze extends Node {
             verifyTiledRegions();
         }
         glProg.close();
-        GLES31.glFinish();   // one sync per shot: honest timing + safe scratch close
+        // No glFinish: the driver orders the decoder's output before the next
+        // node's reads, and texture deletion is deferred until the last user
+        // completes, so the drain is unnecessary for safety. Dropping it lets
+        // the next node's setup overlap the tail of the last tile; the final
+        // sink readback still drains everything before the bitmap is touched.
         endT("amaze_tiles");
 
         cfa.close();

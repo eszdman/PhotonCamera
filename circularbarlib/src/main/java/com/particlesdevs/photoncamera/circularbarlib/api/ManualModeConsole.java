@@ -3,6 +3,8 @@ package com.particlesdevs.photoncamera.circularbarlib.api;
 import android.app.Activity;
 import android.hardware.camera2.CameraCharacteristics;
 
+import androidx.annotation.Nullable;
+
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
 
 import java.util.Observer;
@@ -40,4 +42,11 @@ public interface ManualModeConsole {
     void setPreserveManualWb(boolean preserve);
 
     void setManualWbValue(double kelvinValue);
+
+    /**
+     * Live values shown next to the "A" label while the matching control is in
+     * auto. Pass {@code null} to clear a value (the label then shows plain "A").
+     */
+    void setAutoValues(@Nullable String focus, @Nullable String exposure,
+                       @Nullable String iso, @Nullable String wb);
 }

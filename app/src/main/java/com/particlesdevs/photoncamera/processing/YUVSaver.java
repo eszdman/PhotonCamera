@@ -14,7 +14,7 @@ public class YUVSaver extends DefaultSaver{
     public void addImage(Image image) {
         Log.d(TAG, "start buffersize:" + IMAGE_BUFFER.size());
         IMAGE_BUFFER.add(getFrame(image));
-        if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
+        if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().getActiveFrameCount() != 1) {
 
 //            hdrxProcessor.start(dngFile, jpgFile, IMAGE_BUFFER, mImage.getFormat(),
 //                        CaptureController.mCameraCharacteristics, CaptureController.mCaptureResult,
@@ -22,7 +22,7 @@ public class YUVSaver extends DefaultSaver{
 
             IMAGE_BUFFER.clear();
         }
-        if (PhotonCamera.getSettings().frameCount == 1) {
+        if (PhotonCamera.getSettings().getActiveFrameCount() == 1) {
             IMAGE_BUFFER.clear();
             processingEventsListener.onProcessingFinished("YUV: Single Frame, Not Processed!");
 

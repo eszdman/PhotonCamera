@@ -1,14 +1,18 @@
 package com.particlesdevs.photoncamera.api;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.location.Location;
 import android.os.Build;
 import com.particlesdevs.photoncamera.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.control.LocationProvider;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
@@ -101,6 +105,7 @@ public class ParseExif {
         data.COMPRESSION = "97";
         data.COLOR_SPACE = "sRGB";
         data.EXIF_VERSION = "0231";
+        data.GPS_LOCATION = currentLocation();
         /*
         //saving for later use
         float sensorWidth = CameraFragment.mCameraCharacteristics.get(CameraCharacteristics.SENSOR_INFO_PHYSICAL_SIZE).getWidth();
@@ -109,6 +114,26 @@ public class ParseExif {
         Log.d(TAG, "Saving 35mm FocalLength = " + mm35);
         */
         return data;
+    }
+
+    /**
+     * Current fix for EXIF geotagging, or null when "Save location" is off,
+     * the permission is missing, or no fresh fix is available.
+     */
+    private static Location currentLocation() {
+        try {
+            if (!PreferenceKeys.isSaveLocationOn()) {
+                return null;
+            }
+            Context context = PhotonCamera.getAppContext();
+            if (context == null || !LocationProvider.hasPermission(context)) {
+                return null;
+            }
+            LocationProvider provider = PhotonCamera.getLocationProvider();
+            return provider != null ? provider.getLastLocation() : null;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     public static void syncWithParameters(ExifData data, Parameters parameters) {
@@ -143,6 +168,7 @@ public class ParseExif {
         inter.setAttribute(TAG_EXIF_VERSION, data.EXIF_VERSION);
         inter.setAttribute(TAG_IMAGE_DESCRIPTION, data.IMAGE_DESCRIPTION);
         if (data.WHITE_BALANCE != null) inter.setAttribute(TAG_WHITE_BALANCE, data.WHITE_BALANCE);
+        if (data.GPS_LOCATION != null) inter.setGpsInfo(data.GPS_LOCATION);
         // Rendered still dimensions (set by encoders from the Bitmap; readers
         // such as gallery details rely on these, notably for HEIC where
         // structural dimension fallback is unavailable).
@@ -279,5 +305,7 @@ public class ParseExif {
         /** Rendered still dimensions in pixels; null = do not write. */
         public String IMAGE_WIDTH;
         public String IMAGE_LENGTH;
+        /** GPS fix for geotagging; null = no location tags written. */
+        public Location GPS_LOCATION;
     }
 }

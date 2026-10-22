@@ -3,6 +3,12 @@ precision highp sampler2D;
 uniform sampler2D InputBuffer;
 uniform float size;
 uniform float strength;
+// Origin of this draw's tile in full-image coordinates. Sampling is
+// addressed absolutely so callers can bind the full-size input directly
+// instead of pre-shifting a window copy; the frame bounds checks and the
+// fetches then use true image coordinates. 0,0 for the legacy full-frame
+// path (set explicitly by every caller).
+uniform ivec2 u_inOrigin;
 out vec3 Output;
 //#define depthMin (0.012)
 #define depthMin (0.006)
@@ -15,7 +21,7 @@ out vec3 Output;
 #define INSIZE 0,0
 #import gaussian
 void main() {
-    ivec2 xy = ivec2(gl_FragCoord.xy);
+    ivec2 xy = ivec2(gl_FragCoord.xy) + u_inOrigin;
     vec3 mask = vec3(0.0);
     vec3 cur = (texelFetch(InputBuffer, (xy), 0).rgb);
     float pdfsize = 0.0;

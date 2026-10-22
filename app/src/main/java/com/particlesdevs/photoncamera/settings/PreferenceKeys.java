@@ -11,11 +11,14 @@ import androidx.annotation.StringRes;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.api.CameraMode;
+import com.particlesdevs.photoncamera.api.IszLensUtil;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +31,16 @@ public class PreferenceKeys {
     private static final String TAG = "PreferenceKeys";
     private static final Set<String> COMMON_KEYS = new HashSet<>();
     private static final String PER_LENS_KEY_PREFIX = "settings_for_camera_";
+    /**
+     * Per-lens photo frame-rate keys: prefix + camera id, with an optional
+     * Quad Bayer suffix. Kept out of the per-lens JSON snapshots (they are
+     * already lens-scoped) so they survive backup/restore as plain main-prefs
+     * keys.
+     */
+    private static final String FPS_LENS_KEY_PREFIX = "pref_fps_preview_key_lens_";
+    private static final String FPS_LENS_QUAD_SUFFIX = "_quad";
+    /** Per-lens video/RAW-video frame rate: prefix + camera id. */
+    private static final String VIDEO_FPS_LENS_KEY_PREFIX = "pref_video_fps_key_lens_";
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
     private static PreferenceKeys preferenceKeys;
 
@@ -39,15 +52,20 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_THEME_ACCENT.mValue);
         COMMON_KEYS.add(Key.KEY_THEME.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_GRID.mValue);
+        COMMON_KEYS.add(Key.KEY_ALWAYS_SHOW_ZOOM_BAR.mValue);
         COMMON_KEYS.add(Key.KEY_LENS_BAR_POSITION.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_WATERMARK.mValue);
         COMMON_KEYS.add(Key.KEY_SHOW_ROUND_EDGE.mValue);
         COMMON_KEYS.add(Key.KEY_CAMERA_SOUNDS.mValue);
+        COMMON_KEYS.add(Key.KEY_HAPTICS.mValue);
         COMMON_KEYS.add(Key.KEY_VIEWFINDER_BACKGROUND.mValue);
         COMMON_KEYS.add(Key.KEY_AF_MODE.mValue);
         COMMON_KEYS.add(Key.KEY_FOCUS_PEAK.mValue);
         COMMON_KEYS.add(Key.KEY_AE_MODE.mValue);
         COMMON_KEYS.add(Key.CAMERA_MODE.mValue);
+        // The legacy photo frame rate is only the seed/fallback for the
+        // per-lens keys, so it must not travel through lens snapshots.
+        COMMON_KEYS.add(Key.KEY_FPS_PREVIEW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
@@ -55,6 +73,7 @@ public class PreferenceKeys {
         // Video settings are global: per-lens copies would resurrect another
         // lens's resolution/bitrate/codec when switching lenses.
         COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION.mValue);
+        COMMON_KEYS.add(Key.KEY_VIDEO_RESOLUTION_SELFIE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HEVC.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_HDR.mValue);
@@ -66,10 +85,18 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_VIDEO_USE_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_ID.mValue);
         COMMON_KEYS.add(Key.KEY_VIDEO_LOGICAL_LENSES.mValue);
+        // Legacy global video frame rate: now only the seed/fallback for the
+        // per-lens video keys, so it must not travel through lens snapshots.
+        COMMON_KEYS.add(Key.KEY_VIDEO_FPS.mValue);
         // Audio settings are global like video.
         COMMON_KEYS.add(Key.KEY_AUDIO_BITRATE.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_STEREO.mValue);
         COMMON_KEYS.add(Key.KEY_AUDIO_SOURCE.mValue);
+        // Hidden camera modes and their order are global like the selected mode.
+        COMMON_KEYS.add(Key.KEY_HIDE_MODES.mValue);
+        COMMON_KEYS.add(Key.KEY_MODE_ORDER.mValue);
+        // Geotagging is a device-wide capture setting.
+        COMMON_KEYS.add(Key.KEY_SAVE_LOCATION.mValue);
     }
 
     private final SettingsManager settingsManager;
@@ -94,12 +121,17 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_REMOSAIC, resources.getBoolean(R.bool.pref_remosaic_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ULTRAHDR, resources.getBoolean(R.bool.pref_ultrahdr_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, 0);
+        // The video/raw-video rate starts out inheriting the shared value; it
+        // diverges only once the user changes it in a video mode.
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS, getFpsMode());
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_MODE, resources.getString(R.string.pref_ae_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.CAMERA_MODE, resources.getString(R.string.pref_camera_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_COUNTDOWN_TIMER, 0);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HAPTICS, resources.getBoolean(R.bool.pref_haptics_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_BRACKETING_MODE, 0); // Default to disable bracketing
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AE_METERING_STD, -1); // Default to Off
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, resources.getString(R.string.pref_video_resolution_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, resources.getString(R.string.pref_video_resolution_selfie_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_BITRATE, resources.getString(R.string.video_bitrate_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HEVC, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR, false);
@@ -114,10 +146,12 @@ public class PreferenceKeys {
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_BITRATE, resources.getString(R.string.audio_bitrate_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_STEREO, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUDIO_SOURCE, resources.getString(R.string.audio_source_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR, resources.getBoolean(R.bool.pref_always_show_zoom_bar_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_LENS_BAR_POSITION, resources.getString(R.string.pref_lens_bar_position_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_DOWNSCALE_4X, false);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_WRITE_ZIP, true);
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CROP_169, true);
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, resources.getBoolean(R.bool.pref_save_location_default));
         // Migrate the legacy "Write ZIP" switch into the container selector
         // (true -> zip, false -> dng) the first time the new key is seen.
         if (!settingsManager.getDefaultPreferences().contains(Key.KEY_RAWVIDEO_CONTAINER.mValue)) {
@@ -130,7 +164,7 @@ public class PreferenceKeys {
         settingsManager.setDefaults(Key.CAMERA_ID, resources.getString(R.string.camera_id_default), new String[]{"0", "1"});
         settingsManager.setDefaults(Key.TONEMAP, resources.getString(R.string.tonemap_default), new String[]{resources.getString(R.string.tonemap_default)});
         settingsManager.setDefaults(Key.GAMMA, resources.getString(R.string.gamma_default), new String[]{resources.getString(R.string.gamma_default)});
-        settingsManager.setDefaults(Key.KEY_SHOW_AF_DATA, "0", new String[]{"0", "1", "2", "3"});
+        settingsManager.setDefaults(Key.KEY_SHOW_AF_DATA, "0", new String[]{"0", "1", "2", "3", "4"});
 
 
         settingsManager.addListener((settingsManager1, key) -> {
@@ -148,9 +182,31 @@ public class PreferenceKeys {
                 }
             }
             PhotonCamera.getSettings().loadCache();
+            if (Key.KEY_HAPTICS.mValue.equals(key) && !isHapticsOn()
+                    && PhotonCamera.getVibration() != null) {
+                PhotonCamera.getVibration().cancel();
+            }
             //Log.d(TAG, key + " : changed!");
         });
     }
+
+    /**
+     * Keys that are already lens/sensor scoped and must not be copied into the
+     * per-lens JSON snapshots (loading one lens would otherwise resurrect
+     * another lens's values).
+     */
+    private static boolean isLensScopedKey(String key) {
+        return key != null && (key.startsWith("pref_tunable_")
+                || key.startsWith("pref_sensorconfig_")
+                || key.startsWith(FPS_LENS_KEY_PREFIX)
+                || key.startsWith(VIDEO_FPS_LENS_KEY_PREFIX)
+                // Per-resolution video session types are global like the rest
+                // of the video settings (the fixed legacy keys are in
+                // COMMON_KEYS; these scoped ones are matched by prefix).
+                || key.startsWith("pref_video_hdr_session_type_")
+                || key.startsWith("pref_video_sdr_session_type_"));
+    }
+
     public static void addIds(String[] ids){
         if(ids != null) {
             SettingsManager settingsManager = preferenceKeys.settingsManager;
@@ -158,8 +214,8 @@ public class PreferenceKeys {
             settingsManager.setDefaults(Key.CAMERA_ID, ids[0], ids);
             Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
             map.keySet().removeAll(COMMON_KEYS);
-            // Exclude tunable and sensor config preferences - they manage their own scope
-            map.keySet().removeIf(key -> key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_")));
+            // Exclude keys that are already lens/sensor scoped
+            map.keySet().removeIf(PreferenceKeys::isLensScopedKey);
             String json = GSON.toJson(map);
             for (String cameraId : ids) { //Makes a copy of default settings for each camera
                 settingsManager.setInitial(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraId, json);
@@ -171,8 +227,8 @@ public class PreferenceKeys {
         SettingsManager settingsManager = preferenceKeys.settingsManager;
         Map<String, ?> map = settingsManager.getDefaultPreferences().getAll();
         map.keySet().removeAll(COMMON_KEYS);
-        // Exclude tunable and sensor config preferences - they manage their own scope
-        map.keySet().removeIf(key -> key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_")));
+        // Exclude keys that are already lens/sensor scoped
+        map.keySet().removeIf(PreferenceKeys::isLensScopedKey);
         String hashmapAsJson = GSON.toJson(map);
         String alreadySavedJSON = settingsManager.getString(Key.PER_LENS_FILE_NAME.mValue, PER_LENS_KEY_PREFIX + cameraID, "");
         if (!alreadySavedJSON.equals(hashmapAsJson)) {
@@ -193,8 +249,8 @@ public class PreferenceKeys {
         }
         for (Map.Entry<String, ?> e : map.entrySet()) {
             String key = e.getKey();
-            // Skip tunable and sensor config preferences - they manage their own scope
-            if (key != null && (key.startsWith("pref_tunable_") || key.startsWith("pref_sensorconfig_"))) {
+            // Skip keys that are already lens/sensor scoped or global
+            if (isLensScopedKey(key) || COMMON_KEYS.contains(key)) {
                 continue;
             }
             Object value = e.getValue();
@@ -390,6 +446,17 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SHOW_GRID, value);
     }
 
+    /** True when the zoom slider should remain visible without interaction. */
+    public static boolean isAlwaysShowZoomBarOn() {
+        return preferenceKeys.settingsManager.getBoolean(
+                SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR);
+    }
+
+    public static void setAlwaysShowZoomBar(boolean value) {
+        preferenceKeys.settingsManager.set(
+                SCOPE_GLOBAL, Key.KEY_ALWAYS_SHOW_ZOOM_BAR, value);
+    }
+
     /**
      * Position of the multi-lens pill: {@code "right"}, {@code "center"} or
      * {@code "left"}. Right/left render the pill vertically docked to that edge,
@@ -403,6 +470,23 @@ public class PreferenceKeys {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_CAMERA_SOUNDS);
     }
 
+    public static boolean isHapticsOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_HAPTICS, true);
+    }
+
+    public static void setHaptics(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HAPTICS, value);
+    }
+
+    /** True when saved photos/videos should be geotagged with the current fix. */
+    public static boolean isSaveLocationOn() {
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, false);
+    }
+
+    public static void setSaveLocation(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_LOCATION, value);
+    }
+
     public static int getChromaNrValue() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_CHROMA_NR_SEEKBAR);
     }
@@ -413,6 +497,61 @@ public class PreferenceKeys {
 
     public static int getFrameCountValue() {
         return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_FRAME_COUNT);
+    }
+
+    /**
+     * Per-sensor Quad Bayer frame-count divisor, stored under
+     * {@code pref_sensorconfig_<physicalId>_quadbayerframecountdivisor}
+     * (see {@code Parameters.quadBayerFrameCountDivisor}). {@code <= 0}
+     * means disabled and the global HDR Frame Count applies.
+     */
+    public static int getQuadBayerFrameCountDivisor(String cameraId) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return 0;
+        }
+        String physicalId = cameraId.contains("-") ? cameraId.split("-")[1] : cameraId;
+        String key = "pref_sensorconfig_" + physicalId + "_quadbayerframecountdivisor";
+        try {
+            Integer value = SettingsManagerExtensions.getInteger(
+                    preferenceKeys.settingsManager, SCOPE_GLOBAL, key, 0);
+            return value != null ? value : 0;
+        } catch (ClassCastException e) {
+            try {
+                float floatValue = preferenceKeys.settingsManager.getDefaultPreferences()
+                        .getFloat(key, 0f);
+                return (int) floatValue;
+            } catch (Exception ignored) {
+            }
+            try {
+                String stringValue = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, key, null);
+                if (stringValue != null && !stringValue.trim().isEmpty()) {
+                    return Integer.parseInt(stringValue.trim());
+                }
+            } catch (Exception ignored) {
+            }
+            return 0;
+        }
+    }
+
+    /**
+     * Effective max frame count: the global HDR Frame Count divided by the
+     * per-sensor Quad Bayer divisor (rounded, min 1) when Quad Bayer is on
+     * and the divisor is positive, otherwise the global HDR Frame Count.
+     * Read live so a QB toggle or sensor switch applies immediately.
+     */
+    public static int getActiveFrameCountValue() {
+        int global = getFrameCountValue();
+        try {
+            if (!isQuadBayerOn()) {
+                return global;
+            }
+            int divisor = getQuadBayerFrameCountDivisor(getCameraID());
+            if (divisor > 0) {
+                return Math.max(1, Math.round(global / (float) divisor));
+            }
+        } catch (Exception ignored) {
+        }
+        return global;
     }
 
     public static float getSharpnessValue() {
@@ -504,8 +643,128 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_FPS_PREVIEW, value);
     }
 
+    /**
+     * Photo-mode frame rate for a specific lens and Quad Bayer state. Falls
+     * back to the legacy global value, which seeds every lens/quad
+     * combination on installs that predate the per-lens keys.
+     */
+    public static int getFpsModeForLens(String cameraId, boolean quadBayer) {
+        int fallback = getFpsMode();
+        if (cameraId == null || cameraId.isEmpty()) {
+            return fallback;
+        }
+        return getLensFpsValue(fpsLensKey(cameraId, quadBayer), fallback);
+    }
+
+    /**
+     * Reads a per-lens frame-rate value with the given fallback. Direct read
+     * (no prefs-map copy): this runs on the session/capture path. Tolerates
+     * values restored as native numbers, not just strings.
+     */
+    private static int getLensFpsValue(String key, int fallback) {
+        String value;
+        try {
+            value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, key, null);
+        } catch (ClassCastException e) {
+            Integer intValue = SettingsManagerExtensions.getInteger(
+                    preferenceKeys.settingsManager, SCOPE_GLOBAL, key, null);
+            value = intValue != null ? String.valueOf(intValue) : null;
+        }
+        if (value == null || value.trim().isEmpty()) {
+            return fallback;
+        }
+        try {
+            return Integer.parseInt(value.trim());
+        } catch (NumberFormatException e) {
+            return fallback;
+        }
+    }
+
+    public static void setFpsModeForLens(String cameraId, boolean quadBayer, int value) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return;
+        }
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, fpsLensKey(cameraId, quadBayer),
+                String.valueOf(value));
+    }
+
+    /** Photo-mode frame rate for the active lens + Quad Bayer state. */
+    public static int getCurrentLensFpsMode() {
+        return getFpsModeForLens(getCameraID(), isQuadBayerOn());
+    }
+
+    public static void setCurrentLensFpsMode(int value) {
+        setFpsModeForLens(getCameraID(), isQuadBayerOn(), value);
+    }
+
+    private static String fpsLensKey(String cameraId, boolean quadBayer) {
+        return FPS_LENS_KEY_PREFIX + cameraId + (quadBayer ? FPS_LENS_QUAD_SUFFIX : "");
+    }
+
+    /** Legacy global frame-rate selection for video and RAW video (seed). */
+    public static int getVideoFpsMode() {
+        return preferenceKeys.settingsManager.getInteger(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS);
+    }
+
+    public static void setVideoFpsMode(int value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_FPS, value);
+    }
+
+    /**
+     * Video/RAW-video frame rate for a specific lens. Falls back to the legacy
+     * global video value, which seeds every lens on installs that predate the
+     * per-lens keys. Kept separate from the photo-mode keys.
+     */
+    public static int getVideoFpsModeForLens(String cameraId) {
+        int fallback = getVideoFpsMode();
+        if (cameraId == null || cameraId.isEmpty()) {
+            return fallback;
+        }
+        return getLensFpsValue(VIDEO_FPS_LENS_KEY_PREFIX + cameraId, fallback);
+    }
+
+    public static void setVideoFpsModeForLens(String cameraId, int value) {
+        if (cameraId == null || cameraId.isEmpty()) {
+            return;
+        }
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, VIDEO_FPS_LENS_KEY_PREFIX + cameraId,
+                String.valueOf(value));
+    }
+
+    /** Video/RAW-video frame rate for the active lens. */
+    public static int getCurrentLensVideoFpsMode() {
+        return getVideoFpsModeForLens(getCameraID());
+    }
+
+    public static void setCurrentLensVideoFpsMode(int value) {
+        setVideoFpsModeForLens(getCameraID(), value);
+    }
+
+    /**
+     * Frame-rate selection for the mode's group: video and RAW video share the
+     * per-lens video setting, while photo modes use the active lens + Quad
+     * Bayer combination.
+     */
+    public static int getFpsModeForMode(CameraMode mode) {
+        return (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO)
+                ? getCurrentLensVideoFpsMode() : getCurrentLensFpsMode();
+    }
+
+    public static void setFpsModeForMode(CameraMode mode, int value) {
+        if (mode == CameraMode.VIDEO || mode == CameraMode.RAWVIDEO) {
+            setCurrentLensVideoFpsMode(value);
+        } else {
+            setCurrentLensFpsMode(value);
+        }
+    }
+
+    /**
+     * Effective Quad Bayer state: always off on ISZ virtual lenses. The stored
+     * value is left untouched, so switching back to a non-ISZ lens restores it.
+     */
     public static boolean isQuadBayerOn() {
-        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER);
+        return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_QUAD_BAYER)
+                && !IszLensUtil.isIszVirtual(getCameraID());
     }
     public static boolean isUltraHdrOn() {
         return preferenceKeys.settingsManager.getBoolean(SCOPE_GLOBAL, Key.KEY_ULTRAHDR);
@@ -567,6 +826,89 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.CAMERA_MODE, value);
     }
 
+    /**
+     * Ordinals (as strings) of camera modes the user chose to hide from the
+     * mode selector. Checked = hidden. Empty by default (all modes shown).
+     */
+    public static Set<String> getHiddenModes() {
+        try {
+            Set<String> raw = getStringSet(Key.KEY_HIDE_MODES);
+            if (raw == null) {
+                return new HashSet<>(0);
+            }
+            Set<String> cleaned = new HashSet<>();
+            int modeCount = CameraMode.values().length;
+            for (String value : raw) {
+                try {
+                    int ordinal = Integer.parseInt(value);
+                    if (ordinal >= 0 && ordinal < modeCount) {
+                        cleaned.add(String.valueOf(ordinal));
+                    }
+                } catch (NumberFormatException ignored) {
+                    // Drop corrupt entries.
+                }
+            }
+            return cleaned;
+        } catch (Exception e) {
+            return new HashSet<>(0);
+        }
+    }
+
+    public static void setHiddenModes(Set<String> hidden) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_HIDE_MODES,
+                hidden != null ? new HashSet<>(hidden) : new HashSet<>(0));
+    }
+
+    public static boolean isModeHidden(CameraMode mode) {
+        return mode != null && getHiddenModes().contains(String.valueOf(mode.ordinal()));
+    }
+
+    /**
+     * User-defined display order of all modes. Stored as comma-separated
+     * ordinals; absent or corrupt data falls back to enum order.
+     */
+    public static List<CameraMode> getModeOrder() {
+        try {
+            return CameraMode.parseOrder(
+                    preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_MODE_ORDER, ""));
+        } catch (Exception e) {
+            return CameraMode.parseOrder(null);
+        }
+    }
+
+    public static void setModeOrder(List<CameraMode> order) {
+        StringBuilder builder = new StringBuilder();
+        if (order != null) {
+            for (CameraMode mode : order) {
+                if (mode == null) {
+                    continue;
+                }
+                if (builder.length() > 0) {
+                    builder.append(',');
+                }
+                builder.append(mode.ordinal());
+            }
+        }
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_MODE_ORDER, builder.toString());
+    }
+
+    /**
+     * Modes in the user's display order minus hidden ones. Never empty: if
+     * everything is hidden (e.g. via a restored backup), the full order is
+     * returned so the selector never ends up with zero items.
+     */
+    public static List<CameraMode> getVisibleModes() {
+        return CameraMode.filterVisible(getModeOrder(), getHiddenModes());
+    }
+
+    /**
+     * Next visible mode after {@code current} in the user's order, wrapping
+     * around. Used when the currently selected mode becomes hidden.
+     */
+    public static CameraMode getFallbackMode(CameraMode current) {
+        return CameraMode.findFallback(getModeOrder(), getHiddenModes(), current);
+    }
+
     public static String getToneMap() {
         return preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.TONEMAP);
     }
@@ -593,6 +935,16 @@ public class PreferenceKeys {
 
     public static void setVideoResolution(String value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION, value);
+    }
+
+    /** Video resolution used when the front (selfie) camera records. */
+    public static String getSelfieVideoResolution() {
+        return preferenceKeys.settingsManager.getString(
+                SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, "1920x1080");
+    }
+
+    public static void setSelfieVideoResolution(String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_RESOLUTION_SELFIE, value);
     }
 
     public static int getVideoBitrateMbps() {
@@ -653,22 +1005,50 @@ public class PreferenceKeys {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_OIS, value);
     }
 
-    public static String getVideoHdrSessionType() {
-        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, "");
+    /**
+     * HDR video session-type override for a scope (facing + resolution + fps).
+     * Falls back to the previous resolution-only scope and then the legacy
+     * global value until the scope has its own entry.
+     */
+    public static String getVideoHdrSessionType(boolean selfie, String resolution, int fpsMode) {
+        return getScopedSessionType(true, selfie, resolution, fpsMode, Key.KEY_VIDEO_HDR_SESSION_TYPE);
+    }
+
+    public static void setVideoHdrSessionType(boolean selfie, String resolution, int fpsMode, String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
+                VideoScope.sessionTypeKey(true, selfie, resolution, fpsMode), value);
+    }
+
+    /** SDR video session-type override for a scope (facing + resolution + fps). */
+    public static String getVideoSdrSessionType(boolean selfie, String resolution, int fpsMode) {
+        return getScopedSessionType(false, selfie, resolution, fpsMode, Key.KEY_VIDEO_SDR_SESSION_TYPE);
+    }
+
+    public static void setVideoSdrSessionType(boolean selfie, String resolution, int fpsMode, String value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL,
+                VideoScope.sessionTypeKey(false, selfie, resolution, fpsMode), value);
+    }
+
+    /**
+     * Scoped value, or the previous resolution-only scope's value, or the
+     * legacy global value while neither scope has its own entry.
+     */
+    private static String getScopedSessionType(boolean hdr, boolean selfie, String resolution,
+            int fpsMode, Key legacyKey) {
+        SettingsManager settingsManager = preferenceKeys.settingsManager;
+        String scopedKey = VideoScope.sessionTypeKey(hdr, selfie, resolution, fpsMode);
+        if (settingsManager.isSet(SCOPE_GLOBAL, scopedKey)) {
+            return trim(settingsManager.getString(SCOPE_GLOBAL, scopedKey, ""));
+        }
+        String resolutionKey = VideoScope.resolutionSessionTypeKey(hdr, selfie, resolution);
+        if (settingsManager.isSet(SCOPE_GLOBAL, resolutionKey)) {
+            return trim(settingsManager.getString(SCOPE_GLOBAL, resolutionKey, ""));
+        }
+        return trim(settingsManager.getString(SCOPE_GLOBAL, legacyKey, ""));
+    }
+
+    private static String trim(String value) {
         return value != null ? value.trim() : "";
-    }
-
-    public static void setVideoHdrSessionType(String value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_HDR_SESSION_TYPE, value);
-    }
-
-    public static String getVideoSdrSessionType() {
-        String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, "");
-        return value != null ? value.trim() : "";
-    }
-
-    public static void setVideoSdrSessionType(String value) {
-        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_VIDEO_SDR_SESSION_TYPE, value);
     }
 
     public static boolean isVideoUseLogicalId() {
@@ -765,8 +1145,10 @@ public class PreferenceKeys {
         KEY_HDRX_NR(R.string.pref_hdrx_nr_key),
         KEY_SHOW_ROUND_EDGE(R.string.pref_show_roundedge_key),
         KEY_SHOW_GRID(R.string.pref_show_grid_key),
+        KEY_ALWAYS_SHOW_ZOOM_BAR(R.string.pref_always_show_zoom_bar_key),
         KEY_LENS_BAR_POSITION(R.string.pref_lens_bar_position_key),
         KEY_CAMERA_SOUNDS(R.string.pref_camera_sounds_key),
+        KEY_HAPTICS(R.string.pref_haptics_key),
         KEY_CHROMA_NR_SEEKBAR(R.string.pref_chroma_nr_seekbar_key),
         KEY_LUMA_NR_SEEKBAR(R.string.pref_luma_nr_seekbar_key),
         KEY_COMPRESSOR_SEEKBAR(R.string.pref_compressor_seekbar_key),
@@ -789,6 +1171,9 @@ public class PreferenceKeys {
         KEY_THEME_ACCENT(R.string.pref_theme_accent_key),
         KEY_VIEWFINDER_BACKGROUND(R.string.pref_viewfinder_background_key),
         KEY_HIDE_GALLERY_ICON(R.string.pref_hide_gallery_icon_key),
+        KEY_HIDE_MODES(R.string.pref_hide_modes_key),
+        KEY_MODE_ORDER(R.string.pref_mode_order_key),
+        KEY_SAVE_LOCATION(R.string.pref_save_location_key),
         KEY_AF_MODE(R.string.pref_af_mode_key),
         KEY_AE_MODE(R.string.pref_ae_mode_key),
         KEY_AE_METERING_STD(R.string.pref_ae_metering_std_key),
@@ -799,6 +1184,7 @@ public class PreferenceKeys {
          */
         KEY_PREVIEW_RESOLUTION(R.string.pref_preview_resolution_key),////TODO add preview resolution selector
         KEY_VIDEO_RESOLUTION(R.string.pref_video_resolution_key),
+        KEY_VIDEO_RESOLUTION_SELFIE(R.string.pref_video_resolution_selfie_key),
         KEY_VIDEO_BITRATE(R.string.pref_video_bitrate_key),
         KEY_VIDEO_HEVC(R.string.pref_video_hevc_key),
         KEY_VIDEO_HDR(R.string.pref_video_hdr_key),
@@ -833,6 +1219,7 @@ public class PreferenceKeys {
         KEY_AUTO_ZOOM_SWITCH(R.string.pref_auto_zoom_switch_key),
         KEY_QUAD_BAYER(R.string.pref_quad_bayer_key),
         KEY_FPS_PREVIEW(R.string.pref_fps_preview_key),
+        KEY_VIDEO_FPS(R.string.pref_video_fps_key),
         KEY_ULTRAHDR(R.string.pref_ultrahdr_key),
         CAMERA_ID(R.string.camera_id),
         TONEMAP(R.string.tonemap_key),

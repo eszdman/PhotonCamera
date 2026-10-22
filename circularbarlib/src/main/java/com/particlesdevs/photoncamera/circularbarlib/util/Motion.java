@@ -1,5 +1,6 @@
 package com.particlesdevs.photoncamera.circularbarlib.util;
 
+import android.animation.LayoutTransition;
 import android.animation.TimeInterpolator;
 import android.content.Context;
 
@@ -60,6 +61,25 @@ public final class Motion {
 
     public static TimeInterpolator standard(Context context) {
         return resolveInterpolator(context, R.attr.motionEasingStandardInterpolator);
+    }
+
+    /**
+     * Aligns a layout transition's appear/disappear/change legs with the
+     * standard curve and a medium-2 duration. Container-driven changes (chrome
+     * toggling on a mode switch) then read as one motion with the explicit
+     * animations around them instead of running on the platform defaults.
+     */
+    public static void applyStandardTo(LayoutTransition transition, Context context) {
+        if (transition == null) {
+            return;
+        }
+        TimeInterpolator interpolator = standard(context);
+        int duration = durationMedium2(context);
+        for (int type : new int[]{LayoutTransition.APPEARING, LayoutTransition.DISAPPEARING,
+                LayoutTransition.CHANGE_APPEARING, LayoutTransition.CHANGE_DISAPPEARING}) {
+            transition.setInterpolator(type, interpolator);
+            transition.setDuration(type, duration);
+        }
     }
 
     private static int resolveDuration(Context context, @AttrRes int attr, int fallbackMs) {

@@ -14,14 +14,23 @@ package com.particlesdevs.photoncamera.ui.camera.views.viewfinder;
  * thread while arming/resetting happens on camera threads.
  */
 public final class IszSettleCounter {
-    private final int threshold;
+    private final int defaultThreshold;
+    private int threshold;
     private int count;
 
     public IszSettleCounter(int threshold) {
-        this.threshold = Math.max(1, threshold);
+        this.defaultThreshold = Math.max(1, threshold);
+        this.threshold = this.defaultThreshold;
     }
 
+    /** Rearms with the constructor's threshold. */
     public synchronized void reset() {
+        reset(defaultThreshold);
+    }
+
+    /** Rearms with a per-arm threshold (e.g. a preview fade's frame count). */
+    public synchronized void reset(int threshold) {
+        this.threshold = Math.max(1, threshold);
         count = 0;
     }
 

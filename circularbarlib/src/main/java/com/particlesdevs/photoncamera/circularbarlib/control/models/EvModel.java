@@ -1,18 +1,12 @@
 package com.particlesdevs.photoncamera.circularbarlib.control.models;
 
 import android.content.Context;
-import android.graphics.drawable.StateListDrawable;
 import android.hardware.camera2.CameraCharacteristics;
-import android.os.Vibrator;
 import android.util.Log;
 import android.util.Range;
 
-import com.particlesdevs.photoncamera.circularbarlib.R;
 import com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobItemInfo;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.ShadowTextDrawable;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.SliderItem;
 
 import java.util.ArrayList;
 import java.util.Locale;
@@ -26,8 +20,8 @@ public class EvModel extends ManualModel<Float> {
     private float evStep;
 
     public EvModel(Context context, CameraCharacteristics cameraCharacteristics, Range<Float> range,
-                   ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent, Vibrator v) {
-        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent,v);
+                   ManualParamModel manualParamModel, ValueChangedEvent valueChangedEvent) {
+        super(context, cameraCharacteristics, range, manualParamModel, valueChangedEvent);
     }
 
     public void setEvStep(float evStep) {
@@ -35,14 +29,14 @@ public class EvModel extends ManualModel<Float> {
     }
 
     @Override
-    protected void fillKnobInfoList() {
+    protected void fillSliderItems() {
         Range<Float> evRange = range;
         if (evRange == null || (evRange.getLower() == 0.0f && evRange.getUpper() == 0.0f)) {
-            Log.d(TAG, "fillKnobInfoList() - evRange is not valid.");
+            Log.d(TAG, "fillSliderItems() - evRange is not valid.");
             return;
         }
-        KnobItemInfo auto = getNewAutoItem(ManualParamModel.EV_AUTO, null);
-        getKnobInfoList().add(auto);
+        SliderItem auto = getNewAutoItem(ManualParamModel.EV_AUTO, null);
+        getSliderItems().add(auto);
         currentInfo = auto;
         int positiveValueCount = 0;
         int negativeValueCount = 0;
@@ -65,42 +59,31 @@ public class EvModel extends ManualModel<Float> {
         for (int tick = 0; tick < values.size(); tick++) {
             float value = values.get(tick);
             if (!isZero(value)) {
-                ShadowTextDrawable drawable = new ShadowTextDrawable();
-                drawable.setTextAppearance(context, R.style.ManualModeKnobText);
-                ShadowTextDrawable drawableSelected = new ShadowTextDrawable();
-                drawableSelected.setTextAppearance(context, R.style.ManualModeKnobTextSelected);
+                String fullText = (value > 0.0f ? "+" : "")
+                        + String.format(Locale.ROOT, "%.2f", value);
+                String label = null;
                 if (isInteger(value)) {
                     String valueStr = String.valueOf((int) value);
                     if (value > 0.0f) {
                         valueStr = "+" + valueStr;
                     }
-                    drawable.setText(valueStr);
-                    drawableSelected.setText(valueStr);
+                    label = valueStr;
                 }
-                StateListDrawable stateDrawable = new StateListDrawable();
-                stateDrawable.addState(new int[]{-android.R.attr.state_selected}, drawable);
-                stateDrawable.addState(new int[]{android.R.attr.state_selected}, drawableSelected);
-                String text = String.format(Locale.ROOT, "%.2f", value);
+                int itemTick;
                 if (value > 0.0f) {
-                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, positiveValueCount - tick, value));
+                    itemTick = positiveValueCount - tick;
                 } else {
-                    getKnobInfoList().add(new KnobItemInfo(stateDrawable, text, negativeValueCount - tick, value));
+                    itemTick = negativeValueCount - tick;
                 }
+                getSliderItems().add(new SliderItem(fullText, label, itemTick, value));
             }
         }
-        int angle = context.getResources().getInteger(R.integer.manual_ev_knob_view_angle_half);
-        knobInfo = new KnobInfo(-angle, angle, -negativeValueCount, positiveValueCount, context.getResources().getInteger(R.integer.manual_ev_knob_view_auto_angle));
     }
 
     @Override
-    public void onRotationStateChanged(KnobView knobView, KnobView.RotationState rotationState) {
-
-    }
-
-    @Override
-    public void onSelectedKnobItemChanged(KnobItemInfo knobItemInfo) {
-        currentInfo = knobItemInfo;
-        manualParamModel.setCurrentEvValue((int) (knobItemInfo.value / evStep));
+    public void onSelectedSliderItemChanged(SliderItem newItem) {
+        currentInfo = newItem;
+        manualParamModel.setCurrentEvValue((int) (newItem.value / evStep));
     }
 
     private boolean isZero(float value) {

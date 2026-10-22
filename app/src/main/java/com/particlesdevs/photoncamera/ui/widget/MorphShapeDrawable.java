@@ -11,11 +11,9 @@ import android.graphics.PixelFormat;
 import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.drawable.Drawable;
-import android.util.TypedValue;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.core.content.ContextCompat;
 import androidx.dynamicanimation.animation.FloatValueHolder;
 import androidx.dynamicanimation.animation.SpringAnimation;
 import androidx.dynamicanimation.animation.SpringForce;
@@ -63,11 +61,7 @@ public class MorphShapeDrawable extends Drawable {
                               @NonNull ColorStateList strokeColors, @NonNull SpringForce springForce) {
         this.fillColors = fillColors;
         this.strokeColors = strokeColors;
-        // Normalize both into one unit space with morph-aware bounds so the
-        // shapes (and their overshoot) share a coordinate system.
-        RoundedPolygon rest = MaterialShapes.normalize(restShape, true, UNIT_BOUNDS);
-        RoundedPolygon pressedShapeNormalized = MaterialShapes.normalize(pressedShape, true, UNIT_BOUNDS);
-        this.morph = new Morph(rest, pressedShapeNormalized);
+        this.morph = morphBetween(restShape, pressedShape);
         fillPaint.setStyle(Paint.Style.FILL);
         strokePaint.setStyle(Paint.Style.STROKE);
         strokePaint.setStrokeWidth(strokeWidthPx);
@@ -77,16 +71,33 @@ public class MorphShapeDrawable extends Drawable {
                 .addUpdateListener((animation, value, velocity) -> invalidateSelf());
     }
 
-    /** Circle &harr; cookie shutter drawable painted with the camera palette. */
+    /**
+     * Normalizes both shapes into one unit space (with morph-aware bounds so the
+     * shapes and their overshoot share a coordinate system) and pairs them up.
+     */
     @NonNull
-    public static MorphShapeDrawable shutter(@NonNull Context context) {
-        float strokeWidth = TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 3f,
-                context.getResources().getDisplayMetrics());
-        return new MorphShapeDrawable(
-                MaterialShapes.CIRCLE, MaterialShapes.COOKIE_9, strokeWidth,
-                ContextCompat.getColorStateList(context, R.color.shutter_morph_fill),
-                ContextCompat.getColorStateList(context, R.color.shutter_morph_stroke),
-                spatialSpring(context));
+    public static Morph morphBetween(@NonNull RoundedPolygon from, @NonNull RoundedPolygon to) {
+        return new Morph(MaterialShapes.normalize(from, true, UNIT_BOUNDS),
+                MaterialShapes.normalize(to, true, UNIT_BOUNDS));
+    }
+
+    /**
+     * Writes the morphed silhouette for {@code progress} into {@code out}
+     * (unit space; the caller scales it to the target rect).
+     */
+    public static void buildPath(@NonNull Morph morph, float progress, @NonNull Path out) {
+        out.rewind();
+        List<Cubic> cubics = morph.asCubics(progress);
+        for (int i = 0; i < cubics.size(); i++) {
+            Cubic cubic = cubics.get(i);
+            if (i == 0) {
+                out.moveTo(cubic.getAnchor0X(), cubic.getAnchor0Y());
+            }
+            out.cubicTo(cubic.getControl0X(), cubic.getControl0Y(),
+                    cubic.getControl1X(), cubic.getControl1Y(),
+                    cubic.getAnchor1X(), cubic.getAnchor1Y());
+        }
+        out.close();
     }
 
     /** M3E fast spatial spring from the theme, with a spec fallback. */
@@ -101,6 +112,33 @@ public class MorphShapeDrawable extends Drawable {
             fallback.setDampingRatio(0.9f);
             return fallback;
         }
+    }
+
+    /**
+     * M3E expressive "playful" spring: the fast spatial spring's stiffness with
+     * a lighter damping ratio, so motion overshoots slightly (~4%) before
+     * settling. The Material spring tokens only ship the standard (critically
+     * damped) set, so this is defined here. Used by the lens selection pill and
+     * the mode picker's snap.
+     */
+    @NonNull
+    public static SpringForce playfulSpring() {
+        SpringForce spring = new SpringForce(1f);
+        spring.setStiffness(1400f);
+        spring.setDampingRatio(0.7f);
+        return spring;
+    }
+
+    /**
+     * Slower playful spring (~350ms settle, same ~4% overshoot) for slides that
+     * must read as one motion with the viewfinder's aspect stretch.
+     */
+    @NonNull
+    public static SpringForce slowPlayfulSpring() {
+        SpringForce spring = new SpringForce(1f);
+        spring.setStiffness(350f);
+        spring.setDampingRatio(0.7f);
+        return spring;
     }
 
     @Override
@@ -153,25 +191,6 @@ public class MorphShapeDrawable extends Drawable {
 
     private void updatePath() {
         buildPath(morph, progress.getValue(), path);
-    }
-
-    /**
-     * Writes the morphed silhouette for {@code progress} into {@code out}
-     * (unit space; the draw pass scales it to the target bounds).
-     */
-    private static void buildPath(@NonNull Morph morph, float progress, @NonNull Path out) {
-        out.rewind();
-        List<Cubic> cubics = morph.asCubics(progress);
-        for (int i = 0; i < cubics.size(); i++) {
-            Cubic cubic = cubics.get(i);
-            if (i == 0) {
-                out.moveTo(cubic.getAnchor0X(), cubic.getAnchor0Y());
-            }
-            out.cubicTo(cubic.getControl0X(), cubic.getControl0Y(),
-                    cubic.getControl1X(), cubic.getControl1Y(),
-                    cubic.getAnchor1X(), cubic.getAnchor1Y());
-        }
-        out.close();
     }
 
     @Override

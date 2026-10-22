@@ -20,7 +20,7 @@ public class JPEGSaver extends DefaultSaver {
         try {
             IMAGE_BUFFER.add(getFrame(image));
             byte[] bytes = new byte[buffer.remaining()];
-            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().frameCount != 1) {
+            if (IMAGE_BUFFER.size() == PhotonCamera.getCaptureController().mMeasuredFrameCnt && PhotonCamera.getSettings().getActiveFrameCount() != 1) {
                 Path jpgPath = ImagePath.newImageFilePath();
                 buffer.duplicate().get(bytes);
                 Files.write(jpgPath, bytes);
@@ -31,7 +31,7 @@ public class JPEGSaver extends DefaultSaver {
 
                 IMAGE_BUFFER.clear();
             }
-            if (PhotonCamera.getSettings().frameCount == 1) {
+            if (PhotonCamera.getSettings().getActiveFrameCount() == 1) {
                 Path jpgPath = ImagePath.newImageFilePath();
                 IMAGE_BUFFER.clear();
                 buffer.get(bytes);

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Landscape leaves little vertical room once the histogram and file info
+         are laid out, so keep the scrollable description shorter. -->
+    <dimen name="exif_description_max_height">112dp</dimen>
+</resources>

@@ -32,6 +32,11 @@ import java.nio.FloatBuffer;
 import java.nio.ShortBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -305,8 +310,25 @@ public class ESD4D extends GLOneScript {
     float kernelSigma;
     GLTexture result;
     GLTexture inputAlter;
+    /**
+     * Second slot of the alter-frame upload ring. The merge loop alternates
+     * between {@link #inputAlter} and this texture so an upload never targets
+     * the texture the previous frame's merge00 is still reading. A GLsync
+     * fence recorded right after each merge00 guards the two-frames-later
+     * reuse.
+     */
+    GLTexture inputAlterAlt;
+    /** GLsync handles for the two upload-ring slots (0 = none). */
+    private final long[] alterUploadFences = new long[2];
+    /** GLsync handles for the noise-blend raw upload ring (two slots). */
+    private final long[] noiseBlendUploadFences = new long[2];
     GLTexture alter;
     GLTexture alignmentTex;
+    /** Halide aligner running on a worker thread (null before launch/after join). */
+    private HalideAlignment halideAlignment;
+    private Thread halideThread;
+    private final AtomicReference<Throwable> halideError = new AtomicReference<>();
+    private long halideLaunchMs;
     /** Dense optical-flow alignment (FlowNet); non-null when useNcnnFlow ran. */
     FlowNetAlignment flowNetAlignment;
     @Tunable(title = "HotPixels detect threshold", category = "Merge", description = "Higher multiplier detects less hotpixels", min = 0.5f, max = 5.0f, step = 0.1f, defaultValue = 1.5f)
@@ -447,16 +469,27 @@ public class ESD4D extends GLOneScript {
         // the ESD4D lifecycle - never closed here (see guards below).
         GLTexture blendAcc = baseDiff;
         GLTexture tempFloat = alter;
-        GLTexture tempRaw = frameCnt > 1
+        // Two raw staging textures ping-ponged with the same GLsync scheme as
+        // the merge loop: the upload for frame k+1 must not wait on merge00 of
+        // frame k still reading the single staging texture.
+        GLTexture tempRawA = frameCnt > 1
                 ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
                 : null;
+        GLTexture tempRawB = frameCnt > 1
+                ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
+                : null;
+        int rawSlot = 0;
         GLTexture blendCurrent = baseAlter;
         GLTexture blendNext = blendAcc;
         for (int k = 0; k < frameCnt; k++) {
             int idx = frameCnt == 1 ? 0
                     : (int) Math.round((double) k * (images.size() - 1) / (frameCnt - 1));
+            GLTexture tempRaw = rawSlot == 0 ? tempRawA : tempRawB;
             GLTexture rawSrc = (idx == 0) ? inputBase : tempRaw;
-            if (idx > 0) tempRaw.loadRawHalf(images.get(idx).buffer);
+            if (idx > 0) {
+                waitUploadFence(noiseBlendUploadFences, rawSlot);
+                tempRaw.loadRawHalf(images.get(idx).buffer);
+            }
 
             // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 quad)
             glProg.setLayout(tile, tile, 1);
@@ -467,6 +500,8 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", rawSrc);
             glProg.setTextureCompute("outTexture", tempFloat, true);
             glProg.computeAuto(packedSize, 1);
+            if (idx > 0) markUploadFence(noiseBlendUploadFences, rawSlot);
+            rawSlot ^= 1;
 
             // Progressive temporal blend accumulate at this frame's grid slot
             glProg.setLayout(tile, tile, 1);
@@ -484,7 +519,9 @@ public class ESD4D extends GLOneScript {
             blendNext = swap;
         }
         // Borrowed baseDiff must survive (see above); nothing to free here.
-        if (tempRaw != null) tempRaw.close();
+        if (tempRawA != null) tempRawA.close();
+        if (tempRawB != null) tempRawB.close();
+        deleteUploadFences(noiseBlendUploadFences);
         Log.d(Name, "Noise blend: " + frameCnt + " frame(s), sum(w^2)="
                 + String.format(java.util.Locale.ROOT, "%.4f", java.util.stream.DoubleStream.of(weights).map(w -> w * w).sum()));
         return blendCurrent;
@@ -501,6 +538,204 @@ public class ESD4D extends GLOneScript {
         if (profileGpuSync) android.opengl.GLES30.glFinish();
     }
 
+    /**
+     * Blocks until the merge00 pass that last read this upload-ring slot has
+     * completed on the GPU, so the following {@code glTexSubImage2D} can
+     * overwrite it without the driver inserting its own full-queue
+     * write-after-read stall. A timeout is non-fatal: driver command ordering
+     * still guarantees correctness, we only lose the overlap.
+     */
+    private void waitUploadFence(long[] fences, int slot) {
+        long fence = fences[slot];
+        if (fence == 0) return;
+        fences[slot] = 0;
+        android.opengl.GLES30.glClientWaitSync(fence,
+                android.opengl.GLES30.GL_SYNC_FLUSH_COMMANDS_BIT, 100_000_000L);
+        android.opengl.GLES30.glDeleteSync(fence);
+    }
+
+    /**
+     * Joins the Halide alignment worker if one is running, propagating any
+     * failure it captured. Idempotent: the reference is cleared first, so the
+     * {@link #close()} safety net after the normal join is a no-op.
+     */
+    private void joinHalideWorker() {
+        Thread t = halideThread;
+        halideThread = null;
+        if (t == null) return;
+        boolean interrupted = false;
+        while (t.isAlive()) {
+            try {
+                t.join();
+            } catch (InterruptedException e) {
+                interrupted = true;
+            }
+        }
+        if (interrupted) Thread.currentThread().interrupt();
+        Throwable err = halideError.getAndSet(null);
+        if (err != null) {
+            if (err instanceof RuntimeException) throw (RuntimeException) err;
+            throw new RuntimeException("Halide alignment failed", err);
+        }
+    }
+
+    /** Records the completion point of the given slot's last reader. */
+    private void markUploadFence(long[] fences, int slot) {
+        if (fences[slot] != 0) {
+            android.opengl.GLES30.glDeleteSync(fences[slot]);
+        }
+        fences[slot] = android.opengl.GLES30.glFenceSync(
+                android.opengl.GLES30.GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    }
+
+    private void deleteUploadFences(long[] fences) {
+        for (int i = 0; i < fences.length; i++) {
+            if (fences[i] != 0) {
+                android.opengl.GLES30.glDeleteSync(fences[i]);
+                fences[i] = 0;
+            }
+        }
+    }
+
+    /**
+     * Builds the programs that the merge loop first uses (mergeAlign and
+     * mergeCombineWeight1) with a 1x1 scratch dispatch while the GPU is still
+     * busy with the noise passes. Adreno defers pipeline-state creation to the
+     * first draw, which showed up as a ~100 ms spike on the first combine; the
+     * dummy dispatch moves that setup off the critical first frame. The
+     * scratch/dummy textures are never read and the real passes re-issue every
+     * uniform/texture, so results are unchanged.
+     */
+    private void prewarmMergePrograms(int tile) {
+        if (Objects.equals(alignerSelect, "flownet")) return; // different mergeAlignFlow source
+        GLTexture scratch = null, dummyKernels = null, dummyAlign = null;
+        try {
+            scratch = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            dummyKernels = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+            dummyAlign = new GLTexture(new Point(1, 1), new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+
+            // Exact define order of the loop's mergeAlign pass so the compiled
+            // source (and thus the program-cache key) matches.
+            glProg.setDefine("TILE_AL", parameters.tile);
+            glProg.setLayout(tile, tile, 1);
+            glProg.useAssetProgram("merge/mergeAlign", true);
+            glProg.setTexture("inTexture", inputBase);
+            glProg.setTexture("alignmentTexture", dummyAlign);
+            glProg.setTextureCompute("baseTexture", base, false);
+            glProg.setTextureCompute("alterTexture", alter, false);
+            glProg.setTextureCompute("outTexture", scratch, true);
+            glProg.computeAuto(new Point(1, 1), 1);
+
+            // Combine pass: same define sequence (just LAYOUT).
+            glProg.setLayout(tile, tile, 1);
+            glProg.useAssetProgram("merge/mergeCombineWeight1", true);
+            glProg.setTexture("inTex", inputBase);
+            glProg.setTexture("kernelsMap", dummyKernels);
+            glProg.setTextureCompute("inTexture", base, false);
+            glProg.setTextureCompute("diffTexture", baseDiff, false);
+            glProg.setTextureCompute("outTexture", scratch, true);
+            glProg.computeAuto(new Point(1, 1), 1);
+        } catch (Throwable t) {
+            Log.w("ESD4D", "merge program pre-warm failed (non-fatal)", t);
+        } finally {
+            // Never leave a half-consumed define list for the aligner programs.
+            glProg.clearDefines();
+            if (scratch != null) scratch.close();
+            if (dummyKernels != null) dummyKernels.close();
+            if (dummyAlign != null) dummyAlign.close();
+        }
+    }
+
+    /** Upper bound on workers for the parallel raw->fp16 conversion: leaves
+     * headroom for render/capture threads and bounds transient staging. */
+    private static final int F16_CONVERT_MAX_WORKERS = 4;
+
+    private void convertFramesToF16() {
+        int pending = 0;
+        for (int i = 0; i < images.size(); i++) {
+            ImageFrame frame = images.get(i);
+            if (!frame.fp16 && frame.buffer != null) pending++;
+        }
+        if (pending == 0) return;
+        int workers = Math.min(Math.min(F16_CONVERT_MAX_WORKERS, pending),
+                Math.max(1, Runtime.getRuntime().availableProcessors() - 2));
+        if (workers <= 1) {
+            for (int i = 0; i < images.size(); i++) convertFrameToF16(images.get(i), i);
+            return;
+        }
+        ExecutorService pool = Executors.newFixedThreadPool(workers, r -> new Thread(r, "F16Convert"));
+        try {
+            ArrayList<Callable<Void>> tasks = new ArrayList<>(pending);
+            for (int i = 0; i < images.size(); i++) {
+                final int idx = i;
+                final ImageFrame frame = images.get(i);
+                if (frame.fp16 || frame.buffer == null) continue;
+                tasks.add(() -> { convertFrameToF16(frame, idx); return null; });
+            }
+            for (Future<Void> f : pool.invokeAll(tasks)) f.get();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("f16-convert interrupted", e);
+        } catch (ExecutionException e) {
+            Throwable cause = e.getCause();
+            if (cause instanceof RuntimeException) throw (RuntimeException) cause;
+            throw new RuntimeException("f16-convert failed", cause);
+        } finally {
+            pool.shutdown();
+        }
+    }
+
+    /**
+     * Converts one frame's buffer to normalized fp16 in place. Safe to call
+     * from any thread: {@link ImageFrame#upload()}'s staging cache is
+     * synchronized (concurrent callers each get an owned buffer) and the
+     * native converters keep no global state.
+     */
+    private void convertFrameToF16(ImageFrame frame, int index) {
+        if (frame.fp16 || frame.buffer == null) return;
+        ByteBuffer normalized;
+        if (frame.packedBits > 0) {
+            // Frame arrived as a packed bitstream (burst-memory saving).
+            // The common 10-bit depth decodes straight into normalized fp16,
+            // skipping the uint16 staging buffer and its memory round trip;
+            // other depths keep the unpack-then-normalize path.
+            if (frame.packedBits == 10) {
+                normalized = Allocator.allocate(parameters.rawSize.x * parameters.rawSize.y * 2);
+                if (normalized != null && !Allocator.unpackNormalizeF16TenBit(normalized,
+                        frame.buffer, parameters.rawSize.x, parameters.rawSize.y,
+                        parameters.whiteLevel, parameters.blackLevel)) {
+                    Allocator.free(normalized);
+                    normalized = null;
+                }
+                if (normalized == null) {
+                    try (ImageFrame.Upload up = frame.upload()) {
+                        normalized = Allocator.createF16(up.buffer,
+                                parameters.rawSize.x, parameters.rawSize.y,
+                                parameters.whiteLevel, parameters.blackLevel);
+                    }
+                }
+            } else {
+                // Unpack to uint16 first — createF16 reads raw sample counts.
+                try (ImageFrame.Upload up = frame.upload()) {
+                    normalized = Allocator.createF16(up.buffer,
+                            parameters.rawSize.x, parameters.rawSize.y,
+                            parameters.whiteLevel, parameters.blackLevel);
+                }
+            }
+        } else {
+            normalized = Allocator.createF16(frame.buffer,
+                    parameters.rawSize.x, parameters.rawSize.y,
+                    parameters.whiteLevel, parameters.blackLevel);
+        }
+        if (normalized == null) {
+            throw new IllegalStateException("createF16 failed for frame " + index);
+        }
+        Allocator.free(frame.buffer);
+        frame.buffer = normalized;
+        frame.fp16 = true;
+        frame.packedBits = 0;
+    }
+
     @Override
     public void Run() {
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
@@ -515,34 +750,66 @@ public class ESD4D extends GLOneScript {
         // original raw is freed, and every later upload (merge00 / alignment
         // normalize / flowRGB inputs) feeds FLOAT_16 textures directly - the
         // shaders receive already-normalized floats and skip the
-        // whitelevel/blackLevel math.
+        // whitelevel/blackLevel math. Frames are independent and the native
+        // converters keep no global state, so the burst is converted on a
+        // small worker pool (bounded to keep transient staging memory tame).
         long f16T = System.currentTimeMillis();
-        for (int i = 0; i < images.size(); i++) {
-            ImageFrame frame = images.get(i);
-            if (frame.fp16 || frame.buffer == null) continue;
-            ByteBuffer normalized;
-            if (frame.packedBits > 0) {
-                // Frame arrived as a packed bitstream (burst-memory saving):
-                // unpack to uint16 first — createF16 reads raw sample counts.
-                try (ImageFrame.Upload up = frame.upload()) {
-                    normalized = Allocator.createF16(up.buffer,
-                            parameters.rawSize.x, parameters.rawSize.y,
-                            parameters.whiteLevel, parameters.blackLevel);
-                }
-            } else {
-                normalized = Allocator.createF16(frame.buffer,
-                        parameters.rawSize.x, parameters.rawSize.y,
-                        parameters.whiteLevel, parameters.blackLevel);
-            }
-            if (normalized == null) {
-                throw new IllegalStateException("createF16 failed for frame " + i);
-            }
-            Allocator.free(frame.buffer);
-            frame.buffer = normalized;
-            frame.fp16 = true;
-            frame.packedBits = 0;
-        }
+        convertFramesToF16();
         Log.d("ESD4D", "Stage[f16-convert] elapsed:" + (System.currentTimeMillis() - f16T) + " ms");
+
+        // The Halide aligner needs only the normalized frames and parameters,
+        // and its kernels are CPU-only, so launch it here: its ~190 ms at
+        // 12.6 MP then overlaps the GPU noise-blend / histogram / brightmap
+        // passes instead of running after them with the GPU idle. The Result
+        // texture is still created on the GL thread at the aligner branch.
+        // Merge tile size: parameters.tile (16 raw px) normally, doubled
+        // when the Halide aligner runs without flow refinement - its plain
+        // level-1 field carries one vector per 32 raw px, the alignment
+        // block below resizes the atlas to that native grid, and the merge
+        // then blends one vector per tile.
+        int mergeTile = parameters.tile;
+        // Decide Halide flow refinement before the worker launch so the
+        // early atlas size and the worker's refine mode agree: without
+        // refinement the atlas is level-1-native (one vector per 32 raw px).
+        boolean halideRefine = halideRefineFlow;
+        if (!halideRefine && alignDebugCompare == 1) {
+            // The aligner debug compare indexes both aligners' atlases
+            // cell-by-cell on the shared raw/16 grid; the level-1-native
+            // atlas does not match it. Force the refined field for this
+            // run so the comparison stays meaningful.
+            Log.d("ESD4D", "alignDebugCompare: forcing Halide flow refinement on (raw/16 grid)");
+            halideRefine = true;
+        }
+        if (Objects.equals(alignerSelect, "halide") && !halideRefine) {
+            // Plain level-1 field: one vector per 32 raw px. Resize the
+            // atlas to that native density so every vector is packed 1:1
+            // (no 2x2 duplication) and double the merge tile - each merge
+            // tile then consumes exactly one vector and mergeAlign's
+            // cosine windows cross-fade between genuinely adjacent
+            // vectors instead of duplicated copies.
+            parameters.alignmentSize = new Point(
+                    parameters.rawSize.x / (parameters.tile * 2) + 1,
+                    parameters.rawSize.y / (parameters.tile * 2) + 1);
+            mergeTile = parameters.tile * 2;
+        }
+        Point alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
+                parameters.alignmentSize.y * ((images.size()-1)/parameters.tilesX + 1));
+        Log.d("Alignment", "alignment pipeline size: " + alignmentOutputSize.x + " " + alignmentOutputSize.y);
+        if (Objects.equals(alignerSelect, "halide")) {
+            halideAlignment = new HalideAlignment(alignmentOutputSize, images);
+            halideAlignment.parameters = parameters;
+            halideAlignment.refineFlow = halideRefine;
+            halideLaunchMs = System.currentTimeMillis();
+            halideThread = new Thread(() -> {
+                try {
+                    halideAlignment.RunCPU();
+                } catch (Throwable t) {
+                    halideError.compareAndSet(null, t);
+                    Log.e("ESD4D", "Halide alignment worker failed", t);
+                }
+            }, "HalideAlignment");
+            halideThread.start();
+        }
 
         float minExp = 1.f;
         int minExpIdx = 0;
@@ -913,9 +1180,10 @@ public class ESD4D extends GLOneScript {
         }, "KernelNet-inference");
         kernelNetThread.start();
 
-        // Alignment runs after the KernelNet worker is launched so the CPU
-        // ncnn inference overlaps the whole alignment pass (pyramid or FlowNet)
-        // instead of following it. Nothing between the worker start and the
+        // The KernelNet worker joins the already-running Halide worker (launched
+        // right after f16-convert) so both overlap this GPU-side block; with a
+        // GL/FlowNet/off aligner, alignment itself still runs below with the
+        // inference concurrently. Nothing between the worker start and the
         // merge loop consumes alignmentTex, and this block only needs the
         // reference-frame inputs already prepared above.
         // The merge loop uploads each alter frame into inputAlter just before
@@ -924,15 +1192,12 @@ public class ESD4D extends GLOneScript {
         // re-upload duplicates. -48 MB VRAM, -8 uploads; bit-exact (same
         // texture object sampled identically).
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
-        // Merge tile size: parameters.tile (16 raw px) normally, doubled
-        // when the Halide aligner runs without flow refinement - its plain
-        // level-1 field carries one vector per 32 raw px, the alignment
-        // block below resizes the atlas to that native grid, and the merge
-        // then blends one vector per tile.
-        int mergeTile = parameters.tile;
-        Point alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
-                parameters.alignmentSize.y * ((images.size()-1)/parameters.tilesX + 1));
-        Log.d("Alignment", "alignment pipeline size: " + alignmentOutputSize.x + " " + alignmentOutputSize.y);
+        // Second ring slot: see the merge loop. Sharing with FlowNet/Pyramid
+        // stays on the first slot (alignment completes before the loop).
+        inputAlterAlt = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        // Pay the merge programs' first-use setup now, while the GPU is still
+        // draining the noise passes and the CPU is otherwise waiting.
+        prewarmMergePrograms(tile);
         // Aligner selector: 0 = GL pyramid (disables FlowNet), 1 = FlowNet,
         // 2 = Halide CPU. FlowNet keeps its init fallback to the pyramid.
         if (Objects.equals(alignerSelect, "flownet")) {
@@ -952,42 +1217,28 @@ public class ESD4D extends GLOneScript {
             }
         }
         if (Objects.equals(alignerSelect, "halide")) {
-            // CPU/NEON Halide path; identical Result
-            // atlas format, so the merge below is unchanged.
-            boolean halideRefine = halideRefineFlow;
-            if (!halideRefine && alignDebugCompare == 1) {
-                // The aligner debug compare indexes both aligners' atlases
-                // cell-by-cell on the shared raw/16 grid; the level-1-native
-                // atlas does not match it. Force the refined field for this
-                // run so the comparison stays meaningful.
-                Log.d("ESD4D", "alignDebugCompare: forcing Halide flow refinement on (raw/16 grid)");
-                halideRefine = true;
+            // CPU/NEON Halide path; identical Result atlas format, so the
+            // merge below is unchanged. The CPU half has been running on a
+            // worker since the f16-convert (with the halideRefine mode and
+            // resized atlas decided up there); collect it and upload the
+            // atlas on this (GL) thread.
+            long waitT = System.currentTimeMillis();
+            try {
+                joinHalideWorker();
+                Log.d("ESD4D", "Halide alignment wait: " + (System.currentTimeMillis() - waitT)
+                        + "ms total: " + (System.currentTimeMillis() - halideLaunchMs) + "ms");
+                halideAlignment.uploadResult();
+            } catch (RuntimeException e) {
+                halideAlignment.close();
+                halideAlignment = null;
+                throw e;
             }
-            if (!halideRefine) {
-                // Plain level-1 field: one vector per 32 raw px. Resize the
-                // atlas to that native density so every vector is packed 1:1
-                // (no 2x2 duplication) and double the merge tile - each merge
-                // tile then consumes exactly one vector and mergeAlign's
-                // cosine windows cross-fade between genuinely adjacent
-                // vectors instead of duplicated copies.
-                parameters.alignmentSize = new Point(
-                        parameters.rawSize.x / (parameters.tile * 2) + 1,
-                        parameters.rawSize.y / (parameters.tile * 2) + 1);
-                alignmentOutputSize = new Point(parameters.alignmentSize.x * parameters.tilesX,
-                        parameters.alignmentSize.y * ((images.size() - 1) / parameters.tilesX + 1));
-                mergeTile = parameters.tile * 2;
-            }
-            HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images);
-            halideAlignment.parameters = parameters;
-            halideAlignment.refineFlow = halideRefine;
-            long startTime = System.currentTimeMillis();
-            halideAlignment.Run();
-            Log.d("ESD4D", "Halide alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
             alignmentTex = halideAlignment.Result;
             if (alignDebugCompare == 1) {
                 logAlignerCompare(alignmentOutputSize, images);
             }
             halideAlignment.close();
+            halideAlignment = null;
         } else if (Objects.equals(alignerSelect, "gl")) {
             PyramidAlignment pyramidAlignment = new PyramidAlignment(alignmentOutputSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
@@ -1037,6 +1288,7 @@ public class ESD4D extends GLOneScript {
         GLTexture mergeAcc = base;
 
         long mergeLoopT = System.currentTimeMillis();
+        int alterSlot = 0;
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -1049,8 +1301,11 @@ public class ESD4D extends GLOneScript {
             Point shift = PyramidAlignment.alignmentShift(parameters, ind);
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
+            GLTexture alterTarget = alterSlot == 0 ? inputAlter : inputAlterAlt;
+            waitUploadFence(alterUploadFences, alterSlot);
             long stageT = System.currentTimeMillis();
-            inputAlter.loadRawHalf(frame.buffer);
+            alterTarget.loadRawHalf(frame.buffer);
+            Log.d("ESD4D", "Stage[merge:upload] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             GLTexture flowTex = null;
             if(Objects.equals(alignerSelect, "flownet")) {
@@ -1060,6 +1315,16 @@ public class ESD4D extends GLOneScript {
                 flowTex = flowNetAlignment.computeFlow(ind);
             }
 
+            // This frame's only native reads are the two synchronous uploads
+            // above: merge00's alterTarget (line above) and, on the FlowNet
+            // path, inputAlter inside computeFlow. Everything below runs on
+            // GPU textures plus scalar pair metadata, so release the f16
+            // buffer now instead of after combine: the burst drains one frame
+            // earlier, off the merge's peak (all 8 f16 frames are live when
+            // the loop starts). close() is idempotent, so HdrxProcessor's
+            // post-merge loop stays a safe net.
+            frame.close();
+
             // Convert inputAlter to alter (vec4 format)
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
@@ -1067,13 +1332,18 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("exposure", 1.f/images.get(0).pair.layerMpy);
             glProg.setVar("createDiff", 0);
             glProg.setVar("cfaShift", cfaShift);
-            glProg.setTexture("inTexture", inputAlter);
+            glProg.setTexture("inTexture", alterTarget);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
+            // merge00 is this ring slot's only reader: signal the GPU point
+            // after which the slot may be overwritten, without draining the
+            // queue. The next two frames use the other slot in between.
+            markUploadFence(alterUploadFences, alterSlot);
+            alterSlot ^= 1;
 
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
-            glProg.setDefine("TILE_AL", mergeTile);
+            glProg.setDefine("TILE_AL", parameters.tile);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
@@ -1170,13 +1440,6 @@ public class ESD4D extends GLOneScript {
             glProg.computeAuto(mergeAcc.mSize, 1);
             gpuSyncProfile();
             Log.d("ESD4D", "Stage[merge:combine] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
-            // This frame's pixels are on the GPU now: inputAlter.loadData()
-            // (and FlowNet's computeFlow()) upload synchronously, and
-            // everything above only touches GPU textures plus scalar pair
-            // metadata afterwards. Release the native copy so peak memory no
-            // longer holds the whole burst through the merge. close() is
-            // idempotent, so HdrxProcessor's post-merge loop stays a safe net.
-            images.get(ind).close();
             endT();
         }
         Log.d("ESD4D", "Stage[merge-loop] elapsed:" + (System.currentTimeMillis() - mergeLoopT) + " ms");
@@ -1193,6 +1456,8 @@ public class ESD4D extends GLOneScript {
         baseDiff.close(); baseDiff = null;
         alter.close(); alter = null;
         inputAlter.close(); inputAlter = null;
+        if (inputAlterAlt != null) { inputAlterAlt.close(); inputAlterAlt = null; }
+        deleteUploadFences(alterUploadFences);
         inputBase.close(); inputBase = null;
 
         glProg.setLayout(tile,tile,1);
@@ -1201,16 +1466,19 @@ public class ESD4D extends GLOneScript {
         glProg.setTexture("inTexture",mergeAcc);
         glProg.setTexture("alignmentTexture", alignmentTex);
         result.BufferLoad();
-        glOne.glProcessing.drawBlocksToOutput();
-        Output = glOne.glProcessing.mOutBuffer;
-        // The tiled glReadPixels inside drawBlocksToOutput drains every
-        // compute dispatch the merge loop queued asynchronously, so this
-        // stage carries the loop's real GPU execution time on top of the
-        // readback transfer itself.
-        Log.d("ESD4D", "Stage[merge2o+readback] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
+        // Issue every block's draw + readback into the PBO ring, then tear
+        // down CPU-side resources (AfterRun) while the transfers are in
+        // flight, and only then collect. The first block's readback still
+        // waits for the merge loop's queued GPU work (that drain is this
+        // stage's true cost), but the transfer and teardown now overlap.
+        glOne.glProcessing.beginBlocksToOutputAsync();
+        Log.d("ESD4D", "Stage[merge2o+submit] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
         long teardownT = System.currentTimeMillis();
         AfterRun();
         Log.d("ESD4D", "Stage[afterrun] elapsed:" + (System.currentTimeMillis() - teardownT) + " ms");
+        glOne.glProcessing.finishBlocksToOutputAsync();
+        Output = glOne.glProcessing.mOutBuffer;
+        Log.d("ESD4D", "Stage[merge2o+readback] elapsed:" + (System.currentTimeMillis() - mergeOutT) + " ms");
         com.particlesdevs.photoncamera.util.Allocator.logStage("ESD4D", "post-merge");
     }
 
@@ -1287,6 +1555,22 @@ public class ESD4D extends GLOneScript {
     }
 
     @Override
+    public void close() {
+        // Safety net for error paths that skip the aligner branch: never let
+        // the CPU worker outlive the script against buffers the caller may
+        // free (or a GL context about to be torn down). No-op after the
+        // normal join in Run.
+        try {
+            joinHalideWorker();
+        } catch (Throwable t) {
+            Log.e("ESD4D", "Halide alignment worker failed during close", t);
+        }
+        deleteUploadFences(alterUploadFences);
+        deleteUploadFences(noiseBlendUploadFences);
+        super.close();
+    }
+
+    @Override
     public void AfterRun() {
         // The unpack staging cache is only needed while frames are uploaded
         // (this phase). Release it here so post-merge MemStage baselines are
@@ -1297,6 +1581,8 @@ public class ESD4D extends GLOneScript {
         // released post-loop (nulled there); guard so a stale close can
         // never delete a recycled texture ID.
         if (inputAlter != null) inputAlter.close();
+        if (inputAlterAlt != null) inputAlterAlt.close();
+        deleteUploadFences(alterUploadFences);
         if (alter != null) alter.close();
         if (inputBase != null) inputBase.close();
         if (baseDiff != null) baseDiff.close();

@@ -21,6 +21,7 @@ public class ExifDialogModel extends BaseObservable {
     private String fnum;
     private String focal;
     private String file_size;
+    private String description;
     private String miniText;
     private Histogram.HistogramModel histogramModel;
 
@@ -110,6 +111,14 @@ public class ExifDialogModel extends BaseObservable {
 
     public void setFocal(String focal) {
         this.focal = focal;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
     }
 
     @Bindable

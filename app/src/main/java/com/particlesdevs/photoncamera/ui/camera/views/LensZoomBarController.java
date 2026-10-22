@@ -18,9 +18,12 @@ import androidx.transition.TransitionManager;
 
 import com.google.android.material.slider.Slider;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.capture.ZoomSliderMapper;
 import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Swipe;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewModel;
 
@@ -34,9 +37,10 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewMode
  * {@link #POSITION_LEFT} render it vertically docked to that edge, with the
  * zoom-lock pill directly above it and the slider/indicator stacked above the
  * pill, edge-aligned. The slider itself turns vertical in those modes
- * (unzoomed at the bottom, zoomed at the top). Position changes are applied
- * through {@link #applyPosition(String, boolean)}, which can animate the
- * transition.
+ * (unzoomed at the bottom, zoomed at the top). It can also remain visible
+ * between interactions when the persistent-slider preference is enabled.
+ * Position changes are applied through {@link #applyPosition(String, boolean)},
+ * which can animate the transition.
  *
  * <p>The lens buttons stay clickable while expanded; the slider thumb tracks the
  * live effective zoom, and dragging it drives the same zoom path as the pinch
@@ -45,7 +49,7 @@ import com.particlesdevs.photoncamera.ui.camera.viewmodel.CameraFragmentViewMode
  * The total-zoom indicator above the pill is driven by data binding; only its
  * constraints are managed here.
  */
-public class LensZoomBarController {
+public class LensZoomBarController implements Swipe.ZoomGestureListener {
     /** Pill docked to the right edge, rendered vertically. */
     public static final String POSITION_RIGHT = "right";
     /** Pill centered horizontally, rendered horizontally. */
@@ -67,12 +71,16 @@ public class LensZoomBarController {
     private final ImageButton lockButton;
     private final CaptureController captureController;
     private final CameraFragmentViewModel viewModel;
+    private final Vibration haptics;
+    private final ZoomHapticGate zoomHapticGate = new ZoomHapticGate();
     private final Handler handler = new Handler(Looper.getMainLooper());
     private final Runnable collapseRunnable = this::collapse;
 
     private boolean expanded;
+    private boolean alwaysShowZoomBar;
     private boolean sliderTouched;
     private boolean settingsHidden;
+    private boolean resumed;
     /** Tracks the visibility target so repeated layout callbacks don't restart animations. */
     private boolean barShown = true;
     private String currentPosition;
@@ -89,6 +97,7 @@ public class LensZoomBarController {
         this.lockButton = lockButton;
         this.captureController = captureController;
         this.viewModel = viewModel;
+        this.haptics = PhotonCamera.getVibration();
     }
 
     public void init() {
@@ -108,37 +117,45 @@ public class LensZoomBarController {
         slider.setValueFrom(0f);
         slider.setValueTo(SLIDER_MAX);
         slider.addOnChangeListener((seekBar, value, fromUser) -> {
-            if (!fromUser || !expanded || CaptureController.isProcessing) return;
+            if (!fromUser || !isZoomSliderInteractive() || CaptureController.isProcessing) return;
             float zoom = ZoomSliderMapper.progressToZoom(Math.round(value), SLIDER_MAX,
                     captureController.getMinZoom(), captureController.getMaxZoom());
             // The slider is smooth: it skips the pinch detent snap and
             // hysteresis so dragging feels continuous, but still
             // auto-switches lenses exactly at the native boundary.
             captureController.setZoom(zoom, 0.5f, 0.5f, false);
+            zoomHaptic(captureController.getZoomRatio());
             viewModel.setZoomRatio(captureController.getZoomRatio());
             viewModel.setZoomOffNative(
                     !captureController.isZoomOnNative(captureController.getZoomRatio()));
-            scheduleCollapse();
+            if (expanded) scheduleCollapse();
         });
         slider.addOnSliderTouchListener(new Slider.OnSliderTouchListener() {
             @Override
             public void onStartTrackingTouch(@NonNull Slider seekBar) {
+                if (!resumed || settingsHidden) {
+                    sliderTouched = false;
+                    return;
+                }
                 // The user grabbed the slider: hold the expanded state while dragging.
                 sliderTouched = true;
+                zoomHapticGate.prime(captureController.getZoomRatio());
                 handler.removeCallbacks(collapseRunnable);
-                if (!expanded) expand();
+                if (!expanded && !shouldShowPersistentSlider()) expand();
             }
 
             @Override
             public void onStopTrackingTouch(@NonNull Slider seekBar) {
                 sliderTouched = false;
-                scheduleCollapse();
+                if (haptics != null) haptics.confirm();
+                if (expanded) scheduleCollapse();
             }
         });
         // The lens set changes when the facing flips or lenses load; re-evaluate
         // whether the pill should be shown (single-lens devices hide it when collapsed).
         auxButtons.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> updateBarVisibility(true));
         applyPosition(PreferenceKeys.getLensBarPosition(), false);
+        setAlwaysShowZoomBar(PreferenceKeys.isAlwaysShowZoomBarOn(), false);
     }
 
     /**
@@ -182,6 +199,27 @@ public class LensZoomBarController {
         if (POSITION_LEFT.equals(position)) return POSITION_LEFT;
         if (POSITION_CENTER.equals(position)) return POSITION_CENTER;
         return POSITION_RIGHT;
+    }
+
+    /**
+     * Applies the opt-in persistent zoom-slider setting without changing the
+     * independent lens-pill or zoom-lock visibility rules.
+     */
+    public void setAlwaysShowZoomBar(boolean enabled, boolean animate) {
+        alwaysShowZoomBar = enabled;
+        handler.removeCallbacks(collapseRunnable);
+        if (shouldShowPersistentSlider()) {
+            showSlider(animate);
+        } else if (enabled) {
+            // Quick settings owns the screen while it is open.
+            resetSlider();
+        } else {
+            expanded = false;
+            if (sliderContainer.getVisibility() == View.VISIBLE) {
+                hideSlider(animate);
+            }
+        }
+        updateBarVisibility(animate);
     }
 
     /**
@@ -274,16 +312,40 @@ public class LensZoomBarController {
     }
 
     /** Called on every handled pinch-to-zoom movement. Expands and restarts the 2s timer. */
-    public void onPinchGesture() {
-        if (settingsHidden) return;
+    @Override
+    public void onZoomGesture() {
+        if (!resumed || settingsHidden) return;
+        zoomHaptic(captureController.getZoomRatio());
         if (!expanded) expand();
         syncSlider();
         scheduleCollapse();
     }
 
+    /** Primes the fallback gate so a pinch only ticks once the indicator steps. */
+    @Override
+    public void onZoomGestureStart() {
+        zoomHapticGate.prime(captureController.getZoomRatio());
+    }
+
+    /**
+     * Zoom detent feedback: composed primitives play on every movement, while
+     * fallback effects are gated to displayed indicator steps.
+     */
+    private void zoomHaptic(float zoomRatio) {
+        if (haptics == null) return;
+        if (haptics.usesComposedPrimitives()) {
+            haptics.zoomDetent();
+            return;
+        }
+        if (zoomHapticGate.accept(zoomRatio)) {
+            haptics.zoomDetent();
+        }
+    }
+
     /** Called when the bound zoom ratio changes (pinch, slider, lens switch). */
     public void onZoomChanged(float zoomRatio) {
-        if (expanded && !sliderTouched) {
+        if (resumed && !settingsHidden && !sliderTouched
+                && sliderContainer.getVisibility() == View.VISIBLE) {
             slider.setValue(ZoomSliderMapper.zoomToProgress(zoomRatio, SLIDER_MAX,
                     captureController.getMinZoom(), captureController.getMaxZoom()));
         }
@@ -293,60 +355,112 @@ public class LensZoomBarController {
     public void refreshZoomRange() {
         syncEffectiveLockState();
         syncSlider();
+        if (shouldShowPersistentSlider()) showSlider(false);
         updateBarVisibility(true);
         if (expanded) scheduleCollapse();
     }
 
     public void setSettingsHidden(boolean hidden) {
+        // BR._all notifications are frequent (bitmap/orientation updates). Do not
+        // treat repeated false notifications as a new visibility transition, or
+        // they would cancel a pending auto-hide without rescheduling it.
+        if (settingsHidden == hidden) return;
         settingsHidden = hidden;
         if (hidden) {
             handler.removeCallbacks(collapseRunnable);
             expanded = false;
             resetSlider();
+        } else if (shouldShowPersistentSlider()) {
+            showSlider(true);
         }
         updateBarVisibility(true);
     }
 
+    /** Marks the controller active; CameraFragment reapplies the preference afterward. */
+    public void onResume() {
+        resumed = true;
+        // Settings can change while the camera is paused; re-evaluate the
+        // effective lock before the camera model is used again.
+        syncEffectiveLockState();
+    }
+
     public void onPause() {
+        resumed = false;
         handler.removeCallbacks(collapseRunnable);
         expanded = false;
+        zoomHapticGate.reset();
         resetSlider();
         updateBarVisibility(false);
     }
 
     private void resetSlider() {
+        sliderTouched = false;
         sliderContainer.animate().cancel();
         sliderContainer.setAlpha(1f);
         sliderContainer.setTranslationY(0f);
         sliderContainer.setVisibility(View.GONE);
     }
 
-    private void expand() {
-        expanded = true;
+    private boolean shouldShowPersistentSlider() {
+        return resumed && alwaysShowZoomBar && !settingsHidden;
+    }
+
+    private boolean isZoomSliderInteractive() {
+        return sliderContainer.getVisibility() == View.VISIBLE
+                && resumed && !settingsHidden && (expanded || shouldShowPersistentSlider());
+    }
+
+    private void showSlider(boolean animate) {
+        boolean wasVisible = sliderContainer.getVisibility() == View.VISIBLE;
         sliderContainer.animate().cancel();
         sliderContainer.setVisibility(View.VISIBLE);
-        sliderContainer.setAlpha(0f);
-        sliderContainer.setTranslationY(translationPx());
-        sliderContainer.animate().alpha(1f).translationY(0f)
-                .setDuration(Motion.durationShort3(sliderContainer.getContext()))
-                .setInterpolator(Motion.emphasized(sliderContainer.getContext())).start();
+        if (animate) {
+            if (!wasVisible) {
+                sliderContainer.setAlpha(0f);
+                sliderContainer.setTranslationY(translationPx());
+            }
+            sliderContainer.animate().alpha(1f).translationY(0f)
+                    .setDuration(Motion.durationShort3(sliderContainer.getContext()))
+                    .setInterpolator(Motion.emphasized(sliderContainer.getContext())).start();
+        } else {
+            sliderContainer.setAlpha(1f);
+            sliderContainer.setTranslationY(0f);
+        }
         syncSlider();
+    }
+
+    private void hideSlider(boolean animate) {
+        sliderContainer.animate().cancel();
+        if (!animate) {
+            resetSlider();
+            return;
+        }
+        sliderContainer.animate().alpha(0f).translationY(translationPx())
+                .setDuration(Motion.durationShort2(sliderContainer.getContext()))
+                .setInterpolator(Motion.emphasizedDecelerate(sliderContainer.getContext()))
+                .withEndAction(() -> {
+                    if (!expanded && !shouldShowPersistentSlider()) {
+                        sliderContainer.setVisibility(View.GONE);
+                        sliderContainer.setAlpha(1f);
+                        sliderContainer.setTranslationY(0f);
+                    }
+                }).start();
+    }
+
+    private void expand() {
+        expanded = true;
+        showSlider(true);
         updateBarVisibility(true);
         scheduleCollapse();
     }
 
     private void collapse() {
         expanded = false;
-        sliderContainer.animate().alpha(0f).translationY(translationPx())
-                .setDuration(Motion.durationShort2(sliderContainer.getContext()))
-                .setInterpolator(Motion.emphasizedDecelerate(sliderContainer.getContext()))
-                .withEndAction(() -> {
-                    if (!expanded) {
-                        sliderContainer.setVisibility(View.GONE);
-                        sliderContainer.setAlpha(1f);
-                        sliderContainer.setTranslationY(0f);
-                    }
-                }).start();
+        if (shouldShowPersistentSlider()) {
+            showSlider(false);
+        } else {
+            hideSlider(true);
+        }
         updateBarVisibility(true);
     }
 
@@ -489,6 +603,7 @@ public class LensZoomBarController {
 
     private void toggleLock() {
         boolean locked = !PreferenceKeys.isZoomLockOn();
+        if (haptics != null) haptics.toggle(locked);
         captureController.setLensSwitchLocked(locked);
         PreferenceKeys.setZoomLock(locked);
         syncEffectiveLockState();
@@ -498,14 +613,18 @@ public class LensZoomBarController {
     }
 
     /**
-     * Effective zoom-lock state: locked when the auto-switch setting is off
-     * or the pill lock is on. Re-read on every open so Settings changes
-     * apply without restart.
+     * Effective zoom-lock state. The photo-mode auto-switch/lock preferences
+     * apply to physical lens switches, but video logical members switch on the
+     * already-open logical device; locking them would make the pill and the
+     * logical zoom range unreachable. Re-read on every open so Settings and
+     * mode changes apply without a restart.
      */
     private void syncEffectiveLockState() {
         try {
-            captureController.setLensSwitchLocked(
-                    !PreferenceKeys.isAutoZoomSwitchOn() || PreferenceKeys.isZoomLockOn());
+            captureController.setLensSwitchLocked(LensSwitchLockPolicy.isLocked(
+                    PreferenceKeys.isAutoZoomSwitchOn(),
+                    PreferenceKeys.isZoomLockOn(),
+                    isVideoLogicalActive()));
         } catch (Exception e) {
             // Controller not ready; init/refresh paths retry later.
         }

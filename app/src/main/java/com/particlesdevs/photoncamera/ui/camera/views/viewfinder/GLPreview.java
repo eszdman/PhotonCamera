@@ -174,6 +174,17 @@ public class GLPreview extends GLSurfaceView {
         mRenderer.setOrientation(or);
     }
 
+    /**
+     * Requests one pre-peaking frame readback for the histogram/waveform scopes.
+     * The callback fires on the GL thread with a copy of the RGBA pixels; a
+     * newer request replaces an unserviced one.
+     */
+    public void requestAnalysisFrame(MainRenderer.AnalysisCallback callback) {
+        if (mRenderer != null) {
+            queueEvent(() -> mRenderer.requestAnalysis(callback));
+        }
+    }
+
     public void setMirror(boolean mirror) {
         mRenderer.setMirror(mirror);
         requestRender();
@@ -187,6 +198,28 @@ public class GLPreview extends GLSurfaceView {
      */
     public void beginPreviewSettleTracking() {
         if (mRenderer != null) mRenderer.beginSettleTracking();
+    }
+
+    /**
+     * As above with an explicit frame threshold, reporting completion on the
+     * UI thread once live rendering resumes (the aspect-switch fade reveal).
+     * Re-arming replaces a listener that has not fired yet.
+     */
+    public void beginPreviewSettleTracking(Runnable onSettled, int frames) {
+        if (mRenderer != null) mRenderer.beginSettleTracking(onSettled, frames);
+    }
+
+    /**
+     * Queues a GPU-side snapshot of the next rendered frame (the current
+     * capture), used to crossfade a mode/aspect switch. Safe from the UI thread.
+     */
+    public void requestSnapshot() {
+        if (mRenderer != null) mRenderer.requestSnapshot();
+    }
+
+    /** Snapshot crossfade progress: 1 = the previous capture, 0 = live preview. */
+    public void setSnapshotAlpha(float alpha) {
+        if (mRenderer != null) mRenderer.setSnapshotAlpha(alpha);
     }
 
     public boolean isAvailable() {

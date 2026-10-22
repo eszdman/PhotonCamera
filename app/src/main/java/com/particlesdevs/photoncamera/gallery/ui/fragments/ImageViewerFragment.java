@@ -1,6 +1,11 @@
 package com.particlesdevs.photoncamera.gallery.ui.fragments;
 
 import android.app.Activity;
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
+import android.animation.TimeInterpolator;
+import android.animation.ValueAnimator;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
@@ -18,6 +23,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.MimeTypeMap;
+import android.widget.ImageView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -32,10 +38,15 @@ import androidx.navigation.Navigation;
 import androidx.navigation.fragment.NavHostFragment;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.transition.ChangeBounds;
+import androidx.transition.TransitionManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
+import com.particlesdevs.photoncamera.circularbarlib.util.Motion;
+import com.particlesdevs.photoncamera.control.Vibration;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageViewerBinding;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageAdapter;
 import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
@@ -69,6 +80,13 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private NavController navController;
     private FragmentGalleryImageViewerBinding fragmentGalleryImageViewerBinding;
     private boolean isExifVisible;
+    /** Whether the scrollable EXIF description inside the panel is expanded. */
+    private boolean isDescriptionExpanded;
+    /**
+     * Clock animating alongside the panel's bounds toggle so the backdrop
+     * snapshot can be recaptured while the panel grows or shrinks.
+     */
+    private ValueAnimator descriptionBlurClock;
     /** Blur radius applied to the EXIF panel backdrop, in dp. */
     private static final float EXIF_BLUR_RADIUS_DP = 32f;
     /** 40% dark scrim blended into the backdrop for text legibility. */
@@ -122,6 +140,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private int exifPanelH;
     private final int[] exifPanelLocation = new int[2];
     private final int[] exifSsivLocation = new int[2];
+    private final Handler histogramHandler = new Handler(Looper.getMainLooper());
     private String mode;
     private int seek_position = 0;
     private int lastHdrPosition = -1;
@@ -129,6 +148,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private SSIVListener ssivListener = new SSIVListener() {
         @Override public void onScaleChanged(float newScale, int origin) {
             updateScaleText();
+            if (origin == SubsamplingScaleImageView.ORIGIN_DOUBLE_TAP_ZOOM && vibration != null) {
+                vibration.zoomDetent();
+            }
             if (viewPager != null) {
                 CustomSSIV cur = getCurrentSSIV();
                 if (cur != null && cur.isReady()) {
@@ -146,7 +168,14 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         @Override public void onTouched(int id) {}
     };
     private int indexToDelete = -1;
+    /**
+     * Gallery chrome (top/bottom controls) state for photo pages. Video pages
+     * always hide it so only the player controls show; swiping back to a
+     * photo restores this value.
+     */
+    private boolean galleryChromeVisible;
     private GalleryViewModel viewModel;
+    private Vibration vibration;
     private ViewPager2.OnPageChangeCallback pageCallback;
     // Deferred EXIF refresh after swipes: must be cancellable so it never
     // fires on a detached fragment (requireContext() would throw).
@@ -193,6 +222,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null) {
             viewPager.removeCallbacks(exifUpdateRunnable);
         }
+        if (adapter != null) adapter.releaseVideoPlayer();
+        if (descriptionBlurClock != null) {
+            ValueAnimator clock = descriptionBlurClock;
+            descriptionBlurClock = null;
+            clock.cancel();
+        }
         exifBlurHandler.removeCallbacks(exifBlurShowRunnable);
         exifBlurHandler.removeCallbacks(exifBlurSettleRunnable);
         clearExifBlur();
@@ -236,6 +271,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             if (seek_position < 0) seek_position = 0;
             adapter = new ImageAdapter(this.galleryItems);
             adapter.setAppContext(requireContext().getApplicationContext());
+            adapter.setVideoPlaybackListener(ImageViewerFragment.this::onVideoPlayingChanged);
             adapter.setImageViewClickListener(ImageViewerFragment.this::onImageViewClicked);
             adapter.setHdrStateListener(this);
             if (ssivListener != null) adapter.setSsivListener(ssivListener);
@@ -250,6 +286,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             viewPager.setAdapter(adapter);
             initLinearRecyclerAdapter(galleryItems);
             viewPager.setCurrentItem(seek_position, false);
+            viewPager.post(() -> updateChromeForPosition(seek_position));
             // Eagerly preload previews for the window so neighbor pages show a placeholder (no black).
             adapter.preloadPreviews(seek_position);
             linearRecyclerView.post(() -> linearRecyclerView.scrollToPosition(seek_position));
@@ -290,12 +327,14 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnBack(this::onBack);
         fragmentGalleryImageViewerBinding.topControlsContainer.setOnQuickCompare(this::onQuickCompare);
         fragmentGalleryImageViewerBinding.exifLayout.histogramView.setHistogramLoadingListener(this::isHistogramLoading);
+        fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle.setOnClickListener(this::onDescriptionToggleClicked);
         fragmentGalleryImageViewerBinding.setOnclickempty(this::onEmptyViewClicked);
     }
 
     @Override
     public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        vibration = PhotonCamera.getVibration();
         // Keep bottom controls above the transparent navigation bar.
         // The photo pager itself stays full-bleed behind it.
         View bottomControls = view.findViewById(R.id.bottom_controls_container);
@@ -321,7 +360,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         pageCallback = new ViewPager2.OnPageChangeCallback() {
             @Override public void onPageSelected(int position) {
                 seek_position = position;
-                updateScaleText();
+                if (vibration != null) vibration.pageSnap();
+                updateChromeForPosition(position);
+                boolean isVideo = adapter != null && adapter.isVideoPosition(position);
+                if (isVideo) {
+                    resetScaleText();
+                    if (adapter != null) adapter.prepareVideoAt(position);
+                } else {
+                    if (adapter != null) adapter.stopVideo();
+                    updateScaleText();
+                }
                 linearRecyclerView.smoothScrollToPosition(position);
                 onPageHdrSelected(position);
                 viewPager.setUserInputEnabled(true);
@@ -348,8 +396,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     @Override public void onResume() {
         super.onResume();
-        if (fragmentGalleryImageViewerBinding != null)
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+        if (fragmentGalleryImageViewerBinding != null && viewPager != null)
+            updateChromeForPosition(viewPager.getCurrentItem());
+        if (adapter != null && viewPager != null
+                && isVideoPosition(viewPager.getCurrentItem())) {
+            adapter.prepareVideoAt(viewPager.getCurrentItem());
+        }
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
             seek_position = position;
@@ -369,6 +421,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     @Override public void onPause() {
         super.onPause();
         if (viewPager != null) seek_position = viewPager.getCurrentItem();
+        if (adapter != null) adapter.pauseVideo();
         UltraHdrGalleryUtil.setWindowHdr(getActivity(), false);
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
@@ -420,6 +473,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (adapter == null || viewPager == null) return;
         int position = viewPager.getCurrentItem();
         if (!adapter.isHdrAvailable(position)) return;
+        if (vibration != null) vibration.toggle(!adapter.isHdrActive(position));
         CustomSSIV ssiv = getSsivAt(position);
         if (adapter.isHdrActive(position)) {
             adapter.releaseHdrForPosition(ssiv, position);
@@ -439,7 +493,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     private void updateHdrToggleUi(boolean isUltraHdr, boolean isHdr) {
         if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.hdrToggleText == null) return;
-        if (!isUltraHdr || !fragmentGalleryImageViewerBinding.getButtonsVisible()) {
+        // The header check now runs on every device, so gate the toggle on the
+        // display actually supporting HDR (the action is a no-op otherwise).
+        boolean capable = getContext() != null
+                && com.particlesdevs.photoncamera.gallery.helper.UltraHdrGalleryUtil
+                        .isDeviceHdrCapable(getContext());
+        if (!isUltraHdr || !capable || !fragmentGalleryImageViewerBinding.getButtonsVisible()) {
             fragmentGalleryImageViewerBinding.hdrToggleText.setVisibility(View.GONE);
             return;
         }
@@ -472,32 +531,52 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onBack(View view) {
+        if (vibration != null) vibration.confirm();
         // Match system back: pop the nav graph; only finish when launched externally.
         if (navController != null && navController.navigateUp()) return;
         if (getActivity() != null) getActivity().finish();
     }
 
+    private boolean isVideoPosition(int position) {
+        return galleryItems != null && position >= 0 && position < galleryItems.size()
+                && galleryItems.get(position).isVideo();
+    }
+
     private void onQuickCompare(View view) {
         if (galleryItems.size() >= 2) {
-            NavController navController = Navigation.findNavController(view);
-            Bundle b = new Bundle(2);
             int image1pos = viewPager.getCurrentItem();
             int image2pos = image1pos + 1;
             if (image1pos == galleryItems.size() - 1) { image2pos = image1pos; image1pos -= 1; }
+            if (isVideoPosition(image1pos) || isVideoPosition(image2pos)) {
+                Toast.makeText(getContext(), "Compare is available for photos only", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            if (vibration != null) vibration.confirm();
+            NavController navController = Navigation.findNavController(view);
+            Bundle b = new Bundle(2);
             b.putInt(Constants.IMAGE1_KEY, image1pos);
             b.putInt(Constants.IMAGE2_KEY, image2pos);
             navController.navigate(R.id.action_imageViewerFragment_to_imageCompareFragment, b);
-        } else Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+        } else {
+            if (vibration != null) vibration.reject();
+            Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private void onGalleryButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         if (navController.getPreviousBackStackEntry() == null)
             navController.navigate(R.id.action_imageViewFragment_to_imageLibraryFragment);
         else navController.navigateUp();
     }
 
     private void onEditButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         int position = viewPager.getCurrentItem();
+        if (isVideoPosition(position)) {
+            Toast.makeText(getContext(), "Video editing is not supported", Toast.LENGTH_SHORT).show();
+            return;
+        }
         if (galleryItems != null && getContext() != null) {
             GalleryItem galleryItem = galleryItems.get(position);
             String fileName = galleryItem.getFile().getDisplayName();
@@ -517,12 +596,16 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.REQUEST_EDIT_IMAGE) {
             if (resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
+                if (vibration != null) vibration.confirm();
                 String savedFilePath = data.getData().getPath();
                 Toast.makeText(getContext(), "Saved : " + savedFilePath, Toast.LENGTH_LONG).show();
-                viewModel.fetchAllMedia();
-                initImageAdapter(viewModel.getCurrentFolderImages().getValue());
-                refreshLinearGridAdapter(viewModel.getCurrentFolderImages().getValue());
-                updateExif();
+                // Re-enumerate in the background, then rebuild the adapter with
+                // the fresh list on the main thread.
+                viewModel.fetchAllMedia(() -> {
+                    initImageAdapter(viewModel.getCurrentFolderImages().getValue());
+                    refreshLinearGridAdapter(viewModel.getCurrentFolderImages().getValue());
+                    updateExif();
+                });
             }
         }
     }
@@ -536,6 +619,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         MaterialAlertDialogBuilder builder = new MaterialAlertDialogBuilder(getContext());
         builder.setMessage(R.string.sure_delete).setTitle(android.R.string.dialog_alert_title).setIcon(R.drawable.ic_delete).setNegativeButton(R.string.cancel, (dialog, which) -> dialog.dismiss())
                 .setPositiveButton(R.string.yes, (dialog, which) -> {
+                    if (vibration != null) vibration.confirm();
                     indexToDelete = viewPager.getCurrentItem();
                     GalleryFileOperations.deleteImageFiles(getActivity(), Collections.singletonList((ImageFile) galleryItems.get(indexToDelete).getFile()), this::handleImagesDeletedCallback);
                 });
@@ -543,6 +627,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onShareButtonClick(View view) {
+        if (vibration != null) vibration.confirm();
         int position = viewPager.getCurrentItem();
         GalleryItem galleryItem = galleryItems.get(position);
         String fileName = galleryItem.getFile().getDisplayName();
@@ -557,16 +642,95 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
 
     private void onExifButtonClick(View view) {
         isExifVisible = !isExifVisible;
+        if (vibration != null) vibration.toggle(isExifVisible);
         fragmentGalleryImageViewerBinding.setExifDialogVisible(isExifVisible);
         updateExif();
     }
 
+    private void onDescriptionToggleClicked(View view) {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        View panel = fragmentGalleryImageViewerBinding.exifLayout.getRoot();
+        View scroll = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionScroll;
+        if (panel == null || scroll == null) return;
+        Context context = view.getContext();
+        isDescriptionExpanded = !isDescriptionExpanded;
+        if (vibration != null) vibration.toggle(isDescriptionExpanded);
+        int duration = Motion.durationMedium1(context);
+        TimeInterpolator interpolator = Motion.emphasized(context);
+        // Animate the panel's bounds so the description is revealed downwards;
+        // ChangeBounds interpolates the panel and every child below the toggle.
+        ViewGroup parent = panel.getParent() instanceof ViewGroup ? (ViewGroup) panel.getParent() : null;
+        TransitionManager.beginDelayedTransition(parent != null ? parent : (ViewGroup) panel,
+                new ChangeBounds().setDuration(duration).setInterpolator(interpolator));
+        scroll.setVisibility(isDescriptionExpanded ? View.VISIBLE : View.GONE);
+        startDescriptionBlurClock(panel, duration, interpolator);
+        updateDescriptionToggleUi();
+    }
+
+    /**
+     * The backdrop is a snapshot of the image behind the panel, so it has to be
+     * recaptured at the panel's current, animated size every frame -- otherwise
+     * the stale capture only stretches over the new area and the blur visibly
+     * lands after the text. A clock with the transition's duration/interpolator
+     * keeps the captures aligned with the bounds animation, then posts one last
+     * capture a frame after the panel settles.
+     */
+    private void startDescriptionBlurClock(View panel, int duration, TimeInterpolator interpolator) {
+        if (descriptionBlurClock != null) {
+            descriptionBlurClock.cancel();
+        }
+        ValueAnimator clock = ValueAnimator.ofFloat(0f, 1f).setDuration(duration);
+        clock.setInterpolator(interpolator);
+        clock.addUpdateListener(animation -> showExifBackdrop());
+        clock.addListener(new AnimatorListenerAdapter() {
+            @Override public void onAnimationEnd(Animator animation) {
+                boolean finished = descriptionBlurClock == clock;
+                if (finished) descriptionBlurClock = null;
+                if (finished && getView() != null) {
+                    panel.post(ImageViewerFragment.this::showExifBackdrop);
+                }
+            }
+        });
+        descriptionBlurClock = clock;
+        clock.start();
+    }
+
+    /** Mirrors the model's description availability and the expanded state onto the panel. */
+    private void syncDescriptionToggle() {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        View scroll = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionScroll;
+        ImageView toggle = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle;
+        if (scroll == null || toggle == null) return;
+        String description = exifDialogViewModel.getExifDataModel().getDescription();
+        boolean available = description != null && !description.isEmpty();
+        if (!available) isDescriptionExpanded = false;
+        scroll.setVisibility(available && isDescriptionExpanded ? View.VISIBLE : View.GONE);
+        toggle.setVisibility(available ? View.VISIBLE : View.GONE);
+        updateDescriptionToggleUi();
+    }
+
+    private void updateDescriptionToggleUi() {
+        if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
+        ImageView toggle = fragmentGalleryImageViewerBinding.exifLayout.exifDescriptionToggle;
+        if (toggle == null) return;
+        Context context = toggle.getContext();
+        toggle.animate()
+                .rotation(isDescriptionExpanded ? 0f : 180f)
+                .setDuration(Motion.durationShort4(context))
+                .setInterpolator(Motion.emphasized(context))
+                .start();
+        toggle.setContentDescription(context.getString(isDescriptionExpanded
+                ? R.string.exif_hide_description : R.string.exif_show_description));
+    }
+
     private void onImageViewClicked(View view) {
+        if (vibration != null) vibration.chromeToggle();
         if (isCompareMode()) {
             onExifButtonClick(null);
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!isExifVisible);
         } else {
             fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            galleryChromeVisible = fragmentGalleryImageViewerBinding.getButtonsVisible();
             int position = viewPager.getCurrentItem();
             updateHdrToggleUi(adapter != null && adapter.isHdrAvailable(position), adapter != null && adapter.isHdrActive(position));
             fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
@@ -575,6 +739,62 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                 updateExif();
             }
         }
+    }
+
+    /**
+     * Gallery chrome follows the last state the user left it in, on photo and
+     * video pages alike. Video pages additionally shift the player controller
+     * above the bottom controls while chrome is shown.
+     */
+    private void updateChromeForPosition(int position) {
+        if (fragmentGalleryImageViewerBinding == null) return;
+        fragmentGalleryImageViewerBinding.setButtonsVisible(galleryChromeVisible);
+        fragmentGalleryImageViewerBinding.setMiniExifVisible(!galleryChromeVisible);
+        if (isVideoPosition(position)) {
+            resetScaleText();
+            updateHdrToggleUi(false, false);
+            if (viewPager != null) viewPager.post(this::updateVideoControllerInsets);
+        }
+    }
+
+    /**
+     * Follows video playback: while playing, gallery chrome hides and the
+     * controller drops back to the bottom edge; on pause/end the chrome
+     * returns. The stored photo chrome state is left untouched so swiping
+     * back and forth never loses it. The controller's own tap show/hide is
+     * untouched.
+     */
+    private void onVideoPlayingChanged(int position, boolean playing) {
+        if (!isAdded() || fragmentGalleryImageViewerBinding == null || viewPager == null) return;
+        if (position != viewPager.getCurrentItem() || !isVideoPosition(position)) return;
+        if (playing) {
+            isExifVisible = false;
+            fragmentGalleryImageViewerBinding.setExifDialogVisible(false);
+            fragmentGalleryImageViewerBinding.setButtonsVisible(false);
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(false);
+            resetScaleText();
+            updateHdrToggleUi(false, false);
+            updateVideoControllerInsets();
+        } else {
+            updateChromeForPosition(position);
+        }
+    }
+
+    /**
+     * Moves the player controller above the gallery bottom controls while
+     * chrome is shown; back to the bottom edge once chrome is hidden.
+     */
+    private void updateVideoControllerInsets() {
+        if (adapter == null || viewPager == null || fragmentGalleryImageViewerBinding == null) return;
+        int position = viewPager.getCurrentItem();
+        if (!adapter.isVideoPosition(position)) return;
+        int bottomInset = 0;
+        if (fragmentGalleryImageViewerBinding.getButtonsVisible()
+                && fragmentGalleryImageViewerBinding.bottomControlsContainer != null) {
+            View bottomControls = fragmentGalleryImageViewerBinding.bottomControlsContainer.getRoot();
+            if (bottomControls != null) bottomInset = Math.max(0, bottomControls.getHeight());
+        }
+        adapter.setVideoControllerBottomInset(position, bottomInset);
     }
 
     private void onEmptyViewClicked(View view) {
@@ -598,12 +818,25 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && !galleryItems.isEmpty() && position < galleryItems.size()) {
             GalleryItem galleryItem = galleryItems.get(position);
-            exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile());
-            if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
-                exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
+            if (galleryItem.isVideo()) {
+                exifDialogViewModel.updateVideoModel(galleryItem.getFile(), this::syncDescriptionToggle);
+            } else {
+                // Parsed on the gallery IO thread; the description toggle is
+                // synced once the model actually holds this file's data.
+                exifDialogViewModel.updateModel(requireContext().getContentResolver(), galleryItem.getFile(),
+                        getCachedDimensions(position), this::syncDescriptionToggle);
+                if (fragmentGalleryImageViewerBinding.getExifDialogVisible()) {
+                    exifDialogViewModel.updateHistogramView((ImageFile) galleryItem.getFile());
+                }
             }
         }
         syncExifBlur();
+    }
+
+    /** Dimensions the viewer already decoded for a position, when known. */
+    @Nullable
+    private android.graphics.Point getCachedDimensions(int position) {
+        return adapter != null ? adapter.getCachedDimensions(position) : null;
     }
 
     /**
@@ -941,7 +1174,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void isHistogramLoading(boolean loading) {
-        new Handler(Looper.getMainLooper()).post(() -> {
+        histogramHandler.post(() -> {
             if (fragmentGalleryImageViewerBinding == null || fragmentGalleryImageViewerBinding.exifLayout == null) return;
             if (loading) fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.VISIBLE);
             else fragmentGalleryImageViewerBinding.exifLayout.histoLoading.setVisibility(View.INVISIBLE);
@@ -953,6 +1186,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     public void handleImagesDeletedCallback(boolean isDeleted) {
         if (!isAdded()) return;
         if (isDeleted && indexToDelete >= 0) {
+            if (vibration != null) vibration.confirm();
             galleryItems.remove(indexToDelete);
             seek_position=indexToDelete;
             if (!galleryItems.isEmpty()) initImageAdapter(galleryItems);
@@ -960,6 +1194,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             Toast.makeText(getContext(), R.string.image_deleted, Toast.LENGTH_SHORT).show();
             indexToDelete = -1;
             if (galleryItems.isEmpty()) { viewModel.setUpdatePending(true); navController.navigateUp(); }
-        } else Toast.makeText(getContext(), "Deletion Failed!", Toast.LENGTH_SHORT).show();
+        } else {
+            if (vibration != null) vibration.reject();
+            Toast.makeText(getContext(), "Deletion Failed!", Toast.LENGTH_SHORT).show();
+        }
     }
 }

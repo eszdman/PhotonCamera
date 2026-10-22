@@ -38,26 +38,29 @@ public class GallerySettingsFragment extends PreferenceFragmentCompat {
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
         final MultiSelectListPreference foldersList = findPreference(getString(R.string.pref_folders_list));
         if (foldersList != null) {
-            ArrayList<GalleryFileOperations.ImagesFolder> folders = GalleryFileOperations.FindAllFoldersWithImages(getActivity().getContentResolver());
-            CharSequence[] folderNames = folders.stream().map(GalleryFileOperations.ImagesFolder::getFolderName).collect(Collectors.toList()).toArray(new String[]{});
-            CharSequence[] folderIds = folders.stream().map(imagesFolder -> String.valueOf(imagesFolder.getFolderId())).collect(Collectors.toList()).toArray(new String[]{});
-            foldersList.setEntries(folderNames);
-            foldersList.setEntryValues(folderIds);
-            HashMap<Long, String> entrymap = new HashMap<>();
-            folders.forEach(f -> entrymap.put(f.getFolderId(), f.getFolderName()));
+            // Enumerating MediaStore is expensive: load the folder list off the
+            // main thread and populate the picker once it arrives.
+            viewModel.loadAllFolders(folders -> {
+                if (folders == null || !isAdded()) return;
+                CharSequence[] folderNames = folders.stream().map(GalleryFileOperations.ImagesFolder::getFolderName).collect(Collectors.toList()).toArray(new String[]{});
+                CharSequence[] folderIds = folders.stream().map(imagesFolder -> String.valueOf(imagesFolder.getFolderId())).collect(Collectors.toList()).toArray(new String[]{});
+                foldersList.setEntries(folderNames);
+                foldersList.setEntryValues(folderIds);
+                HashMap<Long, String> entrymap = new HashMap<>();
+                folders.forEach(f -> entrymap.put(f.getFolderId(), f.getFolderName()));
 
-            foldersList.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
-                @Override
-                public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
-                    foldersList.setSummary(updateValuesAndGetSummaryText((MultiSelectListPreference) preference,(HashSet<String>) newValue, entrymap));
-                    viewModel.setUpdatePending(true);
-                    return true;
-                }
+                foldersList.setOnPreferenceChangeListener(new Preference.OnPreferenceChangeListener() {
+                    @Override
+                    public boolean onPreferenceChange(@NonNull Preference preference, Object newValue) {
+                        foldersList.setSummary(updateValuesAndGetSummaryText((MultiSelectListPreference) preference, (HashSet<String>) newValue, entrymap));
+                        viewModel.setUpdatePending(true);
+                        return true;
+                    }
+                });
+                foldersList.setSummary(updateValuesAndGetSummaryText(foldersList, (HashSet<String>) foldersList.getValues(), entrymap));
             });
-            foldersList.setSummary(updateValuesAndGetSummaryText(foldersList,(HashSet<String>) foldersList.getValues(), entrymap));
         }
         return super.onCreateView(inflater, container, savedInstanceState);
-
     }
     private String updateValuesAndGetSummaryText(MultiSelectListPreference pref, HashSet<String> values, HashMap<Long, String> entrymap) {
         ArrayList<String> l = new ArrayList<>();

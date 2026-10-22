@@ -33,6 +33,9 @@
     <item name="eis_entry_layout" type="id"/>
     <item name="eis_off_button" type="id"/>
     <item name="eis_on_button" type="id"/>
+    <item name="video_hdr_entry_layout" type="id"/>
+    <item name="video_hdr_off_button" type="id"/>
+    <item name="video_hdr_on_button" type="id"/>
     <item name="saveraw_entry_layout" type="id"/>
     <item name="raw_off_button" type="id"/>
     <item name="raw_on_button" type="id"/>
@@ -53,4 +56,7 @@
     <item name="zoom_hidden_tag" type="id"/>
     <item name="zoom_alpha_anim_tag" type="id"/>
     <item name="zoom_offnative_tag" type="id"/>
+    <!-- Uri of the in-flight MediaProvider thumbnail request on a grid cell,
+         used to drop completions that arrive after the view was rebound. -->
+    <item name="gallery_thumbnail_request" type="id"/>
 </resources>

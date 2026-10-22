@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="@dimen/manual_knob_icon_size"
-    android:height="@dimen/manual_knob_icon_size"
+    android:width="17dp"
+    android:height="17dp"
     android:viewportWidth="48"
     android:viewportHeight="48">
     <group
