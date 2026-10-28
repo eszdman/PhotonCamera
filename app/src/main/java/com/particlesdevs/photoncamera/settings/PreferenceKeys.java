@@ -68,6 +68,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_FPS_PREVIEW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
+        COMMON_KEYS.add(Key.KEY_DISPLAY_P3.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
         COMMON_KEYS.add(Key.KEY_AUTO_ZOOM_SWITCH.mValue);
         // Video settings are global: per-lens copies would resurrect another
@@ -114,6 +115,7 @@ public class PreferenceKeys {
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, resources.getBoolean(R.bool.pref_save_heic_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_DISPLAY_P3, resources.getBoolean(R.bool.pref_display_p3_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_AUTO_ZOOM_SWITCH, resources.getBoolean(R.bool.pref_auto_zoom_switch_default));
@@ -382,6 +384,11 @@ public class PreferenceKeys {
         return getBool(Key.KEY_SAVE_HEIC);
     }
 
+    /** True when stills should be rendered and tagged as Display P3. */
+    public static boolean isDisplayP3On() {
+        return getBool(Key.KEY_DISPLAY_P3);
+    }
+
     /** True when the current Save mode writes a DNG (RAW+JPEG, RAW). */
     public static boolean isRawSave() {
         int v = isSaveRaw();
@@ -408,6 +415,10 @@ public class PreferenceKeys {
 
     public static void setHeicSave(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC,value);
+    }
+
+    public static void setDisplayP3(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_DISPLAY_P3, value);
     }
 
     public static boolean isRoundEdgeOn() {
@@ -1207,6 +1218,7 @@ public class PreferenceKeys {
         KEY_SHOW_HORIZON(R.string.pref_horizon),
         KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SAVE_HEIC(R.string.pref_save_heic_key),
+        KEY_DISPLAY_P3(R.string.pref_display_p3_key),
         KEY_CFA(R.string.pref_cfa_key),
         KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
 

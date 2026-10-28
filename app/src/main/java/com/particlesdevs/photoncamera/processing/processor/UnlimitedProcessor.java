@@ -199,7 +199,7 @@ public class UnlimitedProcessor extends ProcessorBase {
         }
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
-                imageFile, bitmap, gm, exifData, useHeic);
+                imageFile, bitmap, gm, exifData, useHeic, pipeline.isDisplayP3Output());
         boolean imageSaved = still.saved;
         imageFile = still.file;
 

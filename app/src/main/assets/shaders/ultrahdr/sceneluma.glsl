@@ -30,11 +30,44 @@ uniform ivec2 uLinGridSize;
 // exactly the old behavior.
 uniform ivec2 uInOrigin;
 uniform ivec2 uInFull;
+// Display color transform shared with Initial/ModernInitial/HeadroomRender.
+// P3 mode uses these to measure Yhdr in the same primaries as the stored SDR
+// base; sRGB mode keeps the legacy luminance path untouched.
+uniform mat3 sensorToIntermediate;
+uniform mat3 intermediateToDisplay;
+uniform vec3 neutralPoint;
+uniform mat3 CUBE0;
+uniform mat3 CUBE1;
+uniform mat3 CUBE2;
 
 out vec4 Output;
 
 #define lum709(x) dot(x, vec3(0.2126, 0.7152, 0.0722))
+#define lumP3(x) dot(x, vec3(0.2289746, 0.6917385, 0.0792869))
+#define P3 0
+#define CCT 0
 #import interpolation
+
+#if P3 == 1
+vec3 displayLinear(vec3 c) {
+    vec3 wb = max(c, vec3(0.0)) * neutralPoint;
+    #if CCT == 1
+    float br0 = (c.r + c.g + c.b)
+            / (neutralPoint.r + neutralPoint.g + neutralPoint.b);
+    mat3 corr;
+    if (br0 > 0.5) {
+        corr = CUBE1 * (1.0 - (br0 - 0.5) * 2.0)
+                + CUBE2 * ((br0 - 0.5) * 2.0);
+    } else {
+        corr = CUBE0 * (1.0 - (br0 - 0.25) * 4.0)
+                + CUBE1 * ((br0 - 0.25) * 4.0);
+    }
+    return corr * sensorToIntermediate * wb;
+    #else
+    return intermediateToDisplay * sensorToIntermediate * wb;
+    #endif
+}
+#endif
 
 float sceneLumaAt(ivec2 xy, ivec2 texSize) {
     ivec2 srcCoord;
@@ -80,7 +113,14 @@ float sceneLumaAt(ivec2 xy, ivec2 texSize) {
     vec4 gains = textureBicubicHardware(GainMap, vec2(srcCoord) / vec2(rawSize));
     gains.rgb = vec3(gains.r, (gains.g + gains.b) / 2.0, gains.a);
     float gainsVal = dot(gains.rgb, vec3(1.0 / 3.0));
+    #if P3 == 1
+    // Yhdr must be luminance in the primary image's primaries (ISO 21496-1).
+    // Apply the renderer's white balance + camera->display transform, but no
+    // tone mapping: the gain map recovers the pre-tone-map scene.
+    return lumP3(max(displayLinear(c), vec3(0.0))) * gainsVal;
+    #else
     return lum709(max(c, vec3(0.0))) * gainsVal;
+    #endif
 }
 
 void main() {

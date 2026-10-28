@@ -161,20 +161,30 @@ public final class UltraHdrGalleryUtil {
     }
 
     /**
+     * Sets the window color mode. HDR makes HWUI apply a bitmap's gain map on
+     * a hardware canvas; WIDE_COLOR_GAMUT lets SDR Display P3 surfaces show
+     * their full gamut on capable panels.
+     */
+    public static void setWindowColorMode(Activity activity, int colorMode) {
+        if (activity == null) {
+            return;
+        }
+        try {
+            activity.getWindow().setColorMode(colorMode);
+        } catch (Exception e) {
+            Log.d(TAG, "Failed to set window color mode: " + e);
+        }
+    }
+
+    /**
      * Toggles the window HDR color mode. HWUI automatically applies a
      * bitmap's gainmap when it is drawn on a hardware canvas inside an
      * {@link ActivityInfo#COLOR_MODE_HDR} window.
      */
     public static void setWindowHdr(Activity activity, boolean enabled) {
-        if (activity == null) {
-            return;
-        }
-        try {
-            activity.getWindow().setColorMode(
-                    enabled ? ActivityInfo.COLOR_MODE_HDR : ActivityInfo.COLOR_MODE_DEFAULT);
-        } catch (Exception e) {
-            Log.d(TAG, "Failed to set window color mode: " + e);
-        }
+        setWindowColorMode(activity, enabled
+                ? ActivityInfo.COLOR_MODE_HDR
+                : ActivityInfo.COLOR_MODE_DEFAULT);
     }
 
     private static boolean startsWith(byte[] data, int start, int end, byte[] prefix) {

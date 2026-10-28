@@ -7,7 +7,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLImage;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
+import com.particlesdevs.photoncamera.processing.render.DisplayTransform;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.BufferUtils;
@@ -279,12 +279,17 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
         glProg.setDefine("SHADOWS", (float) basePipeline.mSettings.shadows);
         glProg.setDefine("VIGNETTE", vignetteCorrection);
         glProg.setDefine("LTMMIX", ltmMix);
-        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
+        PostPipeline pp = (PostPipeline) basePipeline;
+        DisplayTransform transform = pp.getDisplayTransform();
+        if (transform != null && transform.isCubeMode()) {
             glProg.setDefine("CCT", 1);
         }
-        if(((PostPipeline)basePipeline).FusionMap != null) glProg.setDefine("FUSION", 1);
-        if(((PostPipeline)basePipeline).exposureCurve != null) glProg.setDefine("EXPOCURVE", 1);
+        // Display P3 must be encoded with the exact sRGB OETF so the ICC /
+        // HEIF colr transfer function is truthful. The legacy gamma model is
+        // kept for sRGB output (bit-exact).
+        glProg.setDefine("OUTPUT_SRGB", pp.isDisplayP3Output());
+        if(pp.FusionMap != null) glProg.setDefine("FUSION", 1);
+        if(pp.exposureCurve != null) glProg.setDefine("EXPOCURVE", 1);
     }
 
     /**
@@ -296,23 +301,14 @@ import static com.particlesdevs.photoncamera.util.Math2.mix;
      * bit-exact bands. Selects the tile target while tileActive.
      */
     private void renderInitialBinds(GLTexture input) {
-        ColorCorrectionTransform.CorrectionMode mode =  basePipeline.mParameters.CCT.correctionMode;
-        float[][] cube = null;
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBES || mode == ColorCorrectionTransform.CorrectionMode.CUBE){
-            if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.CUBES)
-            cube = basePipeline.mParameters.CCT.cubes[0].Combine(basePipeline.mParameters.CCT.cubes[1],basePipeline.mParameters.whitePoint);
-            else
-                cube = basePipeline.mParameters.CCT.cubes[0].cube;
+        DisplayTransform transform = ((PostPipeline) basePipeline).getDisplayTransform();
+        float[][] cube = transform.isCubeMode() ? transform.cubes() : null;
+        if (cube != null) {
+            glProg.setVar("CUBE0", cube[0]);
+            glProg.setVar("CUBE1", cube[1]);
+            glProg.setVar("CUBE2", cube[2]);
         }
-        if(mode == ColorCorrectionTransform.CorrectionMode.CUBE || mode == ColorCorrectionTransform.CorrectionMode.CUBES){
-            glProg.setVar("CUBE0",cube[0]);
-            glProg.setVar("CUBE1",cube[1]);
-            glProg.setVar("CUBE2",cube[2]);
-        }
-        float[] cct = basePipeline.mParameters.CCT.matrix;
-        if(mode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
-            cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
-        }
+        float[] cct = transform.matrix();
         if(lutLoaded) {
             glProg.setTexture("LookupTable", lut);
         }

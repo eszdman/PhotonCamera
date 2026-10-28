@@ -536,6 +536,17 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                             ? R.array.raw_mode_entries_heic
                             : R.array.raw_mode_entries);
                 }
+                Preference p3Pref = findPreference(
+                        mContext.getString(R.string.pref_display_p3_key));
+                if (p3Pref != null) {
+                    // P3 describes the rendered still's color space; a
+                    // RAW-only Save has no rendered still to tag.
+                    boolean rawOnly = PreferenceKeys.isSaveRaw() == 2;
+                    p3Pref.setEnabled(!rawOnly);
+                    p3Pref.setSummary(rawOnly
+                            ? R.string.display_p3_raw_only_summary
+                            : R.string.display_p3_summary);
+                }
             } catch (Exception e) {
                 Log.e("SettingsFragment", "applySaveHeicUi failed", e);
             }
@@ -913,7 +924,8 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             if (key.equalsIgnoreCase(PreferenceKeys.Key.KEY_FRAME_COUNT.mValue)) {
                 setFramesSummary();
             }
-            if (key.equals(PreferenceKeys.Key.KEY_SAVE_HEIC.mValue)) {
+            if (key.equals(PreferenceKeys.Key.KEY_SAVE_HEIC.mValue)
+                    || key.equals(PreferenceKeys.Key.KEY_SAVE_RAW.mValue)) {
                 applySaveHeicUi();
             }
             if (key.equals(PreferenceKeys.Key.KEY_VIDEO_HEVC.mValue)

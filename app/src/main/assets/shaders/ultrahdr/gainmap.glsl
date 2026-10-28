@@ -44,6 +44,8 @@ out vec4 Output;
 #define GAINSHADOWFLOOR_LO 0.03
 #define GAINSHADOWFLOOR_HI 0.50
 #define lum709(x) dot(x, vec3(0.2126, 0.7152, 0.0722))
+#define lumP3(x) dot(x, vec3(0.2289746, 0.6917385, 0.0792869))
+#define P3 0
 
 float srgbToLinear(float c) {
     c = clamp(c, 0.0, 1.0);
@@ -68,13 +70,19 @@ void main() {
             ivec2 p = ivec2(sx + dx, sy + dy);
             vec3 s = texelFetch(InputBuffer, p - uInOrigin, 0).rgb;
             // Scene plane is scalar gray (vec4(l,l,l,1)) whether stored RGBA16F
-            // or single-channel R16F: .r is exactly lum709 either way.
+            // or single-channel R16F; the scalar is already luminance in the
+            // base image's primaries (Rec.709 or Display P3).
             // Band draws address output rows [yOffset, yOffset+rows) in the
             // full grid while rendering into a band target.
             float hL = max(texelFetch(LBuffer, ivec2(p.x, p.y + yOffset), 0).r, 0.0) * uAnchor;
 
-            // SDR luminance in linear light.
+            // SDR luminance in linear light, measured in the base image's
+            // primaries (ISO 21496-1). Keep Rec.709 for sRGB output.
+            #if P3 == 1
+            float sL = lumP3(srgbToLinear(s));
+            #else
             float sL = lum709(srgbToLinear(s));
+            #endif
             // Scene luminance is already linear; anchored to the render's top.
 
             // Decode applies (SDR + OffsetSDR) * 2^gain - OffsetHDR, so the

@@ -77,7 +77,7 @@ public final class StillHeicEncoder {
      * @throws UnsupportedOperationException when no candidate could encode
      */
     public static void encodeToFile(Path dest, Bitmap sdr, int width, int height,
-            byte[] exifPayload, boolean attachExif) throws Exception {
+            byte[] exifPayload, boolean attachExif, boolean displayP3) throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             throw new UnsupportedOperationException("HEIC encode needs API 28+");
         }
@@ -103,7 +103,7 @@ public final class StillHeicEncoder {
             boolean muxed = false;
             try {
                 encodeWithCandidate(dest, sdr, width, height, candidate, exifPayload,
-                        attachExif);
+                        attachExif, displayP3);
                 muxed = true;
                 // Structural acceptance: the muxed container must declare the
                 // full image as its primary.
@@ -134,10 +134,10 @@ public final class StillHeicEncoder {
     }
 
     private static void encodeWithCandidate(Path dest, Bitmap sdr, int width, int height,
-            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif)
-            throws Exception {
+            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
+            boolean displayP3) throws Exception {
         try (BitmapPixels pixels = BitmapPixels.open(sdr)) {
-            encode8Bit(dest, pixels, width, height, c, exifPayload, attachExif);
+            encode8Bit(dest, pixels, width, height, c, exifPayload, attachExif, displayP3);
         }
     }
 
@@ -146,12 +146,12 @@ public final class StillHeicEncoder {
      * mode, because OEM encoders differ in which parts they reject.
      */
     private static void encode8Bit(Path dest, BitmapPixels pixels, int width, int height,
-            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif)
-            throws Exception {
+            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
+            boolean displayP3) throws Exception {
         Exception firstFailure = null;
         try {
             encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    KEYS_EXTENDED, true);
+                    displayP3, KEYS_EXTENDED, true);
             return;
         } catch (Throwable e) {
             firstFailure = asException(e);
@@ -160,7 +160,7 @@ public final class StillHeicEncoder {
         }
         try {
             encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    KEYS_MINIMAL, true);
+                    displayP3, KEYS_MINIMAL, true);
             return;
         } catch (Throwable e) {
             Log.w(TAG, "Attempt failed (minimal cq, " + c + "): " + describe(e));
@@ -168,7 +168,7 @@ public final class StillHeicEncoder {
         }
         try {
             encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    KEYS_MINIMAL, false);
+                    displayP3, KEYS_MINIMAL, false);
         } catch (Throwable e) {
             if (permanentFailure(firstFailure) || permanentFailure(e)) {
                 markUnsupported(c);
@@ -225,10 +225,10 @@ public final class StillHeicEncoder {
 
     private static void encodeAttempt(Path dest, BitmapPixels pixels, int width, int height,
             HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
-            int keys, boolean allowCq) throws Exception {
+            boolean displayP3, int keys, boolean allowCq) throws Exception {
         if (c.colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface) {
             encodeSurfaceAttempt(dest, pixels, width, height, c,
-                    exifPayload, attachExif, keys, allowCq);
+                    exifPayload, attachExif, displayP3, keys, allowCq);
             return;
         }
 
@@ -282,7 +282,7 @@ public final class StillHeicEncoder {
             muxer.stop();
             muxerStopped = true;
             if (attachExif) {
-                injectMetadata(dest, exifPayload, width, height);
+                injectMetadata(dest, exifPayload, width, height, displayP3);
             }
             finished = true;
             Log.d(TAG, "Muxed 1 frame(s): " + (Files.size(dest) / 1024) + " KB");
@@ -381,8 +381,8 @@ public final class StillHeicEncoder {
      */
     private static void encodeSurfaceAttempt(Path dest, BitmapPixels pixels,
             int width, int height, HeicSupport.HeicCandidate c,
-            byte[] exifPayload, boolean attachExif, int keys, boolean allowCq)
-            throws Exception {
+            byte[] exifPayload, boolean attachExif, boolean displayP3,
+            int keys, boolean allowCq) throws Exception {
         MediaCodec codec = null;
         MediaMuxer muxer = null;
         android.view.Surface inputSurface = null;
@@ -428,7 +428,7 @@ public final class StillHeicEncoder {
             muxer.stop();
             muxerStopped = true;
             if (attachExif) {
-                injectMetadata(dest, exifPayload, width, height);
+                injectMetadata(dest, exifPayload, width, height, displayP3);
             }
             finished = true;
             Log.d(TAG, "Muxed 1 frame(s): " + (Files.size(dest) / 1024) + " KB");
@@ -528,9 +528,9 @@ public final class StillHeicEncoder {
         }
 
         if (keys == KEYS_EXTENDED) {
-            // SDR display output: full-range BT.709. Required for correctness
-            // on the converted YUV paths, where this encoder produces the YCbCr
-            // conversion.
+            // SDR display output: full-range BT.709 matrix coefficients. The
+            // RGB primaries/transfer are written at the container level
+            // (BT.709/sRGB or Display P3) by injectMetadata/merge.
             format.setInteger(MediaFormat.KEY_OPERATING_RATE, 30);
             format.setInteger(MediaFormat.KEY_COLOR_STANDARD,
                     MediaFormat.COLOR_STANDARD_BT709);
@@ -590,15 +590,16 @@ public final class StillHeicEncoder {
 
     /**
      * Adds the Exif item (when a payload exists) plus an 8-bit {@code pixi} and
-     * a full-range BT.709 SDR {@code colr} to the primary item. A failure
+     * a full-range SDR {@code colr} (BT.709/sRGB or Display P3) to the primary
+     * item. A failure
      * (unparseable container, structural mismatch) logs and leaves the file
      * without the metadata rather than losing the image.
      */
     private static void injectMetadata(Path dest, byte[] exifPayload,
-            int width, int height) {
+            int width, int height, boolean displayP3) throws Exception {
         try {
             byte[] muxed = Files.readAllBytes(dest);
-            byte[] tagged = UltraHdrHeicContainer.injectExif(muxed, exifPayload);
+            byte[] tagged = UltraHdrHeicContainer.injectExif(muxed, exifPayload, displayP3);
             int[] size = UltraHdrHeicContainer.primarySize(tagged);
             if (size[0] != width || size[1] != height) {
                 throw new IllegalStateException("Metadata-injected HEIC dimensions "
@@ -606,6 +607,12 @@ public final class StillHeicEncoder {
             }
             Files.write(dest, tagged);
         } catch (Exception e) {
+            if (displayP3) {
+                // A P3 pixel stream tagged as BT.709 would display badly.
+                // Fail the candidate so StillEncoder can fall back to a
+                // correctly tagged JPEG.
+                throw new IllegalStateException("P3 HEIC metadata injection failed", e);
+            }
             Log.e(TAG, "HEIC metadata injection failed, keeping the image: "
                     + Log.getStackTraceString(e));
         }

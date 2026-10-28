@@ -51,7 +51,7 @@ public final class UltraHdrHeicEncoder {
             try {
                 // Base: Exif is injected by the merge.
                 StillHeicEncoder.encodeToFile(baseTmp.toPath(), sdr,
-                        sdr.getWidth(), sdr.getHeight(), null, false);
+                        sdr.getWidth(), sdr.getHeight(), null, false, false);
             } catch (Throwable t) {
                 error = t;
             }
@@ -107,9 +107,10 @@ public final class UltraHdrHeicEncoder {
      * left alive so {@link StillEncoder} fallbacks can still use them.
      */
     public static void encodeToFile(Path dest, Bitmap sdr,
-            GainMapComputer.Result gain, ParseExif.ExifData exif) throws Exception {
+            GainMapComputer.Result gain, ParseExif.ExifData exif,
+            boolean displayP3) throws Exception {
         BaseEncodeJob base = startBaseEncode(sdr);
-        encodeWithBase(dest, sdr, gain, exif, base);
+        encodeWithBase(dest, sdr, gain, exif, base, displayP3);
     }
 
     /**
@@ -134,7 +135,7 @@ public final class UltraHdrHeicEncoder {
                 // Gain: full size, same depth as the base, so the declared
                 // tmap pixi matches the stream.
                 StillHeicEncoder.encodeToFile(tmp.toPath(), bmp,
-                        bmp.getWidth(), bmp.getHeight(), null, false);
+                        bmp.getWidth(), bmp.getHeight(), null, false, false);
             } catch (Throwable t) {
                 error = t;
             }
@@ -175,7 +176,7 @@ public final class UltraHdrHeicEncoder {
      */
     public static void encodeWithBase(Path dest, Bitmap sdr,
             GainMapComputer.Result gain, ParseExif.ExifData exif,
-            BaseEncodeJob base) throws Exception {
+            BaseEncodeJob base, boolean displayP3) throws Exception {
         if (sdr == null || sdr.isRecycled() || gain == null || gain.gainMap == null) {
             if (base != null) base.abort();
             throw new IllegalArgumentException("Null/recycled SDR or gain map");
@@ -208,7 +209,7 @@ public final class UltraHdrHeicEncoder {
                 Log.w(TAG, "concurrent gain encode failed, retrying serially",
                         concurrentFailure);
                 StillHeicEncoder.encodeToFile(gainTmp.toPath(), gain.gainMap,
-                        gain.gainMap.getWidth(), gain.gainMap.getHeight(), null, false);
+                        gain.gainMap.getWidth(), gain.gainMap.getHeight(), null, false, false);
             }
 
             // Gain pixels are on disk now and only its metadata (captured
@@ -230,6 +231,7 @@ public final class UltraHdrHeicEncoder {
             in.gainMapMin = gain.gainMapMin;
             in.gainMapMax = gain.gainMapMax;
             in.hdrCapacityMax = gain.hdrCapacityMax;
+            in.displayP3 = displayP3;
             in.exifPayload = ExifBlob.fromExifData(exif);
             if (in.exifPayload != null) {
                 Log.d(TAG, "HEIC EXIF blob: " + in.exifPayload.length + " bytes"

@@ -4,6 +4,7 @@ import android.content.Context;
 import android.content.ContentResolver;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.ColorSpace;
 import android.graphics.ImageDecoder;
 import android.graphics.Point;
 import android.graphics.drawable.Drawable;
@@ -73,6 +74,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     private final boolean[] hdrActive;
     private final boolean[] hdrAvailable;
     private final boolean[] hdrChecked;
+    /** Preview-decode result: the contents use a non-sRGB wide-gamut space. */
+    private final boolean[] wideGamut;
+    private P3StateListener p3StateListener;
     private final Map<Integer, Future<?>> pendingHdrTasks = new ConcurrentHashMap<>();
     private final Map<Integer, Future<?>> pendingHeaderTasks = new ConcurrentHashMap<>();
     private final Map<Integer, Future<?>> pendingPreviewTasks = new ConcurrentHashMap<>();
@@ -152,6 +156,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
         this.hdrActive = new boolean[size];
         this.hdrAvailable = new boolean[size];
         this.hdrChecked = new boolean[size];
+        this.wideGamut = new boolean[size];
         setHasStableIds(true);
     }
 
@@ -245,6 +250,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public void setSsivListener(SSIVListener ssivListener) { this.ssivListener = ssivListener; }
     public void setImageEventListener(SubsamplingScaleImageView.OnImageEventListener l) { this.imageEventListener = l; }
     public void setHdrStateListener(HdrStateListener l) { this.hdrStateListener = l; }
+    public void setP3StateListener(P3StateListener l) { this.p3StateListener = l; }
     public void setImageViewClickListener(ImageViewClickListener l) { this.imageViewClickListener = l; }
 
     public boolean isVideoPosition(int position) {
@@ -549,6 +555,10 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(true));
         } else if (hdrAvailable[position]) {
             ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
+        } else if (wideGamut[position]) {
+            // Skia's BitmapRegionDecoder path does not reliably preserve a
+            // non-sRGB color space per tile; ImageDecoder does.
+            ssiv.setRegionDecoderFactory(() -> new HdrTiledRegionDecoder(false));
         } else if (isSdrOnlyExtension(ext)) {
             ssiv.setRegionDecoderClass(SkiaPooledImageRegionDecoder.class);
         } else if (hdrChecked[position] && !isHeifExtension(ext)) {
@@ -691,6 +701,8 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                 Point dims = decodeBounds(cr, item.getFile().getFileUri());
                 if (dims == null) return;
                 Bitmap preview = decodePreview(cr, item.getFile().getFileUri(), dims);
+                final boolean wide = isWideGamut(preview);
+                wideGamut[position] = wide;
                 // Post to main thread to update caches and re-apply to a matching active view.
                 CustomSSIV view = activeViews.get(position);
                 Runnable apply = () -> {
@@ -701,12 +713,25 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
                     if (v != null) {
                         Object tag = v.getTag();
                         if (tag instanceof Integer && (Integer) tag == position) {
+                            if (wide && !hdrActive[position] && !hdrAvailable[position]
+                                    && !isHeifExtension(extensionAt(position))) {
+                                // A P3 JPEG/PNG was bound optimistically to
+                                // the Skia decoder; switch to ImageDecoder so
+                                // tiles retain their color space.
+                                applyDecoder(v, position);
+                            }
                             setImage(v, item.getFile().getFileUri(), position);
                         }
                     }
                 };
                 if (view != null) view.post(apply);
                 else apply.run();
+                mainHandler.post(() -> {
+                    P3StateListener listener = p3StateListener;
+                    if (listener != null) {
+                        listener.onP3StateChanged(position, wide);
+                    }
+                });
             } catch (Exception ignored) {
                 pendingPreviewTasks.remove(position);
             }
@@ -758,6 +783,17 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
             }
         } catch (Exception ignored) {}
         return null;
+    }
+
+    /** True when the decoded preview carries a non-sRGB RGB color space. */
+    private static boolean isWideGamut(@Nullable Bitmap bitmap) {
+        if (bitmap == null || bitmap.isRecycled()) {
+            return false;
+        }
+        ColorSpace colorSpace = bitmap.getColorSpace();
+        return colorSpace != null
+                && colorSpace.getModel() == ColorSpace.Model.RGB
+                && !colorSpace.isSrgb();
     }
 
     @Nullable
@@ -846,6 +882,7 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
 
     public boolean isHdrActive(int position) { return inBounds(position) && hdrActive[position]; }
     public boolean isHdrAvailable(int position) { return inBounds(position) && hdrAvailable[position]; }
+    public boolean isWideGamut(int position) { return inBounds(position) && wideGamut[position]; }
 
     /**
      * Enable HDR for the position. Tiling keeps sWidth = native for both HDR and SDR, so we only
@@ -1179,5 +1216,9 @@ public class ImageAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> 
     public interface HdrStateListener {
         void onHdrStateChanged(int position, boolean isHdr);
         void onHdrAvailabilityChanged(int position, boolean isUltraHdr);
+    }
+
+    public interface P3StateListener {
+        void onP3StateChanged(int position, boolean wideGamut);
     }
 }

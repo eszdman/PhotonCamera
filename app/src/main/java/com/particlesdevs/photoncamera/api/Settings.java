@@ -35,6 +35,7 @@ public class Settings {
     public double shadows;
     public int rawSaver;
     public boolean heicSave;
+    public boolean displayP3;
     public boolean QuadBayer;    public int cfaPattern;
     public int theme;
     public boolean remosaic;//TODO
@@ -85,6 +86,7 @@ public class Settings {
         cfaPattern = PreferenceKeys.getCFAValue();
         rawSaver = PreferenceKeys.isSaveRaw();
         heicSave = PreferenceKeys.isHeicSave();
+        displayP3 = PreferenceKeys.isDisplayP3On();
         remosaic = PreferenceKeys.isRemosaicOn();
         eisPhoto = PreferenceKeys.isEisPhotoOn();
         QuadBayer = PreferenceKeys.isQuadBayerOn();
@@ -138,6 +140,10 @@ public class Settings {
     /** Save-format helpers — "Save" picks the JPEG/RAW variant, the Save HEIC toggle swaps JPEG for HEIC. */
     public boolean isHeicSave() {
         return heicSave;
+    }
+
+    public boolean isDisplayP3() {
+        return displayP3;
     }
 
     public boolean isRawSave() {

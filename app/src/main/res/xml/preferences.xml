@@ -629,6 +629,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_display_p3_key"
+                android:defaultValue="@bool/pref_display_p3_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/display_p3"
+                android:summary="@string/display_p3_summary"
+                android:icon="@drawable/ic_saturation"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_ultrahdr_key"
                 android:defaultValue="@bool/pref_ultrahdr_default"
                 android:layout="@layout/preference_with_margin"

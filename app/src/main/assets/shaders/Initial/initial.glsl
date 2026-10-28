@@ -68,6 +68,9 @@ out vec3 Output;
 #define FUSIONGAIN 1.0
 #define FUSION 0
 #define EXPOCURVE 0
+// Display P3 output uses the exact sRGB OETF so the embedded ICC / HEIF colr
+// transfer function is truthful. sRGB output keeps the legacy gamma model.
+#define OUTPUT_SRGB 0
 #define luminocity(x) dot(x.rgb, vec3(0.299, 0.587, 0.114))
 #define MINP 1.0
 #define NOISEO 0.0
@@ -131,6 +134,9 @@ float gammaEncode(float x) {
 }
 float gammaEncode0(float x) {
 return x <= 0.0031308f ? x * 12.92f : 1.055f * pow(x, 0.4166667f) - 0.055f;
+}
+vec3 gammaEncode0(vec3 x) {
+return vec3(gammaEncode0(x.r), gammaEncode0(x.g), gammaEncode0(x.b));
 }
 
 float gammaEncode2(float x) {
@@ -447,7 +453,11 @@ vec3 applyColorSpace(vec3 pRGB,float tonemapGain, float gainsVal){
     // --- SDR display path (unchanged) ---
     vec3 pRGBsdr = clamp(pRGB*mix(tonemapGain,1.0,LTMMIX), 0.0,1.0);
     pRGBsdr = clamp(reinhard_extended(pRGBsdr*gainsVal,max(1.0,gainsVal)),vec3(0.0),vec3(1.0));
+    #if OUTPUT_SRGB == 1
+    pRGBsdr = gammaEncode0(pRGBsdr);
+    #else
     pRGBsdr = gammaCorrectPixel2(pRGBsdr);
+    #endif
     pRGBsdr = tonemap(pRGBsdr, mix(1.0,tonemapGain,LTMMIX));
     pRGBsdr = mix(pRGBsdr*pRGBsdr*pRGBsdr*TONEMAPX3 + pRGBsdr*pRGBsdr*TONEMAPX2 + pRGBsdr*TONEMAPX1, pRGBsdr, min(pRGBsdr*0.8+0.55,1.0));
 

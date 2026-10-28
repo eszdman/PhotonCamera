@@ -171,6 +171,9 @@
     <string name="raw_string" translatable="false">RAW</string>
     <string name="save_heic">Save HEIC</string>
     <string name="save_heic_summary">Use HEIC instead of JPEG — smaller files at the same quality</string>
+    <string name="display_p3">Display P3</string>
+    <string name="display_p3_summary">Save stills in the wider Display P3 color space for JPEG and HEIC, including Ultra HDR. Colors outside sRGB are preserved on compatible displays.</string>
+    <string name="display_p3_raw_only_summary">Display P3 applies to rendered JPEG/HEIC stills. Change Save from RAW only to enable it.</string>
     <string name="heic_failed_saved_jpeg">HEIC encoding failed — saved JPEG instead</string>
     <string name="raw_plus_jpg" translatable="false">RAW + JPEG</string>
     <string name="raw_plus_heic" translatable="false">RAW + HEIC</string>

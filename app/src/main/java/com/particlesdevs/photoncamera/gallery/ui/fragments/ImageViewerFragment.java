@@ -7,6 +7,7 @@ import android.animation.TimeInterpolator;
 import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.graphics.Matrix;
 import android.graphics.PointF;
@@ -70,7 +71,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 
-public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrStateListener {
+public class ImageViewerFragment extends Fragment
+        implements ImageAdapter.HdrStateListener, ImageAdapter.P3StateListener {
     private List<GalleryItem> galleryItems=new ArrayList<>(0);
     private ExifDialogViewModel exifDialogViewModel;
     private ViewPager2 viewPager;
@@ -274,6 +276,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             adapter.setVideoPlaybackListener(ImageViewerFragment.this::onVideoPlayingChanged);
             adapter.setImageViewClickListener(ImageViewerFragment.this::onImageViewClicked);
             adapter.setHdrStateListener(this);
+            adapter.setP3StateListener(this);
             if (ssivListener != null) adapter.setSsivListener(ssivListener);
             adapter.setImageEventListener(new SubsamplingScaleImageView.DefaultOnImageEventListener() {
                 @Override public void onReady() {
@@ -386,7 +389,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
                     if (prev == null) prev = getSsivAt(deferredReleasePos);
                     if (adapter != null) adapter.releaseHdrForPosition(prev, deferredReleasePos);
                     deferredReleasePos = -1;
-                    updateWindowHdrForVisible();
+                    updateWindowColorMode();
                 }
             }
         };
@@ -406,14 +409,14 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             int position = viewPager.getCurrentItem();
             seek_position = position;
             if (adapter.isHdrActive(position)) {
-                updateWindowHdrForVisible();
+                updateWindowColorMode();
                 updateHdrToggleUi(adapter.isHdrAvailable(position), true);
             } else {
                 CustomSSIV ssiv = getSsivAt(position);
                 if (ssiv != null) adapter.loadHdrForPosition(ssiv, position);
                 else viewPager.post(() -> adapter.loadHdrForPosition(getSsivAt(position), position));
                 updateHdrToggleUi(adapter.isHdrAvailable(position), false);
-                updateWindowHdrForVisible();
+                updateWindowColorMode();
             }
         }
     }
@@ -422,7 +425,8 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         super.onPause();
         if (viewPager != null) seek_position = viewPager.getCurrentItem();
         if (adapter != null) adapter.pauseVideo();
-        UltraHdrGalleryUtil.setWindowHdr(getActivity(), false);
+        UltraHdrGalleryUtil.setWindowColorMode(
+                getActivity(), ActivityInfo.COLOR_MODE_DEFAULT);
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
             updateHdrToggleUi(adapter.isHdrAvailable(position), false);
@@ -448,23 +452,33 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (cur == null) cur = getSsivAt(position);
         if (cur != null) adapter.loadHdrForPosition(cur, position);
         else viewPager.post(() -> adapter.loadHdrForPosition(getSsivAt(position), position));
-        updateWindowHdrForVisible();
+        updateWindowColorMode();
     }
 
-    private void updateWindowHdrForVisible() {
+    private void updateWindowColorMode() {
         if (getActivity() == null || adapter == null || viewPager == null) return;
-        if (isCompareMode()) {
-            UltraHdrGalleryUtil.setWindowHdr(getActivity(), adapter.isHdrActive(viewPager.getCurrentItem()));
+        int current = viewPager.getCurrentItem();
+        boolean needHdr = adapter.isHdrActive(current);
+        if (!isCompareMode() && !needHdr && deferredReleasePos != -1) {
+            needHdr = adapter.isHdrActive(deferredReleasePos);
+        }
+        if (needHdr) {
+            UltraHdrGalleryUtil.setWindowColorMode(
+                    getActivity(), ActivityInfo.COLOR_MODE_HDR);
             return;
         }
-        boolean needHdr = adapter.isHdrActive(viewPager.getCurrentItem());
-        if (!needHdr && deferredReleasePos != -1) needHdr = adapter.isHdrActive(deferredReleasePos);
-        UltraHdrGalleryUtil.setWindowHdr(getActivity(), needHdr);
+        boolean needWide = adapter.isWideGamut(current);
+        if (!isCompareMode() && !needWide && deferredReleasePos != -1) {
+            needWide = adapter.isWideGamut(deferredReleasePos);
+        }
+        UltraHdrGalleryUtil.setWindowColorMode(getActivity(), needWide
+                ? ActivityInfo.COLOR_MODE_WIDE_COLOR_GAMUT
+                : ActivityInfo.COLOR_MODE_DEFAULT);
     }
 
     @Override public void onHdrStateChanged(int position, boolean isHdr) {
         if (getActivity() != null && viewPager != null && position == viewPager.getCurrentItem()) {
-            updateWindowHdrForVisible();
+            updateWindowColorMode();
             updateHdrToggleUi(adapter != null && adapter.isHdrAvailable(position), isHdr);
         }
     }
@@ -477,7 +491,9 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         CustomSSIV ssiv = getSsivAt(position);
         if (adapter.isHdrActive(position)) {
             adapter.releaseHdrForPosition(ssiv, position);
-            UltraHdrGalleryUtil.setWindowHdr(getActivity(), false);
+            // The callback normally updates this, but do it here too so an
+            // active P3 base immediately gets wide-gamut mode.
+            updateWindowColorMode();
             updateHdrToggleUi(true, false);
         } else {
             adapter.loadHdrForPosition(ssiv, position);
@@ -488,6 +504,14 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         if (viewPager != null && position == viewPager.getCurrentItem()) {
             boolean isHdr = adapter != null && adapter.isHdrActive(position);
             updateHdrToggleUi(isUltraHdr, isHdr);
+        }
+    }
+
+    @Override public void onP3StateChanged(int position, boolean wideGamut) {
+        if (!isResumed()) return;
+        if (getActivity() != null && viewPager != null
+                && position == viewPager.getCurrentItem()) {
+            updateWindowColorMode();
         }
     }
 

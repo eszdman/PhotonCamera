@@ -22,6 +22,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.RotateWatermark;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.GLHistogram;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
+import com.particlesdevs.photoncamera.processing.render.DisplayTransform;
 import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
@@ -249,6 +250,42 @@ public class PostPipeline extends GLBasePipeline {
     // mid-pipeline (the same pixels runAll would stream into afterwards).
     Bitmap sinkBitmap = null;
 
+    /**
+     * Shared camera -> linear-display transform for this shot. Initial,
+     * ModernInitial, HeadroomRender and the Ultra HDR scene-luma pass all use
+     * the same instance so P3 Yhdr is measured through exactly the renderer's
+     * white balance and color correction.
+     */
+    DisplayTransform displayTransform;
+    /** True only when this shot actually rendered and will tag Display P3. */
+    boolean displayP3Output;
+
+    /**
+     * Resolves the render transform from the injected tone pipeline. P3 is
+     * only meaningful when a display color stage exists; the linear "off"
+     * developer path stays untagged.
+     */
+    private void computeDisplayTransform() {
+        boolean p3 = mSettings != null && mSettings.isDisplayP3()
+                && !"off".equals(tonePipeline);
+        // Only Initial samples DCP cubes; ModernInitial/HeadroomRender always
+        // use the matrix path even when a cube mode is selected.
+        boolean allowCubes = "curve".equals(tonePipeline);
+        displayTransform = DisplayTransform.from(
+                mParameters.CCT, mParameters.whitePoint, p3, allowCubes);
+        displayP3Output = p3;
+    }
+
+    /** Whether the rendered still was produced in Display P3. */
+    public boolean isDisplayP3Output() {
+        return displayP3Output;
+    }
+
+    /** Shared render/scene-luma color transform for this shot. */
+    public DisplayTransform getDisplayTransform() {
+        return displayTransform;
+    }
+
     private void computeNoise(Parameters parameters) {
         NoiseModeler modeler = parameters.noiseModeler;
         noiseS = modeler.computeModel[0].first.floatValue() +
@@ -404,6 +441,7 @@ public class PostPipeline extends GLBasePipeline {
 
         // Inject tunable values for PostPipeline (since it doesn't extend Node)
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
+        computeDisplayTransform();
 
         BuildDefaultPipeline();
         sinkBitmap = res;
@@ -703,6 +741,7 @@ public class PostPipeline extends GLBasePipeline {
         }
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
+        computeDisplayTransform();
         Point rawSliced = parameters.rawSize;
         cropSize = new Point(parameters.rawSize);
         boolean zoomed = PhotonCamera.getCaptureController() != null
@@ -1023,6 +1062,7 @@ public class PostPipeline extends GLBasePipeline {
                     new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
             outTex.BufferLoad();
 
+            prog.setDefine("P3", displayP3Output);
             prog.useAssetProgram("ultrahdr/gainmap");
             prog.setTexture("InputBuffer", sdrTex);
             prog.setTexture("LBuffer", lTex);
@@ -1102,6 +1142,7 @@ public class PostPipeline extends GLBasePipeline {
                     outTexFull = new GLTexture(new Point(gw, gh),
                             new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
                     outTexFull.BufferLoad();
+                    prog.setDefine("P3", displayP3Output);
                     prog.useAssetProgram("ultrahdr/gainmap");
                     prog.setTexture("InputBuffer", sdrRef);
                     prog.setTexture("LBuffer", lTex);
@@ -1129,6 +1170,7 @@ public class PostPipeline extends GLBasePipeline {
                 }
                 // sdrTex dead after histogram in the banded path (never
                 // uploaded there).
+                prog.setDefine("P3", displayP3Output);
                 prog.useAssetProgram("ultrahdr/gainmap");
                 prog.setTexture("LBuffer", lTex);
                 prog.setVar("uAnchor", anchor);
@@ -1267,6 +1309,10 @@ public class PostPipeline extends GLBasePipeline {
      */
     private void bindSceneluma(GLProg prog, GLTexture gainTex, Point sdrSize,
             int gw, int gh, Point inFull) {
+        // P3 scene luma needs the same white balance and color transform as
+        // the render; CCT selects the cube branch in the shader.
+        prog.setDefine("P3", displayP3Output);
+        prog.setDefine("CCT", displayTransform != null && displayTransform.isCubeMode());
         prog.useAssetProgram("ultrahdr/sceneluma");
         prog.setTexture("GainMap", gainTex);
         prog.setVar("rotate", rotationIndex());
@@ -1276,6 +1322,16 @@ public class PostPipeline extends GLBasePipeline {
         prog.setVar("uLinFullSize", sdrSize.x, sdrSize.y);
         prog.setVar("uLinGridSize", gw, gh);
         prog.setVar("uInFull", inFull);
+        prog.setVar("sensorToIntermediate", mParameters.sensorToProPhoto);
+        prog.setVar("neutralPoint", mParameters.whitePoint);
+        if (displayTransform != null && displayTransform.isCubeMode()) {
+            float[][] cubes = displayTransform.cubes();
+            prog.setVar("CUBE0", cubes[0]);
+            prog.setVar("CUBE1", cubes[1]);
+            prog.setVar("CUBE2", cubes[2]);
+        } else if (displayTransform != null) {
+            prog.setVar("intermediateToDisplay", displayTransform.matrix());
+        }
     }
 
     /**

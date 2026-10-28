@@ -5,7 +5,6 @@ import android.graphics.Point;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.Log;
@@ -19,8 +18,8 @@ import static android.opengl.GLES20.GL_NEAREST;
 /**
  * Sky headroom renderer, replacing the Initial role.
  *
- * Renders the SDR base with matrix-only color (sensor -> ProPhoto -> sRGB,
- * white-point WB; no CCT cubes/CLUTs), the lens shading GainMap and the
+ * Renders the SDR base with matrix-only color (sensor -> ProPhoto ->
+ * sRGB/Display P3, white-point WB; no CCT cubes/CLUTs), the lens shading GainMap and the
  * ExposureFusionBayer2 FusionMap as linear gains, and the sky
  * log-headroom tone curve driven by the {@link LinearExposure} display gain:
  * sceneWhite = clamp(headroomScale*displayGain, 1, sceneWhiteMax).
@@ -121,12 +120,8 @@ public class HeadroomRender extends Node {
         pipeline.sceneWhiteRaw = headroomSceneWhite / headroomDisplayGain;
 
         // Matrix-only color: plain matrix for CUBE/CUBES modes (cubes skipped).
-        headroomMatrix = basePipeline.mParameters.CCT.matrix;
-        if (basePipeline.mParameters.CCT.correctionMode
-                == ColorCorrectionTransform.CorrectionMode.MATRIXES) {
-            headroomMatrix = basePipeline.mParameters.CCT.combineMatrix(
-                    basePipeline.mParameters.whitePoint);
-        }
+        // The shared transform also carries the Display P3 conversion.
+        headroomMatrix = ((PostPipeline) basePipeline).getDisplayTransform().matrix();
 
         if (pipeline.GainMap == null && fallbackGainMap == null) {
             fallbackGainMap = new GLTexture(new Point(1, 1),

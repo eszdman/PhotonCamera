@@ -32,12 +32,14 @@ public final class UltraHdrEncoder {
     private UltraHdrEncoder() {}
 
     /**
-     * @param sdr  SDR display bitmap (ARGB_8888, sRGB)
+     * @param sdr  SDR display bitmap (ARGB_8888; sRGB or Display P3 encoded,
+     *             tagged separately by the caller)
      * @param gm   gain-map result produced by {@link GainMapComputer#compute}
      * @param exif optional EXIF to embed in the primary JPEG (may be null)
      * @return Ultra HDR JPEG bytes
      */
-    public static byte[] encode(Bitmap sdr, GainMapComputer.Result gm, ParseExif.ExifData exif) {
+    public static byte[] encode(Bitmap sdr, GainMapComputer.Result gm,
+            ParseExif.ExifData exif, boolean displayP3) {
         if (sdr != null && !sdr.isRecycled() && exif != null) {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
             exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
@@ -82,7 +84,14 @@ public final class UltraHdrEncoder {
             throw new RuntimeException("Parallel compress failed", failure[0]);
         }
         final byte[] sdrJpeg = sdrHolder[0];
-        final byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
+        byte[] sdrJpegExif = (exif != null) ? injectExif(sdrJpeg, exif) : sdrJpeg;
+        if (displayP3) {
+            // This must run after ExifInterface has finished rewriting the
+            // base JPEG; JpegColorProfile replaces any ICC Skia may have
+            // attached and is a no-op on malformed input.
+            sdrJpegExif = com.particlesdevs.photoncamera.processing.encoder.JpegColorProfile
+                    .ensureDisplayP3(sdrJpegExif);
+        }
         final byte[] gainMapJpeg = gainHolder[0];
 
         return UltraHdrContainer.encode(sdrJpegExif, gainMapJpeg,
