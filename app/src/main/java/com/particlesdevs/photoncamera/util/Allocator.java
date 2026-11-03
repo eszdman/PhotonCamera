@@ -100,6 +100,20 @@ public class Allocator{
             ByteBuffer uPlane, int uRowStride, int uPixelStride,
             ByteBuffer vPlane, int vRowStride, int vPixelStride);
 
+    /**
+     * Converts one tile of {@code RGBA8888} or {@code RGBA1010102} pixels to
+     * 10-bit P010 full-range BT.709. P010 stores 10-bit samples in the high
+     * bits of 16-bit words; the Y plane has pixel stride 2 and the interleaved
+     * UV plane has pixel stride 4. Edge tiles replicate the last valid
+     * row/column so the encoder's 512-grid padding is always initialized.
+     */
+    public native static void rgbaToP010Tile(ByteBuffer src, boolean src10Bit,
+            int fullWidth, int fullHeight, int tileX, int tileY,
+            int tileWidth, int tileHeight,
+            ByteBuffer yPlane, int yRowStride, int yPixelStride,
+            ByteBuffer uPlane, int uRowStride, int uPixelStride,
+            ByteBuffer vPlane, int vRowStride, int vPixelStride);
+
     public native static void free(ByteBuffer buffer);
     public native static long getMemoryCount();
 

@@ -629,6 +629,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_save_heic_10bit_key"
+                android:defaultValue="@bool/pref_save_heic_10bit_default"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/save_heic_10bit"
+                android:summary="@string/save_heic_10bit_summary"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_display_p3_key"
                 android:defaultValue="@bool/pref_display_p3_default"
                 android:layout="@layout/preference_with_margin"

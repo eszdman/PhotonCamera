@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.opengl.GLES30;
+import android.os.Build;
 import com.particlesdevs.photoncamera.util.Log;
 
 import static android.opengl.GLES31.GL_CLAMP_TO_EDGE;
@@ -428,11 +429,19 @@ public class PostPipeline extends GLBasePipeline {
         } else {
             GLDrawParams.TileSize = 256;
         }
-        GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8, 4);
+        // 10-bit HEIC requests a true 10-bit processed sink, not an 8-bit
+        // bitmap stuffed into a Main10 container. RGBA1010102 is still 4
+        // bytes/pixel, so this costs no more full-frame memory than ARGB_8888.
+        boolean tenBitSink = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && PhotonCamera.getSettings().isHeic10Bit();
+        GLFormat format = new GLFormat(tenBitSink
+                ? GLFormat.DataType.UNSIGNED_10_10_10_2
+                : GLFormat.DataType.SIMPLE_8, 4);
         // The final bitmap is allocated up-front and the render is streamed
         // straight into its pixels: no intermediate full-frame native buffer
         // (~258 MB at 64 MP) and no extra copies.
-        Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y, Bitmap.Config.ARGB_8888);
+        Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y,
+                format.getBufferedImageConfig());
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None);
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
@@ -736,6 +745,22 @@ public class PostPipeline extends GLBasePipeline {
      * @return the encoded RGBA8 gain map plus its dimensions and scale
      */
     public GainMapRaw RunHDRGainMap(Parameters parameters, Bitmap sdr, float scale) {
+        // The gain map is defined against the 8-bit SDR base. When the base
+        // sink is RGBA1010102, measure the quantized SDR rendition instead of
+        // letting GLImage/cpuSdrMedian misinterpret packed 10-bit words.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && sdr != null && sdr.getConfig() != null
+                && "RGBA_1010102".equals(sdr.getConfig().name())) {
+            Bitmap sdr8 = sdr.copy(Bitmap.Config.ARGB_8888, false);
+            if (sdr8 == null) {
+                throw new IllegalStateException("Cannot quantize 10-bit SDR base for gain map");
+            }
+            try {
+                return RunHDRGainMap(parameters, sdr8, scale);
+            } finally {
+                sdr8.recycle();
+            }
+        }
         if ((demosaicLinear == null || demosaicLinearSize == null) && sceneLumaCPU == null) {
             throw new IllegalStateException("Linear buffer missing; Run() must complete first with ultraHdr enabled");
         }

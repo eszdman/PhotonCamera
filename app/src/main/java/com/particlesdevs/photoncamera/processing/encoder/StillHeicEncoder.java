@@ -18,9 +18,15 @@ import java.util.List;
 
 /**
  * HEIC item encoder for every Ultra HDR HEIC piece: the SDR base, the Ultra
- * HDR base and the gain map. All encodes are 8-bit; the platform still
- * encoder on this class of devices cannot be driven to Main10 (see the
- * bring-up notes in the repository history), so the pixel depth is fixed.
+ * HDR base and the gain map. The base defaults to 8-bit; an opt-in Main10
+ * path feeds P010 when the vendor still encoder exposes it. The gain map is
+ * always 8-bit.
+ *
+ * <p>The QTI still encoder pads its input to a 512x512 grid, so the 10-bit
+ * path allocates the codec frame at the grid-aligned size and writes a HEIF
+ * {@code clap} clean aperture back to the requested dimensions. The kernel
+ * rejects a P010 plane shorter than that grid size, which is why the input
+ * buffer is not the nominal width x height.
  *
  * <p>{@code androidx.heifwriter} cannot use the still-image HEIC encoder on
  * devices where {@code getVideoCapabilities()} is null for the image MIME
@@ -33,9 +39,10 @@ import java.util.List;
  * the muxer); no video-encoder or tiled-video fallback is attempted. A device
  * whose still encoder cannot encode the frame saves JPEG instead.
  *
- * <p>Sources: an ARGB_8888/software bitmap converted to YUV420 by
- * {@link Allocator#rgbaToYuv420Tile} for buffer candidates, or rendered into
- * an EGL window surface by {@link SurfaceInputRenderer}.
+ * <p>Sources: an ARGB_8888/RGBA1010102 software bitmap converted to YUV420 or
+ * P010 by {@link Allocator#rgbaToYuv420Tile} /
+ * {@link Allocator#rgbaToP010Tile} for buffer candidates, or rendered into an
+ * EGL window surface by {@link SurfaceInputRenderer}.
  *
  * <p>Muxing mirrors {@code HeifEncoder.HevcEncoderCallback}: the codec output
  * format is rewritten to the HEIC MIME with the full image dimensions before
@@ -64,6 +71,10 @@ public final class StillHeicEncoder {
     /** Format key levels, most descriptive first (OEM encoders reject subsets). */
     private static final int KEYS_EXTENDED = 1;
     private static final int KEYS_MINIMAL = 0;
+    /** The Qualcomm still HEIC encoder pads input to this tile grid. */
+    private static final int HEIC_GRID = 512;
+    /** HEVC Main10 level 6.2, matching the vendor still encoder's caps. */
+    private static final int HEVC_LEVEL_62 = 0x1000000;
 
     private StillHeicEncoder() {}
 
@@ -78,6 +89,18 @@ public final class StillHeicEncoder {
      */
     public static void encodeToFile(Path dest, Bitmap sdr, int width, int height,
             byte[] exifPayload, boolean attachExif, boolean displayP3) throws Exception {
+        encodeToFile(dest, sdr, width, height, exifPayload, attachExif, displayP3, false);
+    }
+
+    /**
+     * Encodes one HEIC item. In 10-bit mode the codec input is padded to the
+     * vendor's 512x512 grid and the container gets a {@code clap} clean
+     * aperture for the requested size, so the visible image remains
+     * {@code width x height}.
+     */
+    public static void encodeToFile(Path dest, Bitmap sdr, int width, int height,
+            byte[] exifPayload, boolean attachExif, boolean displayP3,
+            boolean tenBit) throws Exception {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
             throw new UnsupportedOperationException("HEIC encode needs API 28+");
         }
@@ -88,6 +111,9 @@ public final class StillHeicEncoder {
             throw new IllegalArgumentException("Null/recycled SDR bitmap");
         }
 
+        int encodeW = tenBit ? align(width, HEIC_GRID) : width;
+        int encodeH = tenBit ? align(height, HEIC_GRID) : height;
+
         List<HeicSupport.HeicCandidate> candidates = HeicSupport.candidates();
         if (candidates.isEmpty()) {
             throw new UnsupportedOperationException(
@@ -95,25 +121,39 @@ public final class StillHeicEncoder {
         }
 
         Throwable last = null;
+        boolean attempted = false;
         for (HeicSupport.HeicCandidate candidate : candidates) {
+            if (candidate.tenBit != tenBit) {
+                continue;
+            }
+            attempted = true;
             if (sUnsupportedCandidates.contains(candidateKey(candidate))) {
                 Log.i(TAG, "skipping known-unsupported " + candidate);
                 continue;
             }
             boolean muxed = false;
             try {
-                encodeWithCandidate(dest, sdr, width, height, candidate, exifPayload,
-                        attachExif, displayP3);
+                encodeWithCandidate(dest, sdr, encodeW, encodeH, width, height,
+                        candidate, exifPayload, attachExif, displayP3, tenBit);
                 muxed = true;
-                // Structural acceptance: the muxed container must declare the
-                // full image as its primary.
+                // Structural acceptance: the coded size is the grid-aligned
+                // size; the display size must be the requested image size.
                 int[] size = UltraHdrHeicContainer.primarySize(dest);
-                if (size[0] != width || size[1] != height) {
+                if (size[0] != encodeW || size[1] != encodeH) {
                     throw new IllegalStateException("Encoded HEIC dimensions "
-                            + size[0] + "x" + size[1] + " != " + width + "x" + height);
+                            + size[0] + "x" + size[1] + " != " + encodeW + "x" + encodeH);
+                }
+                if (tenBit) {
+                    int[] display = UltraHdrHeicContainer.displaySize(
+                            Files.readAllBytes(dest));
+                    if (display[0] != width || display[1] != height) {
+                        throw new IllegalStateException("HEIC clean aperture "
+                                + display[0] + "x" + display[1] + " != "
+                                + width + "x" + height);
+                    }
                 }
                 Log.d(TAG, "HEIC written via " + candidate + " (" + width + "x"
-                        + height + ", 8-bit)");
+                        + height + ", " + (tenBit ? "10-bit" : "8-bit") + ")");
                 return;
             } catch (Throwable e) {
                 last = e;
@@ -129,29 +169,42 @@ public final class StillHeicEncoder {
                 deleteQuietly(dest);
             }
         }
+        if (!attempted) {
+            throw new UnsupportedOperationException(
+                    (tenBit ? "No 10-bit" : "No 8-bit") + " HEIC candidate for "
+                            + width + "x" + height);
+        }
         throw new UnsupportedOperationException(
                 "All HEIC candidates failed for " + width + "x" + height, last);
     }
 
+    private static int align(int value, int alignment) {
+        return ((value + alignment - 1) / alignment) * alignment;
+    }
+
     private static void encodeWithCandidate(Path dest, Bitmap sdr, int width, int height,
-            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
-            boolean displayP3) throws Exception {
+            int actualWidth, int actualHeight, HeicSupport.HeicCandidate c,
+            byte[] exifPayload, boolean attachExif, boolean displayP3,
+            boolean tenBit) throws Exception {
         try (BitmapPixels pixels = BitmapPixels.open(sdr)) {
-            encode8Bit(dest, pixels, width, height, c, exifPayload, attachExif, displayP3);
+            encodeSequence(dest, pixels, width, height, actualWidth, actualHeight,
+                    c, exifPayload, attachExif, displayP3, tenBit);
         }
     }
 
     /**
-     * 8-bit sequence: the extended key set, a minimal set, and finally bitrate
-     * mode, because OEM encoders differ in which parts they reject.
+     * Encode sequence: the extended key set, a minimal set, and finally
+     * bitrate mode, because OEM encoders differ in which parts they reject.
      */
-    private static void encode8Bit(Path dest, BitmapPixels pixels, int width, int height,
-            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
-            boolean displayP3) throws Exception {
+    private static void encodeSequence(Path dest, BitmapPixels pixels, int width, int height,
+            int actualWidth, int actualHeight, HeicSupport.HeicCandidate c,
+            byte[] exifPayload, boolean attachExif, boolean displayP3,
+            boolean tenBit) throws Exception {
         Exception firstFailure = null;
         try {
-            encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    displayP3, KEYS_EXTENDED, true);
+            encodeAttempt(dest, pixels, width, height, actualWidth, actualHeight,
+                    c, exifPayload, attachExif, displayP3, tenBit,
+                    KEYS_EXTENDED, true);
             return;
         } catch (Throwable e) {
             firstFailure = asException(e);
@@ -159,16 +212,18 @@ public final class StillHeicEncoder {
             deleteQuietly(dest);
         }
         try {
-            encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    displayP3, KEYS_MINIMAL, true);
+            encodeAttempt(dest, pixels, width, height, actualWidth, actualHeight,
+                    c, exifPayload, attachExif, displayP3, tenBit,
+                    KEYS_MINIMAL, true);
             return;
         } catch (Throwable e) {
             Log.w(TAG, "Attempt failed (minimal cq, " + c + "): " + describe(e));
             deleteQuietly(dest);
         }
         try {
-            encodeAttempt(dest, pixels, width, height, c, exifPayload, attachExif,
-                    displayP3, KEYS_MINIMAL, false);
+            encodeAttempt(dest, pixels, width, height, actualWidth, actualHeight,
+                    c, exifPayload, attachExif, displayP3, tenBit,
+                    KEYS_MINIMAL, false);
         } catch (Throwable e) {
             if (permanentFailure(firstFailure) || permanentFailure(e)) {
                 markUnsupported(c);
@@ -224,8 +279,9 @@ public final class StillHeicEncoder {
     }
 
     private static void encodeAttempt(Path dest, BitmapPixels pixels, int width, int height,
-            HeicSupport.HeicCandidate c, byte[] exifPayload, boolean attachExif,
-            boolean displayP3, int keys, boolean allowCq) throws Exception {
+            int actualWidth, int actualHeight, HeicSupport.HeicCandidate c,
+            byte[] exifPayload, boolean attachExif, boolean displayP3,
+            boolean tenBit, int keys, boolean allowCq) throws Exception {
         if (c.colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface) {
             encodeSurfaceAttempt(dest, pixels, width, height, c,
                     exifPayload, attachExif, displayP3, keys, allowCq);
@@ -239,11 +295,12 @@ public final class StillHeicEncoder {
         boolean finished = false;
         try {
             codec = MediaCodec.createByCodecName(c.codecName);
-            MediaFormat format = buildFormat(codec, c, width, height, keys, allowCq);
+            MediaFormat format = buildFormat(codec, c, width, height, keys, allowCq, tenBit);
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             codec.start();
             Log.d(TAG, "Codec started: " + c + " " + width + "x" + height
                     + " keys=" + keysName(keys)
+                    + (tenBit ? " 10-bit" : "")
                     + (allowCq ? " cq" : " bitrate"));
 
             muxer = new MediaMuxer(dest.toAbsolutePath().toString(),
@@ -260,13 +317,14 @@ public final class StillHeicEncoder {
                 if (!inputDone) {
                     int inIndex = codec.dequeueInputBuffer(DEQUEUE_TIMEOUT_US);
                     if (inIndex >= 0) {
-                        queueFrame(codec, pixels, width, height, inIndex);
+                        queueFrame(codec, pixels, width, height, actualWidth,
+                                actualHeight, inIndex, tenBit);
                         inputDone = true;
                         progressed = true;
                     }
                 }
                 int outIndex = codec.dequeueOutputBuffer(info, DEQUEUE_TIMEOUT_US);
-                if (handleOutput(codec, info, outIndex, state, width, height, c)) {
+                if (handleOutput(codec, info, outIndex, state, width, height, c, tenBit)) {
                     progressed = true;
                 }
                 if (!progressed) {
@@ -281,8 +339,11 @@ public final class StillHeicEncoder {
             requireTrack(state);
             muxer.stop();
             muxerStopped = true;
-            if (attachExif) {
-                injectMetadata(dest, exifPayload, width, height, displayP3);
+            if (attachExif || tenBit) {
+                // A 10-bit base needs its pixi/clap even when the Ultra HDR
+                // merge injects the Exif item; exifPayload may be null.
+                injectMetadata(dest, exifPayload, width, height, displayP3,
+                        tenBit, actualWidth, actualHeight);
             }
             finished = true;
             Log.d(TAG, "Muxed 1 frame(s): " + (Files.size(dest) / 1024) + " KB");
@@ -329,7 +390,7 @@ public final class StillHeicEncoder {
      */
     private static boolean handleOutput(MediaCodec codec, MediaCodec.BufferInfo info,
             int outIndex, MuxState s, int width, int height,
-            HeicSupport.HeicCandidate c) throws Exception {
+            HeicSupport.HeicCandidate c, boolean tenBit) throws Exception {
         if (outIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
             return false;
         }
@@ -343,7 +404,7 @@ public final class StillHeicEncoder {
             s.track = s.muxer.addTrack(outFormat);
             s.muxer.start();
             s.started = true;
-            Log.d(TAG, "Track added (8-bit"
+            Log.d(TAG, "Track added (" + (tenBit ? "10-bit" : "8-bit")
                     + (c.colorFormat == MediaCodecInfo.CodecCapabilities
                             .COLOR_FormatSurface ? ", surface)" : ", buffer)"));
             return true;
@@ -391,7 +452,7 @@ public final class StillHeicEncoder {
         boolean finished = false;
         try {
             codec = MediaCodec.createByCodecName(c.codecName);
-            MediaFormat format = buildFormat(codec, c, width, height, keys, allowCq);
+            MediaFormat format = buildFormat(codec, c, width, height, keys, allowCq, false);
             codec.configure(format, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
             inputSurface = codec.createInputSurface();
             codec.start();
@@ -416,7 +477,7 @@ public final class StillHeicEncoder {
             int stalls = 0;
             while (!state.outputDone) {
                 int outIndex = codec.dequeueOutputBuffer(info, DEQUEUE_TIMEOUT_US);
-                if (!handleOutput(codec, info, outIndex, state, width, height, c)) {
+                if (!handleOutput(codec, info, outIndex, state, width, height, c, false)) {
                     if (++stalls > MAX_STALL_LOOPS) {
                         throw new UnusableOutput("Encoder stalled (surface)");
                     }
@@ -428,7 +489,8 @@ public final class StillHeicEncoder {
             muxer.stop();
             muxerStopped = true;
             if (attachExif) {
-                injectMetadata(dest, exifPayload, width, height, displayP3);
+                injectMetadata(dest, exifPayload, width, height, displayP3,
+                        false, width, height);
             }
             finished = true;
             Log.d(TAG, "Muxed 1 frame(s): " + (Files.size(dest) / 1024) + " KB");
@@ -470,11 +532,48 @@ public final class StillHeicEncoder {
         }
     }
 
-    /** Fills and queues the single full-size YUV420 frame, EOS. */
+    /** Fills and queues the single full-size frame, EOS. */
     private static void queueFrame(MediaCodec codec, BitmapPixels pixels, int width,
-            int height, int inIndex) throws Exception {
+            int height, int actualWidth, int actualHeight, int inIndex,
+            boolean tenBit) throws Exception {
+        if (tenBit) {
+            fillP010(codec, pixels, width, height, inIndex,
+                    MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+            return;
+        }
         fillYuv420(codec, pixels.rgba, width, height, inIndex,
                 MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+    }
+
+    /**
+     * Fills a P010 input Image from the 10-bit (RGBA1010102) or 8-bit source.
+     * The codec buffer is grid-aligned and larger than the visible image; the
+     * source's actual size is replicated into the padding so the encoder never
+     * reads uninitialized pixels. The full buffer capacity is queued because
+     * the kernel validates the plane length against the 512-grid size.
+     */
+    private static void fillP010(MediaCodec codec, BitmapPixels pixels, int width,
+            int height, int inIndex, int flags) {
+        Image image = codec.getInputImage(inIndex);
+        if (image == null) {
+            throw new UnsupportedOperationException("No P010 encoder input image");
+        }
+        Image.Plane[] planes = image.getPlanes();
+        if (planes.length < 3) {
+            throw new UnsupportedOperationException("P010 input image has "
+                    + planes.length + " planes");
+        }
+        Allocator.rgbaToP010Tile(pixels.rgba, pixels.tenBit,
+                pixels.width, pixels.height, 0, 0, width, height,
+                planes[0].getBuffer(), planes[0].getRowStride(),
+                planes[0].getPixelStride(),
+                planes[1].getBuffer(), planes[1].getRowStride(),
+                planes[1].getPixelStride(),
+                planes[2].getBuffer(), planes[2].getRowStride(),
+                planes[2].getPixelStride());
+        ByteBuffer in = codec.getInputBuffer(inIndex);
+        int size = in != null ? in.capacity() : width * height * 3;
+        codec.queueInputBuffer(inIndex, 0, size, PRESENTATION_TIME_US, flags);
     }
 
     private static void fillYuv420(MediaCodec codec, ByteBuffer rgba, int width, int height,
@@ -501,12 +600,20 @@ public final class StillHeicEncoder {
     }
 
     private static MediaFormat buildFormat(MediaCodec codec, HeicSupport.HeicCandidate c,
-            int width, int height, int keys, boolean allowCq) {
+            int width, int height, int keys, boolean allowCq, boolean tenBit) {
         MediaFormat format = MediaFormat.createVideoFormat(
                 HeicSupport.MIME_STILL, width, height);
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, c.colorFormat);
         format.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 0);
         format.setInteger(MediaFormat.KEY_FRAME_RATE, 1);
+        if (tenBit) {
+            format.setInteger(MediaFormat.KEY_PROFILE,
+                    HeicSupport.HEVC_PROFILE_MAIN10_STILL);
+            format.setInteger(MediaFormat.KEY_LEVEL, HEVC_LEVEL_62);
+            // Graphic input buffers are allocated from width/height (already
+            // grid-aligned); do not add a max-input-size key that could make
+            // the framework choose a different buffer path.
+        }
 
         // The platform HEIC quality recipe over the FULL image:
         // bitrate = w*h*1.5*8*maxCompressRatio(0.25)*quality/100.
@@ -596,22 +703,33 @@ public final class StillHeicEncoder {
      * without the metadata rather than losing the image.
      */
     private static void injectMetadata(Path dest, byte[] exifPayload,
-            int width, int height, boolean displayP3) throws Exception {
+            int width, int height, boolean displayP3, boolean tenBit,
+            int displayW, int displayH) throws Exception {
         try {
             byte[] muxed = Files.readAllBytes(dest);
-            byte[] tagged = UltraHdrHeicContainer.injectExif(muxed, exifPayload, displayP3);
+            byte[] tagged = UltraHdrHeicContainer.injectExif(muxed, exifPayload,
+                    displayP3, tenBit, displayW, displayH);
             int[] size = UltraHdrHeicContainer.primarySize(tagged);
             if (size[0] != width || size[1] != height) {
                 throw new IllegalStateException("Metadata-injected HEIC dimensions "
                         + size[0] + "x" + size[1] + " != " + width + "x" + height);
             }
+            if (tenBit) {
+                int[] display = UltraHdrHeicContainer.displaySize(tagged);
+                if (display[0] != displayW || display[1] != displayH) {
+                    throw new IllegalStateException("Metadata-injected HEIC aperture "
+                            + display[0] + "x" + display[1] + " != "
+                            + displayW + "x" + displayH);
+                }
+            }
             Files.write(dest, tagged);
         } catch (Exception e) {
-            if (displayP3) {
-                // A P3 pixel stream tagged as BT.709 would display badly.
-                // Fail the candidate so StillEncoder can fall back to a
-                // correctly tagged JPEG.
-                throw new IllegalStateException("P3 HEIC metadata injection failed", e);
+            if (displayP3 || tenBit) {
+                // A P3 pixel stream tagged as BT.709 would display badly, and
+                // a 10-bit stream without its clean aperture would show the
+                // 512-grid padding. Fail the candidate so StillEncoder can
+                // fall back to a correctly tagged 8-bit encode.
+                throw new IllegalStateException("HEIC metadata injection failed", e);
             }
             Log.e(TAG, "HEIC metadata injection failed, keeping the image: "
                     + Log.getStackTraceString(e));
@@ -653,13 +771,20 @@ public final class StillHeicEncoder {
      */
     private static final class BitmapPixels implements AutoCloseable {
         final ByteBuffer rgba;
+        final int width;
+        final int height;
+        /** True when the source pixels are packed RGBA1010102. */
+        final boolean tenBit;
         private final Bitmap locked;
         private final ByteBuffer owned;
         private final Bitmap softwareCopy;
 
-        private BitmapPixels(ByteBuffer rgba, Bitmap locked, ByteBuffer owned,
-                Bitmap softwareCopy) {
+        private BitmapPixels(ByteBuffer rgba, int width, int height, boolean tenBit,
+                Bitmap locked, ByteBuffer owned, Bitmap softwareCopy) {
             this.rgba = rgba;
+            this.width = width;
+            this.height = height;
+            this.tenBit = tenBit;
             this.locked = locked;
             this.owned = owned;
             this.softwareCopy = softwareCopy;
@@ -667,17 +792,24 @@ public final class StillHeicEncoder {
 
         static BitmapPixels open(Bitmap bitmap) {
             long need = (long) bitmap.getWidth() * bitmap.getHeight() * 4;
+            boolean tenBit = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                    && bitmap.getConfig() != null
+                    && "RGBA_1010102".equals(bitmap.getConfig().name());
             ByteBuffer wrapped = Allocator.wrapBitmap(bitmap);
             if (wrapped != null && wrapped.capacity() >= need) {
                 wrapped.position(0);
-                return new BitmapPixels(wrapped, bitmap, null, null);
+                return new BitmapPixels(wrapped, bitmap.getWidth(), bitmap.getHeight(),
+                        tenBit, bitmap, null, null);
             }
             Bitmap soft = bitmap;
             Bitmap copy = null;
             if (bitmap.getConfig() == null) {
-                // Hardware bitmap: materialize a software copy first.
+                // Hardware bitmap: materialize a software copy first. The
+                // 10-bit pipeline sink is always software, so this is only a
+                // safety path for unusual callers.
                 copy = bitmap.copy(Bitmap.Config.ARGB_8888, false);
                 soft = copy;
+                tenBit = false;
             }
             if (soft == null) {
                 throw new UnsupportedOperationException("Cannot read bitmap pixels");
@@ -692,7 +824,8 @@ public final class StillHeicEncoder {
             }
             soft.copyPixelsToBuffer(owned);
             owned.position(0);
-            return new BitmapPixels(owned, null, owned, copy);
+            return new BitmapPixels(owned, soft.getWidth(), soft.getHeight(), tenBit,
+                    null, owned, copy);
         }
 
         @Override

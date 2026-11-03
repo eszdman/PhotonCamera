@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.processing.encoder;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
@@ -54,6 +55,30 @@ public final class StillEncoder {
                     () -> Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show());
         } catch (Throwable ignored) {
         }
+    }
+
+    /** True when the pipeline produced a packed 10-bit RGBA bitmap. */
+    private static boolean isTenBit(Bitmap bitmap) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && bitmap != null && bitmap.getConfig() != null
+                && "RGBA_1010102".equals(bitmap.getConfig().name());
+    }
+
+    /**
+     * Materializes an ARGB_8888 copy for the 8-bit/JPEG fallbacks. The 10-bit
+     * pipeline sink is a software bitmap, so this is a plain Skia conversion
+     * and never touches a hardware buffer.
+     */
+    private static Bitmap ensure8Bit(Bitmap bitmap) {
+        if (!isTenBit(bitmap)) {
+            return bitmap;
+        }
+        Bitmap copy = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+        if (copy == null) {
+            throw new UnsupportedOperationException(
+                    "Cannot convert 10-bit bitmap for 8-bit fallback");
+        }
+        return copy;
     }
 
     /**
@@ -128,7 +153,13 @@ public final class StillEncoder {
             ParseExif.ExifData exif, boolean useHeic, boolean displayP3) {
         boolean wantUhdr = PhotonCamera.getSettings().ultraHdr && gain != null;
         if (!useHeic) {
-            return new Result(encodeJpeg(dest, sdr, wantUhdr ? gain : null, exif, displayP3), dest);
+            Bitmap jpegSource = isTenBit(sdr) ? ensure8Bit(sdr) : sdr;
+            boolean saved = encodeJpeg(dest, jpegSource, wantUhdr ? gain : null, exif, displayP3);
+            if (jpegSource != sdr) {
+                recycleQuietly(jpegSource);
+                recycleQuietly(sdr);
+            }
+            return new Result(saved, dest);
         }
         if (!HeicSupport.isHeicEncodeSupported()) {
             Log.e(TAG, "HEIC requested but unsupported; falling back to JPEG sibling");
@@ -188,13 +219,15 @@ public final class StillEncoder {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
             exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
+        boolean tenBitSource = isTenBit(sdr);
+        boolean tenBit = tenBitSource && PhotonCamera.getSettings().isHeic10Bit();
         try {
             StillHeicEncoder.encodeToFile(dest, sdr,
                     sdr.getWidth(), sdr.getHeight(),
-                    ExifBlob.fromExifData(exif), true, displayP3);
+                    ExifBlob.fromExifData(exif), true, displayP3, tenBit);
             recycleQuietly(sdr);
             recycleGain(res, gain);
-            Log.d(TAG, "SDR HEIC written: " + dest);
+            Log.d(TAG, "SDR HEIC written (" + (tenBit ? "10-bit" : "8-bit") + "): " + dest);
             return new Result(true, dest);
         } catch (Throwable e) {
             Log.e(TAG, "HEIC encode failed, JPEG fallback: " + describe(e));
@@ -203,9 +236,41 @@ public final class StillEncoder {
             } catch (Exception ignored) {
             }
         }
+        if (tenBit) {
+            // The 10-bit candidate was rejected: retry the same shot through
+            // the encoder's 8-bit path rather than losing HEIC entirely.
+            Bitmap sdr8 = ensure8Bit(sdr);
+            try {
+                StillHeicEncoder.encodeToFile(dest, sdr8,
+                        sdr8.getWidth(), sdr8.getHeight(),
+                        ExifBlob.fromExifData(exif), true, displayP3, false);
+                recycleQuietly(sdr);
+                recycleQuietly(sdr8);
+                recycleGain(res, gain);
+                Log.d(TAG, "SDR HEIC written (8-bit fallback): " + dest);
+                return new Result(true, dest);
+            } catch (Throwable e) {
+                Log.e(TAG, "8-bit HEIC fallback failed, JPEG fallback: " + describe(e));
+                try {
+                    Files.deleteIfExists(dest);
+                } catch (Exception ignored) {
+                }
+                recycleQuietly(sdr8);
+            }
+        }
         recycleGain(res, gain);
         notifyHeicFallback();
-        return encodeJpegSibling(dest, sdr, gain, exif, displayP3);
+        Bitmap jpegSource = isTenBit(sdr) ? ensure8Bit(sdr) : sdr;
+        try {
+            return encodeJpegSibling(dest, jpegSource, gain, exif, displayP3);
+        } finally {
+            if (jpegSource != sdr) {
+                recycleQuietly(jpegSource);
+            }
+            if (tenBitSource) {
+                recycleQuietly(sdr);
+            }
+        }
     }
 
     private static void recycleQuietly(Bitmap bitmap) {

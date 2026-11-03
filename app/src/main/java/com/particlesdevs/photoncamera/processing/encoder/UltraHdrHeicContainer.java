@@ -58,6 +58,8 @@ public final class UltraHdrHeicContainer {
         public float hdrCapacityMax;
         /** True when the base and derived HDR rendition are Display P3. */
         public boolean displayP3;
+        /** True when the base HEVC item is 10-bit Main10. */
+        public boolean baseTenBit;
         /** Raw {@code Exif\0\0 + TIFF} payload, may be null. */
         public byte[] exifPayload;
     }
@@ -244,26 +246,28 @@ public final class UltraHdrHeicContainer {
             ipcoBoxes.add(IsoBmff.buildBox("ispe", auxIspe));
         }
         // tmap properties per the reference recipe: ispe sized to the BASE
-        // photo, 8-bit pixi (matching the encoded stream), and the derived-HDR
+        // display size, pixi at the encoded base depth, and the derived-HDR
         // nclx colr. Readers check the tmap ispe; the colr describes the
         // derived rendition (linear light in the base's primaries).
+        int baseBits = in.baseTenBit ? 10 : 8;
         int propCursor = basePropCount + (ipcoBoxes.size() - baseIpco.size());
         byte[] tmapIspe = buildIspe(in.baseW, in.baseH);
         int tmapIspeIndex = propCursor + 1;
         byte[] tmapPixi = IsoBmff.fullBoxPayload(0, 0,
-                buildPixiBody(8, 8, 8));
+                buildPixiBody(baseBits, baseBits, baseBits));
         int tmapPixiIndex = propCursor + 2;
         byte[] tmapColr = tmapColrBody(in.displayP3);
         int tmapColrIndex = propCursor + 3;
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
         ipcoBoxes.add(IsoBmff.buildBox("colr", tmapColr));
-        // Encoded base item gets an 8-bit pixi. Its colr was replaced above
-        // when the muxer supplied one; otherwise append it.
+        // Encoded base item gets a pixi at the encoded depth. Its colr was
+        // replaced above when the muxer supplied one; otherwise append it.
         List<PropRef> primaryExtras = new ArrayList<>();
         int basePixiIndex = tmapColrIndex + 1;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
+                IsoBmff.fullBoxPayload(0, 0,
+                        buildPixiBody(baseBits, baseBits, baseBits))));
         primaryExtras.add(new PropRef(false, basePixiIndex));
         if (baseColrIndex < 0) {
             baseColrIndex = ipcoBoxes.size() + 1;
@@ -565,6 +569,19 @@ public final class UltraHdrHeicContainer {
      * @param displayP3   true to tag the primary with Display P3 primaries
      */
     public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean displayP3) {
+        return injectExif(heic, exifPayload, displayP3, false, -1, -1);
+    }
+
+    /**
+     * Adds the Exif item, a {@code pixi} at the encoded bit depth, a
+     * full-range SDR {@code colr}, and — when the coded size differs from the
+     * display size — a {@code clap} clean-aperture property for the primary
+     * item. The 10-bit still encoder pads the frame to its 512x512 grid, so
+     * the HEVC item is coded at the aligned size while the visible image is
+     * the requested size; {@code clap} crops it without re-encoding.
+     */
+    public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean displayP3,
+            boolean tenBit, int displayW, int displayH) {
         if (heic == null) {
             throw new IllegalArgumentException("Null HEIC");
         }
@@ -645,10 +662,20 @@ public final class UltraHdrHeicContainer {
             }
         }
         List<PropRef> primaryExtras = new ArrayList<>();
+        int bitDepth = tenBit ? 10 : 8;
         int pixiIndex = ipcoBoxes.size() + 1;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
+                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(bitDepth, bitDepth, bitDepth))));
         primaryExtras.add(new PropRef(false, pixiIndex));
+        if (displayW > 0 && displayH > 0) {
+            int[] coded = primaryIspe(m);
+            if (coded[0] != displayW || coded[1] != displayH) {
+                int clapIndex = ipcoBoxes.size() + 1;
+                ipcoBoxes.add(IsoBmff.buildBox("clap",
+                        buildClapBody(coded[0], coded[1], displayW, displayH)));
+                primaryExtras.add(new PropRef(true, clapIndex));
+            }
+        }
         if (colrIndex < 0) {
             colrIndex = ipcoBoxes.size() + 1;
             ipcoBoxes.add(IsoBmff.buildBox("colr", baseColrBody(displayP3)));
@@ -816,6 +843,49 @@ public final class UltraHdrHeicContainer {
         }
     }
 
+    /**
+     * Display size of the primary item: the {@code clap} clean aperture when
+     * present, otherwise the coded {@code ispe}. The 10-bit encoder writes a
+     * grid-aligned {@code ispe} plus a {@code clap} for the requested size.
+     */
+    static int[] displaySize(byte[] heic) {
+        if (IsoBmff.boxDataRange(heic, "ftyp") == null) {
+            throw new IllegalStateException("merged HEIC has no ftyp box");
+        }
+        long[] mdat = IsoBmff.boxDataRange(heic, "mdat");
+        if (mdat == null || mdat[1] <= 0) {
+            throw new IllegalStateException("merged HEIC has no mdat box");
+        }
+        long[] metaRange = IsoBmff.boxDataRange(heic, "meta");
+        if (metaRange == null || metaRange[1] < 4 || metaRange[1] > Integer.MAX_VALUE) {
+            throw new IllegalStateException("merged HEIC has no usable meta box");
+        }
+        byte[] metaPayload = new byte[(int) metaRange[1]];
+        System.arraycopy(heic, (int) metaRange[0], metaPayload, 0, metaPayload.length);
+        return primaryDisplaySize(Meta.parse(metaPayload));
+    }
+
+    private static int[] primaryDisplaySize(Meta m) {
+        List<PropRef> assoc = m.ipmaAssoc.get(m.primaryItemId);
+        if (assoc != null) {
+            for (PropRef r : assoc) {
+                if (r.index - 1 >= 0 && r.index - 1 < m.ipcoChildren.size()) {
+                    IsoBmff.Box prop = m.ipcoChildren.get(r.index - 1);
+                    if (prop.type.equals("clap") && prop.payload.length >= 16) {
+                        long wn = IsoBmff.u32(prop.payload, 0);
+                        long wd = IsoBmff.u32(prop.payload, 4);
+                        long hn = IsoBmff.u32(prop.payload, 8);
+                        long hd = IsoBmff.u32(prop.payload, 12);
+                        if (wd > 0 && hd > 0) {
+                            return new int[]{(int) (wn / wd), (int) (hn / hd)};
+                        }
+                    }
+                }
+            }
+        }
+        return primaryIspe(m);
+    }
+
     private static int[] primaryIspe(Meta m) {
         // A structurally valid container can still carry no image data when the
         // muxer drops every sample ("encoded 0 frames"): the item extents are
@@ -939,6 +1009,27 @@ public final class UltraHdrHeicContainer {
         for (int b : bits) {
             bb.put((byte) (b & 0xFF));
         }
+        return bb.array();
+    }
+
+    /**
+     * Clean-aperture ({@code clap}) property body. The aperture is centered on
+     * the coded image; the top-left crop therefore has a negative vertical
+     * offset of half the padding. All values are rational (N/D).
+     */
+    static byte[] buildClapBody(int codedW, int codedH, int displayW, int displayH) {
+        ByteBuffer bb = ByteBuffer.allocate(32).order(ByteOrder.BIG_ENDIAN);
+        IsoBmff.putU32(bb, displayW);
+        IsoBmff.putU32(bb, 1);
+        IsoBmff.putU32(bb, displayH);
+        IsoBmff.putU32(bb, 1);
+        // The image occupies the top-left of the padded coded frame. A clean
+        // aperture is defined from the coded center, so shift it up/left by
+        // half the padding to keep the content instead of centering the crop.
+        IsoBmff.putU32(bb, (displayW - codedW) / 2);
+        IsoBmff.putU32(bb, 1);
+        IsoBmff.putU32(bb, (displayH - codedH) / 2);
+        IsoBmff.putU32(bb, 1);
         return bb.array();
     }
 

@@ -101,7 +101,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocateDirect(mOutWidth * mTileSize * mglFormat.bytesPerPixel());
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
@@ -112,11 +112,11 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         renderHeight = Math.max(mTileSize, 512);
         glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
         renderBytes = (long) size.x * renderHeight
-                * glFormat.mFormat.mSize * glFormat.mChannels;
+                * glFormat.bytesPerPixel();
         addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
-        final int capacity = mOutWidth * mOutHeight * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        final int capacity = mOutWidth * mOutHeight * mglFormat.bytesPerPixel();
         if(alloc == GLDrawParams.Allocate.None) return;
         if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = Allocator.allocate(capacity);
         else {
@@ -130,7 +130,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         mglFormat = glFormat;
         mOutWidth = size.x;
         mOutHeight = size.y;
-        mBlockBuffer = ByteBuffer.allocate(mOutWidth * mTileSize * mglFormat.mFormat.mSize * mglFormat.mChannels);
+        mBlockBuffer = ByteBuffer.allocate(mOutWidth * mTileSize * mglFormat.bytesPerPixel());
         glGenFramebuffers(1,bindFB,0);
         glGenRenderbuffers(1,bindRB,0);
         glBindRenderbuffer(GL_RENDERBUFFER,bindRB[0]);
@@ -138,7 +138,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         renderHeight = Math.max(mTileSize, 512);
         glRenderbufferStorage(GL_RENDERBUFFER, glFormat.getGLFormatInternal(), size.x, renderHeight);
         renderBytes = (long) size.x * renderHeight
-                * glFormat.mFormat.mSize * glFormat.mChannels;
+                * glFormat.bytesPerPixel();
         addRenderBytes(renderBytes);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER,bindFB[0]);
         glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_RENDERBUFFER, bindRB[0]);
@@ -167,7 +167,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             checkEglError("glReadPixels");
             if (height < mTileSize) {
                 // This can only happen 2 times at edges
-                byte[] data = new byte[mOutWidth * height * mglFormat.mFormat.mSize * mglFormat.mChannels];
+                byte[] data = new byte[mOutWidth * height * mglFormat.bytesPerPixel()];
                 mBlockBuffer.get(data);
                 mOutBuffer.put(data);
             } else {
@@ -192,7 +192,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         GLProg program = super.mProgram;
         GLBlockDivider divider = new GLBlockDivider(mOutHeight, mTileSize);
         int[] row = new int[2];
-        int stride = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        int stride = mOutWidth * mglFormat.bytesPerPixel();
         while (divider.nextBlock(row)) {
             int y = row[0];
             int height = row[1];
@@ -313,7 +313,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         }
         int slot = streamSlot;
         collectStreamSlot(slot);
-        int rowBytes = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        int rowBytes = mOutWidth * mglFormat.bytesPerPixel();
         if (streamPbo[slot] == 0) {
             int[] pbo = new int[1];
             GLES30.glGenBuffers(1, pbo, 0);
@@ -369,7 +369,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         java.nio.ByteBuffer dst = streamPboDst[slot];
         streamPboDst[slot] = null;
         if (dst == null || streamPbo[slot] == 0) return;
-        int rowBytes = mOutWidth * mglFormat.mFormat.mSize * mglFormat.mChannels;
+        int rowBytes = mOutWidth * mglFormat.bytesPerPixel();
         int rows = streamPboRows[slot];
         int y = streamPboY[slot];
         int stride = streamPboStride[slot];
@@ -426,9 +426,9 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
     public ByteBuffer drawBlocksToOutput(Point size, GLFormat glFormat,GLDrawParams.Allocate alloc) {
         ByteBuffer mOutBuffer;
         allocation = alloc;
-        if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = Allocator.allocate(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
+        if(alloc == GLDrawParams.Allocate.Direct) mOutBuffer = Allocator.allocate(size.x * size.y * glFormat.bytesPerPixel());
         else
-            mOutBuffer = ByteBuffer.allocate(size.x * size.y * glFormat.mFormat.mSize * glFormat.mChannels);
+            mOutBuffer = ByteBuffer.allocate(size.x * size.y * glFormat.bytesPerPixel());
         return drawBlocksToOutput(size,glFormat,mOutBuffer);
     }
 
@@ -436,7 +436,7 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
         glBindFramebuffer(GL_FRAMEBUFFER, bindFB[0]);
         checkEglError("glBindFramebuffer");
         GLES30.glPixelStorei(GLES30.GL_PACK_ALIGNMENT, 1);
-        int bytes = glFormat.mFormat.mSize * glFormat.mChannels;
+        int bytes = glFormat.bytesPerPixel();
         int need = size.x * mTileSize * bytes;
         if (mBlockBuffer == null || mBlockBuffer.capacity() < need) {
             mBlockBuffer = ByteBuffer.allocateDirect(need);
@@ -459,12 +459,12 @@ public class GLCoreBlockProcessing extends GLContext implements AutoCloseable {
             glReadPixels(0, 0, size.x, height, glFormat.getGLFormatExternal(), readbackType(glFormat), mBlockBuffert);
             checkEglError("glReadPixels");
             if (height < mTileSize) {
-                byte[] data = new byte[size.x * height * glFormat.mFormat.mSize * glFormat.mChannels];
+                byte[] data = new byte[size.x * height * glFormat.bytesPerPixel()];
                 mBlockBuffert.get(data);
                 mOutBuffer.put(data);
             } else {
                 int lim = mBlockBuffert.limit();
-                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * mTileSize * glFormat.mFormat.mSize * glFormat.mChannels));
+                mOutBuffer.put((ByteBuffer) mBlockBuffert.limit(size.x * mTileSize * glFormat.bytesPerPixel()));
                 mBlockBuffert.limit(lim);
             }
         }

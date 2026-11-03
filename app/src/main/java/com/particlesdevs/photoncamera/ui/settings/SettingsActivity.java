@@ -528,6 +528,26 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         PreferenceKeys.setHeicSave(false);
                     }
                 }
+                Preference heic10BitPref = findPreference(
+                        mContext.getString(R.string.pref_save_heic_10bit_key));
+                if (heic10BitPref != null) {
+                    boolean heic = supported && PreferenceKeys.isHeicSave();
+                    boolean tenBit = heic
+                            && com.particlesdevs.photoncamera.processing.encoder.HeicSupport
+                                    .isHeic10BitSupported();
+                    heic10BitPref.setVisible(heic);
+                    heic10BitPref.setEnabled(tenBit);
+                    heic10BitPref.setSummary(tenBit
+                            ? R.string.save_heic_10bit_summary
+                            : R.string.save_heic_10bit_unsupported_summary);
+                    if (!tenBit && PreferenceKeys.isHeic10Bit()) {
+                        PreferenceKeys.setHeic10Bit(false);
+                        if (heic10BitPref instanceof androidx.preference.TwoStatePreference) {
+                            ((androidx.preference.TwoStatePreference) heic10BitPref)
+                                    .setChecked(false);
+                        }
+                    }
+                }
                 androidx.preference.ListPreference savePref = findPreference(
                         mContext.getString(R.string.pref_save_raw_key));
                 if (savePref != null) {

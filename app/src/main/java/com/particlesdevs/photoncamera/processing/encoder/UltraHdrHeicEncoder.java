@@ -15,18 +15,26 @@ import java.nio.file.Path;
  * Ultra HDR HEIC encode (API 34+ only).
  *
  * <p>Takes the same {@link GainMapComputer.Result} as the JPEG path, encodes
- * the SDR base and the gain map with {@link StillHeicEncoder} into temp files
- * (both 8-bit), then muxes them with {@link UltraHdrHeicContainer} (manual
- * BMFF, no native dependency). The gain map is full-size and encoded at the
- * same depth as the base, so its declared {@code pixi} matches the stream.
- * Any failure throws so callers fall back to SDR HEIC — a mux bug can never
- * lose a shot.
+ * the SDR base and the gain map with {@link StillHeicEncoder} into temp files,
+ * then muxes them with {@link UltraHdrHeicContainer} (manual BMFF, no native
+ * dependency). The base follows the pipeline sink (8-bit, or 10-bit Main10
+ * when that option is enabled); the gain map always stays 8-bit. The gain map
+ * is full-size and its declared {@code pixi} matches its own stream. Any
+ * failure throws so callers fall back to SDR HEIC — a mux bug can never lose a
+ * shot.
  */
 public final class UltraHdrHeicEncoder {
 
     private static final String TAG = "UltraHdrHeicEncoder";
 
     private UltraHdrHeicEncoder() {}
+
+    /** True when the pipeline produced a packed 10-bit RGBA bitmap. */
+    private static boolean isTenBit(Bitmap bitmap) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && bitmap != null && bitmap.getConfig() != null
+                && "RGBA_1010102".equals(bitmap.getConfig().name());
+    }
 
     /**
      * SDR base encode running on a worker thread. Independent of the gain map,
@@ -49,9 +57,11 @@ public final class UltraHdrHeicEncoder {
 
         private void run() {
             try {
-                // Base: Exif is injected by the merge.
+                // Base: Exif is injected by the merge. A 10-bit pipeline sink
+                // takes the Main10 path; the gain map remains 8-bit.
                 StillHeicEncoder.encodeToFile(baseTmp.toPath(), sdr,
-                        sdr.getWidth(), sdr.getHeight(), null, false, false);
+                        sdr.getWidth(), sdr.getHeight(), null, false, false,
+                        isTenBit(sdr));
             } catch (Throwable t) {
                 error = t;
             }
@@ -232,6 +242,7 @@ public final class UltraHdrHeicEncoder {
             in.gainMapMax = gain.gainMapMax;
             in.hdrCapacityMax = gain.hdrCapacityMax;
             in.displayP3 = displayP3;
+            in.baseTenBit = isTenBit(sdr);
             in.exifPayload = ExifBlob.fromExifData(exif);
             if (in.exifPayload != null) {
                 Log.d(TAG, "HEIC EXIF blob: " + in.exifPayload.length + " bytes"
@@ -250,7 +261,7 @@ public final class UltraHdrHeicEncoder {
             // Structural verify before writing: parses the boxes we just
             // assembled (layout + primary ispe) without ImageDecoder, whose
             // abort path could still decode the whole image.
-            int[] primary = UltraHdrHeicContainer.primarySize(merged);
+            int[] primary = UltraHdrHeicContainer.displaySize(merged);
             if (primary[0] != sdr.getWidth() || primary[1] != sdr.getHeight()) {
                 throw new IllegalStateException("merged HEIC dimensions "
                         + primary[0] + "x" + primary[1]

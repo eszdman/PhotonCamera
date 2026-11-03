@@ -68,6 +68,7 @@ public class PreferenceKeys {
         COMMON_KEYS.add(Key.KEY_FPS_PREVIEW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_RAW.mValue);
         COMMON_KEYS.add(Key.KEY_SAVE_HEIC.mValue);
+        COMMON_KEYS.add(Key.KEY_SAVE_HEIC_10BIT.mValue);
         COMMON_KEYS.add(Key.KEY_DISPLAY_P3.mValue);
         COMMON_KEYS.add(Key.KEY_ZOOM_LOCK.mValue);
         COMMON_KEYS.add(Key.KEY_AUTO_ZOOM_SWITCH.mValue);
@@ -115,6 +116,7 @@ public class PreferenceKeys {
 
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_HDRX, resources.getBoolean(R.bool.pref_hdrx_mode_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC, resources.getBoolean(R.bool.pref_save_heic_default));
+        settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC_10BIT, resources.getBoolean(R.bool.pref_save_heic_10bit_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_DISPLAY_P3, resources.getBoolean(R.bool.pref_display_p3_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_EIS_PHOTO, resources.getBoolean(R.bool.pref_eis_photo_default));
         settingsManager.setInitial(SCOPE_GLOBAL, Key.KEY_ZOOM_LOCK, resources.getBoolean(R.bool.pref_zoom_lock_default));
@@ -384,6 +386,15 @@ public class PreferenceKeys {
         return getBool(Key.KEY_SAVE_HEIC);
     }
 
+    /**
+     * True when the user opted into a 10-bit Main10 HEIC base. Only meaningful
+     * while {@link #isHeicSave()} is on; the encoder still probes the codec
+     * and falls back to 8-bit when the candidate is unavailable.
+     */
+    public static boolean isHeic10Bit() {
+        return getBool(Key.KEY_SAVE_HEIC_10BIT);
+    }
+
     /** True when stills should be rendered and tagged as Display P3. */
     public static boolean isDisplayP3On() {
         return getBool(Key.KEY_DISPLAY_P3);
@@ -415,6 +426,10 @@ public class PreferenceKeys {
 
     public static void setHeicSave(boolean value) {
         preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC,value);
+    }
+
+    public static void setHeic10Bit(boolean value) {
+        preferenceKeys.settingsManager.set(SCOPE_GLOBAL, Key.KEY_SAVE_HEIC_10BIT, value);
     }
 
     public static void setDisplayP3(boolean value) {
@@ -1218,6 +1233,7 @@ public class PreferenceKeys {
         KEY_SHOW_HORIZON(R.string.pref_horizon),
         KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SAVE_HEIC(R.string.pref_save_heic_key),
+        KEY_SAVE_HEIC_10BIT(R.string.pref_save_heic_10bit_key),
         KEY_DISPLAY_P3(R.string.pref_display_p3_key),
         KEY_CFA(R.string.pref_cfa_key),
         KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
