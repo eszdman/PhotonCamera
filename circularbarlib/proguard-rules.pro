@@ -26,9 +26,12 @@
 -keep class com.particlesdevs.photoncamera.circularbarlib.control.ManualParamModel{
     public *;
 }
-# The app module references these implementation classes directly (back-press
-# observer, shared M3 motion tokens), so they must survive release shrinking
-# with their original names.
+-keep class com.particlesdevs.photoncamera.circularbarlib.camera.** {
+    *;
+}
+# The app module references these implementation classes directly (slider
+# strips, back-press observer, shared M3 motion tokens), so they must survive
+# release shrinking with their original names.
 -keep class com.particlesdevs.photoncamera.circularbarlib.console.** {
     *;
 }
@@ -39,12 +42,15 @@
     *;
 }
 
-# The app drives the palette bubble's dome grow/collapse animation and reads
-# the drawable's live geometry for the preview blur mask, so these UI classes
-# are also referenced from the app module and must keep their names.
+# The app drives the palette scrim and slider strips and reads the drawable's
+# geometry for the preview blur mask, so these UI classes are also referenced
+# from the app module and must keep their names.
 -keep class com.particlesdevs.photoncamera.circularbarlib.ui.Binding {
     public *;
 }
 -keep class com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualPaletteBackground {
     public *;
+}
+-keep class com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.** {
+    *;
 }

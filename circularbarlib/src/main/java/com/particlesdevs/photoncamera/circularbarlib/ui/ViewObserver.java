@@ -10,9 +10,10 @@ import android.widget.RelativeLayout;
 import android.widget.TextView;
 
 import com.particlesdevs.photoncamera.circularbarlib.R;
-import com.particlesdevs.photoncamera.circularbarlib.model.KnobModel;
 import com.particlesdevs.photoncamera.circularbarlib.model.ManualModeModel;
-import com.particlesdevs.photoncamera.circularbarlib.ui.views.knobview.KnobView;
+import com.particlesdevs.photoncamera.circularbarlib.model.SliderModel;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.ManualOptionTextView;
+import com.particlesdevs.photoncamera.circularbarlib.ui.views.slider.ManualSliderView;
 
 import java.util.Arrays;
 import java.util.List;
@@ -23,9 +24,13 @@ import java.util.Observer;
  * Created by vibhorSrv
  */
 public class ViewObserver implements Observer {
+    /** Untouched EV compensation (no live readout exists for it). */
+    private static final String EV_UNTOUCHED_TEXT = "0";
+
     private final Activity activity;
     private final RelativeLayout manualMode;
-    private final KnobView knobView;
+    private final ManualSliderView primarySlider;
+    private final ManualSliderView secondarySlider;
     private final TextView isoOption;
     private final TextView expOption;
     private final TextView evOption;
@@ -34,6 +39,7 @@ public class ViewObserver implements Observer {
     private final List<TextView> textViews;
     private final OrientationEventListener orientationEventListener;
     private final LinearLayout buttonsContainer;
+    private final String autoLabel;
     private int rotation = 0;
 
 
@@ -41,13 +47,15 @@ public class ViewObserver implements Observer {
         this.activity = activity;
         manualMode = findViewById(R.id.manual_mode);
         buttonsContainer = findViewById(R.id.buttons_container);
-        knobView = findViewById(R.id.knobView);
+        primarySlider = findViewById(R.id.primarySlider);
+        secondarySlider = findViewById(R.id.secondarySlider);
         isoOption = findViewById(R.id.iso_option_tv);
         expOption = findViewById(R.id.exposure_option_tv);
         evOption = findViewById(R.id.ev_option_tv);
         focusOption = findViewById(R.id.focus_option_tv);
         wbOption = findViewById(R.id.wb_option_tv);
         textViews = Arrays.asList(isoOption, evOption, expOption, focusOption, wbOption);
+        autoLabel = activity.getString(R.string.manual_mode_auto);
         orientationEventListener = new OrientationEventListener(activity.getBaseContext()) {
             private static final int ROT_DUR = 350;
             private int prevOrientation = OrientationEventListener.ORIENTATION_UNKNOWN;
@@ -76,7 +84,7 @@ public class ViewObserver implements Observer {
                 if (prevOrientation != currentOrientation && orientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
                     prevOrientation = currentOrientation;
                     if (currentOrientation != OrientationEventListener.ORIENTATION_UNKNOWN) {
-                        Binding.rotateKnobView(knobView, rotation);
+                        // Slider strips stay horizontal; only the option labels rotate.
                         Binding.rotateManualOptionContent(buttonsContainer, rotation, ROT_DUR);
                     }
                 }
@@ -101,6 +109,18 @@ public class ViewObserver implements Observer {
     }
 
     /**
+     * Applies the composed label text and the touched (manual) marker. The
+     * marker is drawn by {@link ManualOptionTextView}, never embedded in the
+     * string, so the centered value does not shift.
+     */
+    private void setAutoValue(TextView view, String baseText, String autoValue) {
+        view.setText(AutoValueComposer.compose(baseText, autoValue, autoLabel));
+        if (view instanceof ManualOptionTextView) {
+            ((ManualOptionTextView) view).setTouched(AutoValueComposer.isTouched(baseText, autoLabel));
+        }
+    }
+
+    /**
      * The selection pill is the background of the (unrotated) cell around the
      * label, so the cell mirrors the label's selected state.
      */
@@ -112,8 +132,8 @@ public class ViewObserver implements Observer {
     }
 
     /**
-     * The remembered control (inner ruler) mirrors its label's activated state
-     * onto the cell, where the same pill draws as a thin ring.
+     * The remembered control (upper slider row) mirrors its label's activated
+     * state onto the cell, where the same pill draws as a thin ring.
      */
     private void setOptionRemembered(TextView textView, boolean remembered) {
         textView.setActivated(remembered);
@@ -126,18 +146,21 @@ public class ViewObserver implements Observer {
     @Override
     public void update(Observable o, Object arg) {
         if (o != null && arg != null) {
-            if (o instanceof KnobModel) {
-                KnobModel knobModel = (KnobModel) o;
-                switch ((KnobModel.KnobModelFields) arg) {
+            if (o instanceof SliderModel) {
+                SliderModel sliderModel = (SliderModel) o;
+                SliderModel.SliderModelFields field = (SliderModel.SliderModelFields) arg;
+                switch (field) {
                     case RESET:
-                        Binding.resetKnob(knobView, knobModel.isKnobResetCalled());
+                        Binding.resetSlider(primarySlider, sliderModel.isResetCalled());
                         break;
                     case VISIBILITY:
-                        Binding.setKnobVisibility(manualMode, knobView, knobModel.isKnobVisible());
+                        Binding.setSliderVisibility(manualMode, primarySlider, secondarySlider,
+                                sliderModel.isSliderVisible());
                         break;
                     case MANUAL_MODEL:
                     case SECONDARY_MODEL:
-                        Binding.setModelToKnob(knobView, knobModel.getManualModel(), knobModel.getSecondaryManualModel());
+                        Binding.setModelToSlider(primarySlider, secondarySlider, manualMode,
+                                sliderModel.getManualModel(), sliderModel.getSecondaryManualModel());
                         break;
                 }
             }
@@ -145,19 +168,29 @@ public class ViewObserver implements Observer {
                 ManualModeModel manualModeModel = (ManualModeModel) o;
                 switch ((ManualModeModel.ManualModelFields) arg) {
                     case EV_TEXT:
-                        evOption.setText(manualModeModel.getEvText());
+                        // EV has no live readout: untouched shows 0, a touched
+                        // value gets the dot marker.
+                        setAutoValue(evOption, manualModeModel.getEvText(), EV_UNTOUCHED_TEXT);
                         break;
                     case EXP_TEXT:
-                        expOption.setText(manualModeModel.getExposureText());
+                    case EXP_AUTO_TEXT:
+                        setAutoValue(expOption, manualModeModel.getExposureText(),
+                                manualModeModel.getExposureAutoText());
                         break;
                     case ISO_TEXT:
-                        isoOption.setText(manualModeModel.getIsoText());
+                    case ISO_AUTO_TEXT:
+                        setAutoValue(isoOption, manualModeModel.getIsoText(),
+                                manualModeModel.getIsoAutoText());
                         break;
                     case FOCUS_TEXT:
-                        focusOption.setText(manualModeModel.getFocusText());
+                    case FOCUS_AUTO_TEXT:
+                        setAutoValue(focusOption, manualModeModel.getFocusText(),
+                                manualModeModel.getFocusAutoText());
                         break;
                     case WB_TEXT:
-                        wbOption.setText(manualModeModel.getWbText());
+                    case WB_AUTO_TEXT:
+                        setAutoValue(wbOption, manualModeModel.getWbText(),
+                                manualModeModel.getWbAutoText());
                         break;
                     case EV_LISTENER:
                         evOption.setOnClickListener(manualModeModel.getEvTextClicked());

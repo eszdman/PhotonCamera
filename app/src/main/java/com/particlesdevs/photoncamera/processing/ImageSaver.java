@@ -123,8 +123,13 @@ public class ImageSaver {
     }
 
     public static class Util {
-        public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality, ParseExif.ExifData exifData) {
+        public static boolean saveBitmapAsJPG(Path fileToSave, Bitmap img, int jpgQuality,
+                ParseExif.ExifData exifData, boolean displayP3) {
             exifData.COMPRESSION = String.valueOf(jpgQuality);
+            if (displayP3) {
+                exifData.COLOR_SPACE =
+                        String.valueOf(ExifInterface.COLOR_SPACE_UNCALIBRATED);
+            }
             if (img != null && !img.isRecycled()) {
                 exifData.IMAGE_WIDTH = String.valueOf(img.getWidth());
                 exifData.IMAGE_LENGTH = String.valueOf(img.getHeight());
@@ -137,6 +142,12 @@ public class ImageSaver {
                 img.recycle();
                 ExifInterface inter = ParseExif.setAllAttributes(fileToSave.toFile(), exifData);
                 inter.saveAttributes();
+                if (displayP3) {
+                    // Inject after ExifInterface rewrites the file so the ICC
+                    // APP2 segment cannot be dropped by the EXIF writer.
+                    com.particlesdevs.photoncamera.processing.encoder.JpegColorProfile
+                            .ensureDisplayP3(fileToSave);
+                }
                 return true;
             } catch (IOException e) {
                 e.printStackTrace();

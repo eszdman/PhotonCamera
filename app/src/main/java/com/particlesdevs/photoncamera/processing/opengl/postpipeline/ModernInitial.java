@@ -6,7 +6,6 @@ import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
-import com.particlesdevs.photoncamera.processing.render.ColorCorrectionTransform;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.BufferUtils;
 
@@ -19,8 +18,8 @@ import static android.opengl.GLES20.GL_LINEAR;
  * Modern replacement for {@link Initial}. One fixed path, no selector-driven
  * variants inside the node:
  * linear input -&gt; adaptive white point division -&gt; color transform
- * (sensor -&gt; wide gamut -&gt; sRGB matrices) -&gt; lens-shading gain map
- * Reinhard highlight compression -&gt; sRGB encode -&gt; OEM-style saturation
+ * (sensor -&gt; wide gamut -&gt; sRGB/Display P3 matrices) -&gt; lens-shading gain map
+ * Reinhard highlight compression -&gt; sRGB OETF -&gt; OEM-style saturation
  * -&gt; contrast/shadows S-curve -&gt; AE exposure curve.
  * No fusion maps, correction cubes, HSV/Look maps, LUTs or fitted
  * gamma/tonemap polynomials.
@@ -87,10 +86,7 @@ public class ModernInitial extends Node {
             glProg.setDefine("LOOKUP", 1);
         glProg.useAssetProgram("Initial/modern");
 
-        float[] cct = basePipeline.mParameters.CCT.matrix;
-        if(basePipeline.mParameters.CCT.correctionMode == ColorCorrectionTransform.CorrectionMode.MATRIXES){
-            cct = basePipeline.mParameters.CCT.combineMatrix(basePipeline.mParameters.whitePoint);
-        }
+        float[] cct = ((PostPipeline) basePipeline).getDisplayTransform().matrix();
         Log.d(Name,"sensorToIntermediate: "+ Arrays.toString(basePipeline.mParameters.sensorToProPhoto));
         glProg.setVar("sensorToIntermediate",basePipeline.mParameters.sensorToProPhoto);
         Log.d(Name,"intermediateToSRGB: "+ Arrays.toString(cct));
@@ -117,5 +113,15 @@ public class ModernInitial extends Node {
         // "new" tone path cannot run to compare against. Branch kept so a
         // future driver treats it uniformly (LUT render, halo 0).
         WorkingTexture = tileActive() ? tileOut : basePipeline.getMain();
+    }
+
+    @Override
+    public void postDrawOracle() {
+        // Deferred draw, no oracle: the draw consumed the input, and nothing
+        // downstream reads it (see TileDriver.releaseConsumedInput; ~1.16 GB
+        // at a 144.5 MP output).
+        if (!((PostPipeline) basePipeline).debugTiledCompare) {
+            TileDriver.releaseConsumedInput(basePipeline, super.previousNode.WorkingTexture, WorkingTexture);
+        }
     }
 }

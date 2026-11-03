@@ -51,6 +51,41 @@ vec4 robustWeight(vec4 w){
 #define SIG_ABS 0.6027980    // sqrt(1 - 2/pi): std|X|
 #define SQRT2   1.41421356   // Var(r^2) = 2*sigma^4 for Gaussian r
 #define GATE_SENSITIVITY 2.5 // reject at this many statistic-sigmas (higher = merge more)
+
+// Kernel-weighted moments accumulated over the 11x11 window.
+struct CombineMoments {
+    vec4 diff2;      // weighted sum of |diff| per channel (signed, output candidate)
+    vec4 diffAbs;    // weighted sum of |diff - bayer|
+    vec4 diffSigned; // weighted sum of (diff - bayer)
+    vec4 energy;     // weighted sum of (diff - bayer)^2
+    vec4 z;          // weight sum per channel (greens split across g/b)
+    vec4 z2;         // squared weight sum per channel
+};
+
+// One weighted tap: loads the diff, forms the residual against the caller's
+// bayer source and folds it into the six moment accumulators. The caller owns
+// the bayer fetch (and the mirror-tap weight swap), so mirrored pairs can
+// share one exp() triplet without changing any per-tap value.
+void addTap(inout CombineMoments acc, ivec2 diffPos, vec4 bayer,
+            float w, float wg, float wb) {
+    vec4 neighborDiff = imageLoad(diffTexture, diffPos);
+    vec4 r = neighborDiff - bayer;
+    vec4 rAbs = abs(r);
+    acc.diff2 += vec4(
+            neighborDiff.r * w,
+            neighborDiff.g * w + neighborDiff.b * wg,
+            neighborDiff.b * w + neighborDiff.g * wb,
+            neighborDiff.a * w);
+    acc.diffAbs += vec4(rAbs.r * w, rAbs.g * w + rAbs.b * wg,
+                        rAbs.b * w + rAbs.g * wb, rAbs.a * w);
+    acc.diffSigned += vec4(r.r * w, r.g * w + r.b * wg,
+                           r.b * w + r.g * wb, r.a * w);
+    acc.energy += vec4(r.r * r.r * w, r.g * r.g * w + r.b * r.b * wg,
+                       r.b * r.b * w + r.g * r.g * wb, r.a * r.a * w);
+    acc.z += vec4(w, w + wg, w + wb, w);
+    acc.z2 += vec4(w * w, w * w + wg * wg, w * w + wb * wb, w * w);
+}
+
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     vec4 kernelParams = texture(kernelsMap, vec2(xy) / vec2(2.0 * vec2(textureSize(kernelsMap, 0)))).rgba;
@@ -66,12 +101,13 @@ void main() {
     //ivec2 flow = ivec2(0);
     vec4 diff = imageLoad(diffTexture, xy + flow);
     //vec4 bayer = getBayerVec(xy*2, inTex);
-    vec4 Z = vec4(0.001);
-    vec4 Z2 = vec4(0.001);
-    vec4 localDiff = vec4(0.0);
-    vec4 localDiffSigned = vec4(0.0);
-    vec4 localEnergy = vec4(0.0);
-    vec4 localDiff2 = vec4(0.001 * diff);
+    CombineMoments acc;
+    acc.z = vec4(0.001);
+    acc.z2 = vec4(0.001);
+    acc.diffAbs = vec4(0.0);
+    acc.diffSigned = vec4(0.0);
+    acc.energy = vec4(0.0);
+    acc.diff2 = vec4(0.001 * diff);
     //vec4 exposure1 = vec4(0.0);
     vec4 exposure2 = vec4(0.0);
     for(int i = -5; i <= 5; i++) {
@@ -88,46 +124,51 @@ void main() {
     exposure2 /= 121.0;
     vec4 meanMain = exposure2;
 
-    for(float i = -5.0; i <= 5.0; i+=1.0) {
-        float qi = c * i * i;
-        for(float j = -5.0; j <= 5.0; j+=1.0) {
-            ivec2 offset = ivec2(i, j);
-            // Local-translation assumption: the block selected at the center
-            // applies to the whole combine window.
-            vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
-            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
-            //if(any(greaterThan(neighborDiff, vec4(exposure*0.99)))) {
-            //    continue; // skip overexposed pixels
-            //}
-            float q = qi + 2.0 * b * i * j + a * j * j;
+    // The Gaussian weight q(i,j) = c*i^2 + 2*b*i*j + a*j^2 is even in (i,j),
+    // and the half-texel green weights mirror into each other
+    // (wg(i,j) = wb(-i,-j), wb(i,j) = wg(-i,-j)). Process each unordered pair
+    // once: one exp() triplet is shared by both taps, with the green weights
+    // swapped on the mirror tap. Negative operands negate exactly in IEEE, so
+    // the shared weights are bit-identical to the originals; only the
+    // accumulation order of the 121 terms changes.
+    //
+    // Green quincunx convolution: each tap contributes BOTH of its greens to
+    // both green outputs - [1] weighted by the kernel around the [1] sites
+    // (integer offsets, same as R/B), [2] by the kernel around the [2] sites,
+    // which sit half a texel anti-diagonal from [1] so their taps land shifted.
+    //
+    // Local-translation assumption: the block selected at the center applies
+    // to the whole combine window.
+    // Adapted to the fp16-normalized pipeline (no blendFactor mix): the bayer
+    // source is the already-normalized imageLoad, as on HEAD.
+    for (int i = -5; i <= 5; i++) {
+        for (int j = -5; j <= 5; j++) {
+            if (i > 0 || (i == 0 && j > 0)) continue; // mirror pair handled below
+            float fi = float(i), fj = float(j);
+            float q = c * fi * fi + 2.0 * b * fi * fj + a * fj * fj;
             float w = exp(-1.0 * q);
-            vec4 r = neighborDiff - neighborBayer;
-            vec4 rAbs = abs(r);
-            // Green quincunx convolution: each tap contributes BOTH of its
-            // greens to both green outputs - [1] weighted by the kernel
-            // around the [1] sites (integer offsets, same as R/B), [2] by
-            // the kernel around the [2] sites, which sit half a texel
-            // anti-diagonal from [1] so their taps land shifted.
-            float u = i - 0.5, v = j + 0.5;
+            float u = fi - 0.5, v = fj + 0.5;
             float wg = exp(-(c * u * u + 2.0 * b * u * v + a * v * v));
-            u = i + 0.5; v = j - 0.5;
+            u = fi + 0.5; v = fj - 0.5;
             float wb = exp(-(c * u * u + 2.0 * b * u * v + a * v * v));
-            localDiff2 += vec4(
-            neighborDiff.r * w,
-            neighborDiff.g * w + neighborDiff.b * wg,
-            neighborDiff.b * w + neighborDiff.g * wb,
-            neighborDiff.a * w);
-            localDiff += vec4(rAbs.r * w, rAbs.g * w + rAbs.b * wg, rAbs.b * w + rAbs.g * wb, rAbs.a * w);
-            localDiffSigned += vec4(r.r * w, r.g * w + r.b * wg, r.b * w + r.g * wb, r.a * w);
-            localEnergy += vec4(r.r * r.r * w, r.g * r.g * w + r.b * r.b * wg,
-            r.b * r.b * w + r.g * r.g * wb, r.a * r.a * w);
-            Z += vec4(w, w + wg, w + wb, w);
-            // Squared weight sums per channel: the quincunx greens mix two
-            // independent samples (r.g*w, r.b*wg), so their variances add
-            // without a cross term.
-            Z2 += vec4(w*w, w*w + wg*wg, w*w + wb*wb, w*w);
+            ivec2 offset = ivec2(i, j);
+            addTap(acc, xy + offset + flow,
+                   imageLoad(inTexture, xy + offset),
+                   w, wg, wb);
+            if (i != 0 || j != 0) {
+                ivec2 moffset = ivec2(-i, -j);
+                addTap(acc, xy + moffset + flow,
+                       imageLoad(inTexture, xy + moffset),
+                       w, wb, wg);
+            }
         }
     }
+    vec4 Z = acc.z;
+    vec4 Z2 = acc.z2;
+    vec4 localDiff = acc.diffAbs;
+    vec4 localDiffSigned = acc.diffSigned;
+    vec4 localEnergy = acc.energy;
+    vec4 localDiff2 = acc.diff2;
     // Kernel-weighted statistics, normalized by the per-channel weight sum.
     // invEff = sqrt(Z2)/Z ~ 1/sqrt(effective tap count) is each statistic's
     // noise-reduction factor, so the standardized t-values below keep the

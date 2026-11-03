@@ -24,6 +24,7 @@ import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModel;
 
 import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingType;
 import com.particlesdevs.photoncamera.ui.camera.model.SettingsBarButtonModel;
@@ -39,6 +40,7 @@ public class SettingsBarEntryProvider extends ViewModel {
     private final SettingsBarEntryModel timerEntry = SettingsBarEntryModel.newEntry(R.id.timer_entry_layout, R.string.countdown_timer, SettingType.TIMER);
     private final SettingsBarEntryModel quadEntry = SettingsBarEntryModel.newEntry(R.id.quad_entry_layout, R.string.quad_bayer_toggle_text, SettingType.QUAD);
     private final SettingsBarEntryModel fpsEntry = SettingsBarEntryModel.newEntry(R.id.fps_entry_layout, R.string.fps_60_toggle_text, SettingType.FPS_60);
+    private final SettingsBarEntryModel videoHdrEntry = SettingsBarEntryModel.newEntry(R.id.video_hdr_entry_layout, R.string.video_hdr, SettingType.VIDEO_HDR);
     private final SettingsBarEntryModel flashEntry = SettingsBarEntryModel.newEntry(R.id.flash_entry_layout, R.string.flash, SettingType.FLASH);
     private final SettingsBarEntryModel gridEntry = SettingsBarEntryModel.newEntry(R.id.grid_entry_layout, R.string.turn_on_grid, SettingType.GRID);
     private final SettingsBarEntryModel eisEntry = SettingsBarEntryModel.newEntry(R.id.eis_entry_layout, R.string.eis_toggle_text, SettingType.EIS);
@@ -58,6 +60,7 @@ public class SettingsBarEntryProvider extends ViewModel {
         allEntries.add(quadEntry);
         allEntries.add(eisEntry);
         allEntries.add(fpsEntry);
+        allEntries.add(videoHdrEntry);
         allEntries.add(gridEntry);
         allEntries.add(batterySaverEntry);
         allEntries.add(bracketingEntry);
@@ -70,6 +73,7 @@ public class SettingsBarEntryProvider extends ViewModel {
         createEisEntry();
         createFlashEntry();
         createFpsEntry();
+        createVideoHdrEntry();
         createTimerEntry();
         createSaveRawEntry();
         createGridEntry();
@@ -85,7 +89,9 @@ public class SettingsBarEntryProvider extends ViewModel {
         updateEntry(timerEntry, PreferenceKeys.getCountdownTimerIndex());
         updateEntry(hdrxEntry, PreferenceKeys.isHdrXOn());
         updateEntry(eisEntry, PreferenceKeys.isEisPhotoOn());
-        updateEntry(fpsEntry, PreferenceKeys.getFpsMode());
+        updateEntry(fpsEntry, PreferenceKeys.getFpsModeForMode(
+                PhotonCamera.getSettings().selectedMode));
+        updateEntry(videoHdrEntry, PreferenceKeys.isVideoHdr());
         updateEntry(quadEntry, PreferenceKeys.isQuadBayerOn());
         if (PreferenceKeys.isHeicSave() != saveLabelsHeic) {
             // Toggle flipped since the buttons were built (e.g. changed in
@@ -108,8 +114,11 @@ public class SettingsBarEntryProvider extends ViewModel {
     }
 
     public void addEntries(SettingsBarLayout settingsBarLayout) {
-        settingsBarLayout.removeEntries();
-        allEntries.forEach(settingsBarLayout::addEntry);
+        // Reuse the entries already in the panel: recreating them churned every
+        // entry view and option button, which reset the rows' selection pills
+        // (they snapped instead of sliding) and made an open pulldown fade its
+        // rows out and back in.
+        allEntries.forEach(settingsBarLayout::addOrUpdateEntry);
     }
 
     private void createHdrxEntry() {
@@ -173,6 +182,13 @@ public class SettingsBarEntryProvider extends ViewModel {
                 SettingsBarButtonModel.newButtonModel(R.id.fps24_button, R.drawable.fps24_select_24px, R.string.fps_24, 1, fpsEntry),
                 SettingsBarButtonModel.newButtonModel(R.id.fps30_button, R.drawable.fps30_select_24px, R.string.fps_30, 2, fpsEntry),
                 SettingsBarButtonModel.newButtonModel(R.id.fps60_button, R.drawable.fps60_select_24px, R.string.fps_60, 3, fpsEntry)
+        );
+    }
+
+    private void createVideoHdrEntry() {
+        videoHdrEntry.addSettingsBarButtonModels(
+                SettingsBarButtonModel.newButtonModel(R.id.video_hdr_off_button, R.drawable.ic_ultra_hdr_off, R.string.off, 0, videoHdrEntry),
+                SettingsBarButtonModel.newButtonModel(R.id.video_hdr_on_button, R.drawable.ic_ultra_hdr, R.string.on, 1, videoHdrEntry)
         );
     }
 

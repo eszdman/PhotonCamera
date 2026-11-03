@@ -106,7 +106,7 @@ public class UniversalSeekBarPreference extends Preference {
             seekBar.clearOnChangeListeners();
             seekBar.addOnChangeListener((slider, value, fromUser) -> {
                 if (fromUser) {
-                    vibration.Tick();
+                    vibration.sliderTick();
                     set(Math.round(value));
                 }
             });

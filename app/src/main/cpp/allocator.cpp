@@ -10,6 +10,12 @@
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "Allocator", __VA_ARGS__)
 
+// NDK r23's <android/bitmap.h> predates RGBA1010102; the platform value has
+// been stable since API 33.
+#ifndef ANDROID_BITMAP_FORMAT_RGBA_1010102
+#define ANDROID_BITMAP_FORMAT_RGBA_1010102 10
+#endif
+
 long memoryCount = 0;
 
 extern "C"
@@ -454,7 +460,8 @@ Java_com_particlesdevs_photoncamera_util_Allocator_wrapBitmap(JNIEnv *env, jclas
         LOGD("wrapBitmap: AndroidBitmap_getInfo failed");
         return nullptr;
     }
-    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888) {
+    if (info.format != ANDROID_BITMAP_FORMAT_RGBA_8888
+        && info.format != ANDROID_BITMAP_FORMAT_RGBA_1010102) {
         LOGD("wrapBitmap: unsupported format %d", info.format);
         return nullptr;
     }
@@ -494,7 +501,8 @@ static inline uint32_t maxSampleForBits(int bits) {
 // Bitstream decode helpers (defined below, used by packBits' verify block).
 static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
                          int start, int pixels, int bits, uint32_t mask);
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
+// Non-static: also used by RawF16's fused unpack+normalize (rawF16.cpp).
+void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
 
 extern "C"
 JNIEXPORT jobject JNICALL
@@ -628,8 +636,10 @@ static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out
 }
 
 // 10-bit fast path: straight-line 5-byte/4-sample groups, then scalar tail.
-// Pure integer regrouping of unpackScalar — bit-identical output.
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
+// Pure integer regrouping of unpackScalar — bit-identical output. Non-static:
+// RawF16's fused unpack+normalize reuses it per chunk (chunk starts are
+// multiples of 4 samples, so the 5-byte grouping stays aligned).
+void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
     int n4 = pixels & ~3;
     for (int i = 0, j = 0; i < n4; i += 4, j += 5) {
         uint32_t w;
@@ -741,6 +751,97 @@ Java_com_particlesdevs_photoncamera_util_Allocator_rgbaToYuv420Tile(
                     (uint8_t) clamp8(Cb);
             vPlane[(size_t) cy * vRowStride + (size_t) cc * vPixelStride] =
                     (uint8_t) clamp8(Cr);
+        }
+    }
+}
+
+// Converts one tile of tightly packed RGBA8888 or RGBA1010102 into 10-bit
+// P010 full-range BT.709. P010 is written as 16-bit words with the 10-bit
+// sample in the high bits: Y plane pixel stride 2, interleaved UV stride 4.
+// Edge tiles replicate the last valid row/column so the encoder's 512-grid
+// padding is initialized rather than reading stale heap memory.
+extern "C"
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_util_Allocator_rgbaToP010Tile(
+        JNIEnv *env, jclass clazz, jobject srcBuffer, jboolean src10Bit,
+        jint fullWidth, jint fullHeight,
+        jint tileX, jint tileY, jint tileWidth, jint tileHeight,
+        jobject yBuffer, jint yRowStride, jint yPixelStride,
+        jobject uBuffer, jint uvRowStride, jint uPixelStride,
+        jobject vBuffer, jint vRowStride, jint vPixelStride) {
+    const uint8_t *src = static_cast<const uint8_t *>(env->GetDirectBufferAddress(srcBuffer));
+    uint8_t *yPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(yBuffer));
+    uint8_t *uPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(uBuffer));
+    uint8_t *vPlane = static_cast<uint8_t *>(env->GetDirectBufferAddress(vBuffer));
+    if (src == nullptr || yPlane == nullptr || uPlane == nullptr || vPlane == nullptr) {
+        LOGD("rgbaToP010Tile: null buffer");
+        return;
+    }
+    jlong srcCap = env->GetDirectBufferCapacity(srcBuffer);
+    if (fullWidth <= 0 || fullHeight <= 0 || tileWidth <= 0 || tileHeight <= 0
+        || srcCap < (jlong) fullWidth * fullHeight * 4) {
+        LOGD("rgbaToP010Tile: bad size %dx%d tile %dx%d cap=%lld",
+             fullWidth, fullHeight, tileWidth, tileHeight, (long long) srcCap);
+        return;
+    }
+    auto clampCoord = [](int v, int max) { return v < max ? v : max - 1; };
+    auto clamp10 = [](int v) { return v < 0 ? 0 : (v > 1023 ? 1023 : v); };
+    auto readRgb = [src10Bit](const uint8_t *p, int *r, int *g, int *b) {
+        if (src10Bit) {
+            uint32_t word;
+            memcpy(&word, p, sizeof(word));
+            *r = (int) (word & 0x3FF);
+            *g = (int) ((word >> 10) & 0x3FF);
+            *b = (int) ((word >> 20) & 0x3FF);
+        } else {
+            // 8-bit to 10-bit: bit-replication preserves black/white exactly.
+            *r = (p[0] << 2) | (p[0] >> 6);
+            *g = (p[1] << 2) | (p[1] >> 6);
+            *b = (p[2] << 2) | (p[2] >> 6);
+        }
+    };
+
+    for (int r = 0; r < tileHeight; r++) {
+        const int sy = clampCoord(tileY + r, fullHeight);
+        const uint8_t *row = src + (size_t) sy * fullWidth * 4;
+        uint8_t *yRow = yPlane + (size_t) r * yRowStride;
+        for (int c = 0; c < tileWidth; c++) {
+            const int sx = clampCoord(tileX + c, fullWidth);
+            int R, G, B;
+            readRgb(row + (size_t) sx * 4, &R, &G, &B);
+            const int Y = (54 * R + 183 * G + 18 * B + 128) >> 8;
+            uint16_t *out = reinterpret_cast<uint16_t *>(
+                    yRow + (size_t) c * yPixelStride);
+            out[0] = (uint16_t) ((clamp10(Y)) << 6);
+        }
+    }
+
+    for (int r = 0; r < tileHeight; r += 2) {
+        const int sy0 = clampCoord(tileY + r, fullHeight);
+        const int sy1 = clampCoord(tileY + r + 1, fullHeight);
+        const uint8_t *row0 = src + (size_t) sy0 * fullWidth * 4;
+        const uint8_t *row1 = src + (size_t) sy1 * fullWidth * 4;
+        const int cy = r / 2;
+        for (int c = 0; c < tileWidth; c += 2) {
+            const int sx0 = clampCoord(tileX + c, fullWidth);
+            const int sx1 = clampCoord(tileX + c + 1, fullWidth);
+            int r00, g00, b00, r01, g01, b01, r10, g10, b10, r11, g11, b11;
+            readRgb(row0 + (size_t) sx0 * 4, &r00, &g00, &b00);
+            readRgb(row0 + (size_t) sx1 * 4, &r01, &g01, &b01);
+            readRgb(row1 + (size_t) sx0 * 4, &r10, &g10, &b10);
+            readRgb(row1 + (size_t) sx1 * 4, &r11, &g11, &b11);
+            const int R = (r00 + r01 + r10 + r11 + 2) >> 2;
+            const int G = (g00 + g01 + g10 + g11 + 2) >> 2;
+            const int B = (b00 + b01 + b10 + b11 + 2) >> 2;
+            const int Cb = 512 + ((-29 * R - 99 * G + 128 * B + 128) >> 8);
+            const int Cr = 512 + ((128 * R - 116 * G - 12 * B + 128) >> 8);
+            const int cc = c / 2;
+            uint16_t *u = reinterpret_cast<uint16_t *>(
+                    uPlane + (size_t) cy * uvRowStride + (size_t) cc * uPixelStride);
+            uint16_t *v = reinterpret_cast<uint16_t *>(
+                    vPlane + (size_t) cy * vRowStride + (size_t) cc * vPixelStride);
+            u[0] = (uint16_t) ((clamp10(Cb)) << 6);
+            v[0] = (uint16_t) ((clamp10(Cr)) << 6);
         }
     }
 }

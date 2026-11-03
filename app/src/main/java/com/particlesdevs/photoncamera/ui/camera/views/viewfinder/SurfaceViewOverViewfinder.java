@@ -10,6 +10,9 @@ import android.util.DisplayMetrics;
 import com.particlesdevs.photoncamera.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.ViewParent;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
@@ -25,6 +28,8 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     private final Paint rectPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path path = new Path();
     public boolean isCanvasDrawn = false;
+    /** Viewfinder frame anchor; the grid is drawn inside its rect. */
+    private View frameView;
     private RectF afRectToDraw = new RectF();
     private RectF aeRectToDraw = new RectF();
     private String debugText = null;
@@ -70,6 +75,27 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
     }
 
     @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        // The grid is drawn inside the viewfinder frame's rect, not this view's
+        // (the overlay spans a fixed container, so its surface never resizes
+        // while the frame morphs between aspects). Follow the frame's size: the
+        // layout-change callback runs before the draw pass, so the grid is
+        // redrawn with the new rect in the same frame.
+        ViewParent parent = getParent();
+        frameView = parent instanceof ViewGroup
+                ? ((ViewGroup) parent).findViewById(R.id.viewfinder_frame) : null;
+        if (frameView != null) {
+            frameView.addOnLayoutChangeListener((v, left, top, right, bottom,
+                                                 oldLeft, oldTop, oldRight, oldBottom) -> {
+                if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                    invalidate();
+                }
+            });
+        }
+    }
+
+    @Override
     protected void onDraw(Canvas canvas) {
         super.onDraw(canvas);
         // PreferenceKeys is uninitialized in the layout editor, skip overlay drawing there.
@@ -80,46 +106,58 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         // The preview surface is corner-masked by the renderer so the blurred
         // backdrop shows through the cut corners; keep the grid inside the same
         // rounded rect so it cannot spill into those corners.
+        int w = getWidth();
+        int h = gridHeight();
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        int saveCount = canvas.save();
         if (PreferenceKeys.isRoundEdgeOn()) {
             path.reset();
-            path.addRoundRect(new RectF(canvas.getClipBounds()), roundRadiusPx, roundRadiusPx,
+            path.addRoundRect(new RectF(0, 0, w, h), roundRadiusPx, roundRadiusPx,
                     Path.Direction.CW);
             canvas.clipPath(path);
         }
-        drawGrid(canvas);
+        drawGrid(canvas, w, h);
+        canvas.restoreToCount(saveCount);
     }
 
-    private void drawGrid(Canvas canvas) {
+    /** Height of the viewfinder frame; this view's own height as a fallback. */
+    private int gridHeight() {
+        View frame = frameView;
+        if (frame != null && frame.getHeight() > 0) {
+            return frame.getHeight();
+        }
+        return getHeight();
+    }
+
+    private void drawGrid(Canvas canvas, int w, int h) {
         switch (PreferenceKeys.getGridValue()) {
             case 1:
-                draw3x3(canvas);
+                draw3x3(canvas, w, h);
                 break;
             case 2:
-                draw4x4(canvas);
+                draw4x4(canvas, w, h);
                 break;
             case 3:
-                drawGoldenRatio(canvas);
+                drawGoldenRatio(canvas, w, h);
                 break;
             case 4:
-                drawSuperDiag(canvas);
+                drawSuperDiag(canvas, w, h);
                 break;
             default:
                 break;
         }
     }
 
-    private void draw3x3(Canvas canvas) {
-        int w = canvas.getWidth();
-        int h = canvas.getHeight();
+    private void draw3x3(Canvas canvas, int w, int h) {
         canvas.drawLine(w / 3f, 0, w / 3f, h, whitePaint);
         canvas.drawLine(2.f * w / 3f, 0, 2f * w / 3f, h, whitePaint);
         canvas.drawLine(0, h / 3f, w, h / 3f, whitePaint);
         canvas.drawLine(0, 2f * h / 3f, w, 2f * h / 3f, whitePaint);
     }
 
-    private void draw4x4(Canvas canvas) {
-        int w = canvas.getWidth();
-        int h = canvas.getHeight();
+    private void draw4x4(Canvas canvas, int w, int h) {
         canvas.drawLine(w / 4f, 0, w / 4f, h, whitePaint);
         canvas.drawLine(w / 2f, 0, w / 2f, h, whitePaint);
         canvas.drawLine(3 * w / 4f, 0, 3 * w / 4f, h, whitePaint);
@@ -128,9 +166,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         canvas.drawLine(0, 3 * h / 4f, w, 3 * h / 4f, whitePaint);
     }
 
-    private void drawGoldenRatio(Canvas canvas) {
-        int w = canvas.getWidth();
-        int h = canvas.getHeight();
+    private void drawGoldenRatio(Canvas canvas, int w, int h) {
         float gr = (float) goldenRatio(1, 1);
         canvas.drawLine(w / (1 + gr), 0, w / (1 + gr), h, whitePaint);
         canvas.drawLine(gr * w / (1 + gr), 0, gr * w / (1 + gr), h, whitePaint);
@@ -138,9 +174,7 @@ public class SurfaceViewOverViewfinder extends SurfaceView {
         canvas.drawLine(0, gr * h / (1 + gr), w, gr * h / (1 + gr), whitePaint);
     }
 
-    private void drawSuperDiag(Canvas canvas) {
-        int w = canvas.getWidth();
-        int h = canvas.getHeight();
+    private void drawSuperDiag(Canvas canvas, int w, int h) {
         //float gr = (float) goldenRatio(1, 1);
         canvas.drawLine(0, 0, w, h, whitePaint);
         canvas.drawLine(w/3.f, h/3.f, w, 0, whitePaint);

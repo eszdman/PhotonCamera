@@ -465,7 +465,7 @@ public class HdrxProcessor extends ProcessorBase {
         imageFile = Paths.get(imageFile.toAbsolutePath()
                 + (useHeic ? ".heic" : ".jpg"));
         StillEncoder.Result still = StillEncoder.encodeStill(
-                imageFile, img, gm, exifData, useHeic);
+                imageFile, img, gm, exifData, useHeic, pipeline.isDisplayP3Output());
         boolean imageSaved = still.saved;
         imageFile = still.file;
 

@@ -17,6 +17,24 @@ public class Converter {
             0.0719453f, -0.2289914f, 1.4052427f
     };
     /**
+     * Matrix to convert linear sRGB to linear Display P3 (both D65).
+     * Standard Display P3 primaries; rows sum to one so neutral white stays
+     * neutral.
+     */
+    public static final float[] sRGBtoDisplayP3 = new float[]{
+            0.8224621f, 0.1775379f, 0.0000000f,
+            0.0331942f, 0.9668058f, 0.0000000f,
+            0.0170826f, 0.0723974f, 0.9105200f
+    };
+    /**
+     * Display P3 luminance coefficients (the Y row of the P3 RGB -> XYZ
+     * matrix). Used by the Ultra HDR gain-map passes so Ysdr/Yhdr are both
+     * measured in the base image's color space.
+     */
+    public static final float[] sDisplayP3Luma = new float[]{
+            0.2289746f, 0.6917385f, 0.0792869f
+    };
+    /**
      * Coefficients for a 3rd order polynomial, ordered from highest to lowest power.
      * Adapted to transform from [0,1] to [0,1]
      */
@@ -325,6 +343,31 @@ public class Converter {
         output[0] = input[0] * matrix[0] + input[1] * matrix[1] + input[2] * matrix[2];
         output[1] = input[0] * matrix[3] + input[1] * matrix[4] + input[2] * matrix[5];
         output[2] = input[0] * matrix[6] + input[1] * matrix[7] + input[2] * matrix[8];
+    }
+
+    /**
+     * Pre-multiplies a linear-sRGB display matrix with the sRGB -> Display P3
+     * transform, returning a new matrix. The input is not modified.
+     */
+    public static float[] toDisplayP3(float[] matrix) {
+        if (matrix == null) {
+            return null;
+        }
+        float[] out = new float[9];
+        multiply(sRGBtoDisplayP3, matrix, out);
+        return out;
+    }
+
+    /** Applies {@link #toDisplayP3(float[])} to every matrix in a cube set. */
+    public static float[][] toDisplayP3(float[][] matrices) {
+        if (matrices == null) {
+            return null;
+        }
+        float[][] out = new float[matrices.length][];
+        for (int i = 0; i < matrices.length; i++) {
+            out[i] = toDisplayP3(matrices[i]);
+        }
+        return out;
     }
 
     //Multiply matrices

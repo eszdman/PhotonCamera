@@ -3,6 +3,7 @@ package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
 import android.graphics.Bitmap;
 import android.graphics.Point;
 import android.opengl.GLES30;
+import android.os.Build;
 import com.particlesdevs.photoncamera.util.Log;
 
 import static android.opengl.GLES31.GL_CLAMP_TO_EDGE;
@@ -22,6 +23,7 @@ import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.postpipeline.RotateWatermark;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.GLHistogram;
 import com.particlesdevs.photoncamera.processing.parameters.ResolutionSolution;
+import com.particlesdevs.photoncamera.processing.render.DisplayTransform;
 import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
@@ -70,6 +72,18 @@ public class PostPipeline extends GLBasePipeline {
      * curve on the same divided domain.
      */
     public float adaptiveWhitePoint = 1.0f;
+    /**
+     * Scene metrics measured by {@link AutoExposureCurve} for the adaptive LLF
+     * detail ({@link LlfAdaptiveDetail}) and reset every shot. Spreads are the
+     * display-domain p2/p5..p98 channel crossing; -1 = unmeasured (no AE this
+     * pipeline, or a failed measurement) and the LLF falls back to its floor.
+     */
+    public float sceneSpread = -1f;
+    public float sceneSpreadRobust = -1f;
+    /** Fraction of the AE response above display white; 0 = neutral. */
+    public float sceneClippedFrac = 0f;
+    /** Fraction of samples carrying local detail; -1 = unmeasured. */
+    public float sceneDetailDensity = -1f;
     /**
      * Effective clip level of the CFA buffer produced by Bayer2Float: 1.0
      * when nothing is reconstructed, otherwise the white-balanced clip
@@ -215,6 +229,9 @@ public class PostPipeline extends GLBasePipeline {
     )
     boolean tiledTailProduce = true;
 
+    @Tunable(title = "Tiled fused Laplacian tail", category = "Post", description = "Fuse the LocalLaplacian's finest reconstruction into the tiled tail: while the pyramid is alive, its bands stream straight into the sink instead of materializing a full output/entry (~1.15 GB at a 144 MP output). Bit-exact by construction (the Laplacian's finest oracle); falls back to the legacy full-frame path on any failure or non-row rotation", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean tiledFuseLaplacian = true;
+
     // T4 engage flag, computed once per shot below: true only when the proven
     // segment will actually render (capture active, correcting passthrough).
     // Assigned every shot (never stale); nodes read it, only the fallback
@@ -234,6 +251,42 @@ public class PostPipeline extends GLBasePipeline {
     // mid-pipeline (the same pixels runAll would stream into afterwards).
     Bitmap sinkBitmap = null;
 
+    /**
+     * Shared camera -> linear-display transform for this shot. Initial,
+     * ModernInitial, HeadroomRender and the Ultra HDR scene-luma pass all use
+     * the same instance so P3 Yhdr is measured through exactly the renderer's
+     * white balance and color correction.
+     */
+    DisplayTransform displayTransform;
+    /** True only when this shot actually rendered and will tag Display P3. */
+    boolean displayP3Output;
+
+    /**
+     * Resolves the render transform from the injected tone pipeline. P3 is
+     * only meaningful when a display color stage exists; the linear "off"
+     * developer path stays untagged.
+     */
+    private void computeDisplayTransform() {
+        boolean p3 = mSettings != null && mSettings.isDisplayP3()
+                && !"off".equals(tonePipeline);
+        // Only Initial samples DCP cubes; ModernInitial/HeadroomRender always
+        // use the matrix path even when a cube mode is selected.
+        boolean allowCubes = "curve".equals(tonePipeline);
+        displayTransform = DisplayTransform.from(
+                mParameters.CCT, mParameters.whitePoint, p3, allowCubes);
+        displayP3Output = p3;
+    }
+
+    /** Whether the rendered still was produced in Display P3. */
+    public boolean isDisplayP3Output() {
+        return displayP3Output;
+    }
+
+    /** Shared render/scene-luma color transform for this shot. */
+    public DisplayTransform getDisplayTransform() {
+        return displayTransform;
+    }
+
     private void computeNoise(Parameters parameters) {
         NoiseModeler modeler = parameters.noiseModeler;
         noiseS = modeler.computeModel[0].first.floatValue() +
@@ -246,6 +299,10 @@ public class PostPipeline extends GLBasePipeline {
         noiseO /= 3.f;
         double noisempy = Math.pow(2.0, mSettings.noiseRstr + constShift);
         Log.d("PostPipeline", "noisempy:" + noisempy);
+        // Pre-inflation copy: the adaptive LLF's boost attenuation uses the
+        // scene's noise, not the denoise-slider-scaled value.
+        noiseS0 = noiseS;
+        noiseO0 = noiseO;
         noiseS *= noisempy;
         noiseO *= noisempy;
         Log.d("PostPipeline", "NoiseS:" + noiseS + "\n" + "NoiseO:" + noiseO);
@@ -357,6 +414,10 @@ public class PostPipeline extends GLBasePipeline {
         adaptiveWhitePoint = 1.0f;
         rawClipLevel = 1.0f;
         exposureCurve = null;
+        sceneSpread = -1f;
+        sceneSpreadRobust = -1f;
+        sceneClippedFrac = 0f;
+        sceneDetailDensity = -1f;
         Point targetSliced = new Point(rawSliced.x, rawSliced.y);
         if (parameters.fullRawSize != null && parameters.isCropped) {
             targetSliced = new Point(parameters.fullRawSize.x & ~3, parameters.fullRawSize.y & ~3);
@@ -368,11 +429,19 @@ public class PostPipeline extends GLBasePipeline {
         } else {
             GLDrawParams.TileSize = 256;
         }
-        GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8, 4);
+        // 10-bit HEIC requests a true 10-bit processed sink, not an 8-bit
+        // bitmap stuffed into a Main10 container. RGBA1010102 is still 4
+        // bytes/pixel, so this costs no more full-frame memory than ARGB_8888.
+        boolean tenBitSink = Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && PhotonCamera.getSettings().isHeic10Bit();
+        GLFormat format = new GLFormat(tenBitSink
+                ? GLFormat.DataType.UNSIGNED_10_10_10_2
+                : GLFormat.DataType.SIMPLE_8, 4);
         // The final bitmap is allocated up-front and the render is streamed
         // straight into its pixels: no intermediate full-frame native buffer
         // (~258 MB at 64 MP) and no extra copies.
-        Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y, Bitmap.Config.ARGB_8888);
+        Bitmap res = Bitmap.createBitmap(rotatedSize.x, rotatedSize.y,
+                format.getBufferedImageConfig());
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, null, format, GLDrawParams.Allocate.None);
         glint = new GLInterface(glproc);
         stackFrame = inBuffer;
@@ -381,6 +450,7 @@ public class PostPipeline extends GLBasePipeline {
 
         // Inject tunable values for PostPipeline (since it doesn't extend Node)
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
+        computeDisplayTransform();
 
         BuildDefaultPipeline();
         sinkBitmap = res;
@@ -439,6 +509,14 @@ public class PostPipeline extends GLBasePipeline {
     /** Result of the single-frame KernelNet inference; null until/unless it completes successfully. */
     public java.util.concurrent.atomic.AtomicReference<com.particlesdevs.photoncamera.processing.ml.KernelNetResult> kernelNetSingleResult =
             new java.util.concurrent.atomic.AtomicReference<>();
+
+    /**
+     * Noise model before the denoise-slider inflation, used by the adaptive
+     * LLF detail so its attenuation reflects the scene's noise instead of the
+     * user's denoise setting.
+     */
+    public float noiseS0;
+    public float noiseO0;
 
     /** Called from Initial/ModernInitial/LinearExposure (first pass) to keep the linear scene. */
     public void captureDemosaicLinear(GLTexture tex) {
@@ -667,11 +745,28 @@ public class PostPipeline extends GLBasePipeline {
      * @return the encoded RGBA8 gain map plus its dimensions and scale
      */
     public GainMapRaw RunHDRGainMap(Parameters parameters, Bitmap sdr, float scale) {
+        // The gain map is defined against the 8-bit SDR base. When the base
+        // sink is RGBA1010102, measure the quantized SDR rendition instead of
+        // letting GLImage/cpuSdrMedian misinterpret packed 10-bit words.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && sdr != null && sdr.getConfig() != null
+                && "RGBA_1010102".equals(sdr.getConfig().name())) {
+            Bitmap sdr8 = sdr.copy(Bitmap.Config.ARGB_8888, false);
+            if (sdr8 == null) {
+                throw new IllegalStateException("Cannot quantize 10-bit SDR base for gain map");
+            }
+            try {
+                return RunHDRGainMap(parameters, sdr8, scale);
+            } finally {
+                sdr8.recycle();
+            }
+        }
         if ((demosaicLinear == null || demosaicLinearSize == null) && sceneLumaCPU == null) {
             throw new IllegalStateException("Linear buffer missing; Run() must complete first with ultraHdr enabled");
         }
         mParameters = parameters;
         mSettings = PhotonCamera.getSettings();
+        computeDisplayTransform();
         Point rawSliced = parameters.rawSize;
         cropSize = new Point(parameters.rawSize);
         boolean zoomed = PhotonCamera.getCaptureController() != null
@@ -707,13 +802,16 @@ public class PostPipeline extends GLBasePipeline {
         Log.d("TiledHarness", "gainmap grid=" + rotatedSize.x + "x" + rotatedSize.y);
         Allocator.logStage("PostPipeline", "gainmap-enter");
         GLTexture.logLive("TiledHarness", "gainmap-enter");
-        GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, 4);
+        // RGBA8: the banded path draws into this processor's renderbuffer and
+        // streams the bands straight into gmBmp (same bytes the old per-band
+        // RGBA8 outTex produced), so the render target format must match the
+        // 8-bit gain map. The legacy full path still uses its own RGBA8 outTex.
+        GLFormat format = new GLFormat(GLFormat.DataType.SIMPLE_8, 4);
         // Unbacked dummy output keeps the GLImage/GLCoreBlockProcessing
         // null-guards happy. Allocate.None skips the full-frame Direct malloc
-        // (~490 MB at 64 MP): this pass never draws into the block
-        // processor's output buffer (readback goes through outTex), so every
-        // GL call below is unchanged. If this pass ever fails, callers fall
-        // back to SDR JPEG as before.
+        // (~490 MB at 64 MP): the readback goes through PBOs into the caller's
+        // bitmap, never through the block processor's output buffer. If this
+        // pass ever fails, callers fall back to SDR JPEG as before.
         GLImage output = new GLImage(rotatedSize, format, false);
         GLCoreBlockProcessing glproc = new GLCoreBlockProcessing(rotatedSize, output, format, GLDrawParams.Allocate.None);
         // Do not destroy the previous EGL context here: PostPipeline historically
@@ -734,6 +832,16 @@ public class PostPipeline extends GLBasePipeline {
         }
 
         GLTexture gainTex = null;
+        // cpuSdrMedian is a pure single-threaded walk over the whole SDR
+        // bitmap (~50 MB at 12.6 MP) whose result is only needed for the
+        // anchor far below. Run it on a worker so it overlaps the gain-map
+        // context setup, the scene-luma grid upload/render and the GPU
+        // histogram. Joined before the anchor, and again in the finally for
+        // the error paths (nothing else touches the bitmap concurrently).
+        final java.util.concurrent.FutureTask<Float> sdrMedianTask =
+                new java.util.concurrent.FutureTask<>(() -> cpuSdrMedian(sdr, 256));
+        final Thread sdrMedianThread = new Thread(sdrMedianTask, "SdrMedian");
+        sdrMedianThread.start();
         try {
 
             Point linearSize = demosaicLinearSize != null ? new Point(demosaicLinearSize) : null;
@@ -922,8 +1030,17 @@ public class PostPipeline extends GLBasePipeline {
             try {
                 lMed = Math.max(histogramMedian(hist.Compute(lTex), histSize, gridCh), 1e-4f);
                 // Identical math on the bitmap directly (full-res binning,
-                // same median + linearize): no 201 MB texture upload.
-                float sMedDisp = cpuSdrMedian(sdr, histSize);
+                // same median + linearize): no 201 MB texture upload. The
+                // worker has been running since the method entry.
+                float sMedDisp;
+                try {
+                    sMedDisp = sdrMedianTask.get();
+                } catch (java.util.concurrent.ExecutionException e) {
+                    throw new RuntimeException("SDR median failed", e.getCause());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException("SDR median interrupted", e);
+                }
                 sMedLin = srgbToLinear(sMedDisp);
             } finally {
                 hist.close();
@@ -970,6 +1087,7 @@ public class PostPipeline extends GLBasePipeline {
                     new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
             outTex.BufferLoad();
 
+            prog.setDefine("P3", displayP3Output);
             prog.useAssetProgram("ultrahdr/gainmap");
             prog.setTexture("InputBuffer", sdrTex);
             prog.setTexture("LBuffer", lTex);
@@ -1049,6 +1167,7 @@ public class PostPipeline extends GLBasePipeline {
                     outTexFull = new GLTexture(new Point(gw, gh),
                             new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
                     outTexFull.BufferLoad();
+                    prog.setDefine("P3", displayP3Output);
                     prog.useAssetProgram("ultrahdr/gainmap");
                     prog.setTexture("InputBuffer", sdrRef);
                     prog.setTexture("LBuffer", lTex);
@@ -1076,6 +1195,7 @@ public class PostPipeline extends GLBasePipeline {
                 }
                 // sdrTex dead after histogram in the banded path (never
                 // uploaded there).
+                prog.setDefine("P3", displayP3Output);
                 prog.useAssetProgram("ultrahdr/gainmap");
                 prog.setTexture("LBuffer", lTex);
                 prog.setVar("uAnchor", anchor);
@@ -1083,55 +1203,35 @@ public class PostPipeline extends GLBasePipeline {
                 prog.setVar("uScale", scale);
                 prog.setVar("uEps", GainMapComputer.DECODE_OFFSET);
                 int sdrStride = sdr.getWidth() * 4;
-                for (int[] gb : TileDriver.computeBands(gh, 512)) {
-                    int b0 = gb[0], rows = gb[1] - gb[0];
-                    GLTexture sdrBand = null, outBand = null;
-                    try {
-                        sdrBand = new GLTexture(new Point(gw, rows),
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
+                // One persistent slice texture (bands are <= 512 rows) plus the
+                // shared PBO ring instead of an alloc/draw/blocking-read pair
+                // per band: band n's readback DMA overlaps band n+1's draw, and
+                // the sink bytes land in the still-locked gmBmp as before.
+                GLTexture sdrBand = new GLTexture(new Point(gw, Math.min(512, gh)),
+                        new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
+                try {
+                    for (int[] gb : TileDriver.computeBands(gh, 512)) {
+                        int b0 = gb[0], rows = gb[1] - gb[0];
                         java.nio.ByteBuffer view = imgWrapped.duplicate();
                         view.position(b0 * sdrStride);
                         view.limit((b0 + rows) * sdrStride);
                         sdrBand.loadDataOffset(0, 0, gw, rows, view.slice());
-                        outBand = new GLTexture(new Point(gw, rows),
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4));
-                        outBand.BufferLoad();
                         if (b0 == 0) {
                             GLTexture.logLive("TiledHarness", "gainmap-drawpeak");
                         }
                         prog.setTexture("InputBuffer", sdrBand);
-                        // Band target: full-tile viewport with zero origin (the
-                        // tile already holds exactly image rows [b0,b0+rows)).
-                        // An offset viewport here would sit outside the band
-                        // texture and draw nothing (silent stale-VRAM bands).
+                        // Band-local origin (the slice holds exactly image rows
+                        // [b0,b0+rows)); streamBandAsync draws at viewport
+                        // (0,0,gw,rows) with the caller-owned yOffset.
                         prog.setVar("uInOrigin", 0, 0);
                         prog.setVar("yOffset", b0);
-                        GLES30.glBindFramebuffer(GLES30.GL_FRAMEBUFFER, outBand.mBuffer);
-                        GLES30.glViewport(0, 0, gw, rows);
-                        prog.draw();
-                        int gmErr;
-                        while ((gmErr = GLES30.glGetError()) != GLES30.GL_NO_ERROR) {
-                            Log.e("TiledHarness", "gainmap band [" + b0 + "," + (b0 + rows)
-                                    + ") GL error 0x" + Integer.toHexString(gmErr));
-                        }
-                        wrapped.position(b0 * gw * 4);
-                        wrapped.limit((b0 + rows) * gw * 4);
-                        outBand.textureBuffer(
-                                new GLFormat(GLFormat.DataType.SIMPLE_8, 4),
-                                wrapped);
-                    } finally {
-                        if (sdrBand != null) {
-                            try {
-                                sdrBand.close();
-                            } catch (Exception ignored) {
-                            }
-                        }
-                        if (outBand != null) {
-                            try {
-                                outBand.close();
-                            } catch (Exception ignored) {
-                            }
-                        }
+                        glproc.streamBandAsync(b0, rows, wrapped, gw * 4);
+                    }
+                    glproc.finishStreamedBands();
+                } finally {
+                    try {
+                        sdrBand.close();
+                    } catch (Exception ignored) {
                     }
                 }
                 lTex.close();
@@ -1163,6 +1263,13 @@ public class PostPipeline extends GLBasePipeline {
             Allocator.logStage("PostPipeline", "post-gainmap-render");
             return new GainMapRaw(gmBmp, gw, gh, scale);
         } finally {
+            // Error paths may leave the median worker mid-walk; the caller
+            // owns the bitmap, so make sure we are not still reading it.
+            try {
+                sdrMedianThread.join();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
             if (gainTex != null) {
                 try { gainTex.close(); } catch (Exception ignored) {}
             }
@@ -1227,6 +1334,10 @@ public class PostPipeline extends GLBasePipeline {
      */
     private void bindSceneluma(GLProg prog, GLTexture gainTex, Point sdrSize,
             int gw, int gh, Point inFull) {
+        // P3 scene luma needs the same white balance and color transform as
+        // the render; CCT selects the cube branch in the shader.
+        prog.setDefine("P3", displayP3Output);
+        prog.setDefine("CCT", displayTransform != null && displayTransform.isCubeMode());
         prog.useAssetProgram("ultrahdr/sceneluma");
         prog.setTexture("GainMap", gainTex);
         prog.setVar("rotate", rotationIndex());
@@ -1236,6 +1347,16 @@ public class PostPipeline extends GLBasePipeline {
         prog.setVar("uLinFullSize", sdrSize.x, sdrSize.y);
         prog.setVar("uLinGridSize", gw, gh);
         prog.setVar("uInFull", inFull);
+        prog.setVar("sensorToIntermediate", mParameters.sensorToProPhoto);
+        prog.setVar("neutralPoint", mParameters.whitePoint);
+        if (displayTransform != null && displayTransform.isCubeMode()) {
+            float[][] cubes = displayTransform.cubes();
+            prog.setVar("CUBE0", cubes[0]);
+            prog.setVar("CUBE1", cubes[1]);
+            prog.setVar("CUBE2", cubes[2]);
+        } else if (displayTransform != null) {
+            prog.setVar("intermediateToDisplay", displayTransform.matrix());
+        }
     }
 
     /**

@@ -74,12 +74,40 @@ public class Allocator{
     public native static void unpack16(ByteBuffer dst, ByteBuffer packed, int pixels, int bits);
 
     /**
+     * Fused {@link #unpack16} + {@link #createF16} for 10-bit packed frames:
+     * decodes the bitstream in cache-resident chunks and writes normalized
+     * fp16 directly into {@code dst} ({@code width*height*2} bytes), avoiding
+     * the 2-byte-per-pixel unpack staging buffer and its round trip through
+     * memory. Returns false (caller falls back to unpack16 + createF16) when
+     * the buffers are undersized or the geometry is invalid. Output is
+     * bit-identical to the two-step path: same 10-bit regrouping, same
+     * per-site black/white normalization.
+     */
+    public native static boolean unpackNormalizeF16TenBit(ByteBuffer dst, ByteBuffer packed,
+                                                          int width, int height,
+                                                          float whiteLevel, float[] blackLevel);
+
+    /**
      * Converts one tile of tightly packed RGBA8888 into 8-bit YUV420
      * full-range BT.709 (2x2 box-averaged chroma), writing the Y/U/V plane
      * buffers of an encoder input {@code Image} (strides in bytes). Edge
      * tiles replicate the last valid row/column.
      */
     public native static void rgbaToYuv420Tile(ByteBuffer src,
+            int fullWidth, int fullHeight, int tileX, int tileY,
+            int tileWidth, int tileHeight,
+            ByteBuffer yPlane, int yRowStride, int yPixelStride,
+            ByteBuffer uPlane, int uRowStride, int uPixelStride,
+            ByteBuffer vPlane, int vRowStride, int vPixelStride);
+
+    /**
+     * Converts one tile of {@code RGBA8888} or {@code RGBA1010102} pixels to
+     * 10-bit P010 full-range BT.709. P010 stores 10-bit samples in the high
+     * bits of 16-bit words; the Y plane has pixel stride 2 and the interleaved
+     * UV plane has pixel stride 4. Edge tiles replicate the last valid
+     * row/column so the encoder's 512-grid padding is always initialized.
+     */
+    public native static void rgbaToP010Tile(ByteBuffer src, boolean src10Bit,
             int fullWidth, int fullHeight, int tileX, int tileY,
             int tileWidth, int tileHeight,
             ByteBuffer yPlane, int yRowStride, int yPixelStride,

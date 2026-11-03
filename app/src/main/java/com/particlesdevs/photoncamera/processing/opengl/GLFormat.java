@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.processing.opengl;
 
 import android.graphics.Bitmap;
+import android.os.Build;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
 import static android.opengl.GLES20.GL_LINEAR;
@@ -36,6 +37,7 @@ import static android.opengl.GLES30.GL_RGB16UI;
 import static android.opengl.GLES30.GL_RGB32F;
 import static android.opengl.GLES30.GL_RGB32I;
 import static android.opengl.GLES30.GL_RGB32UI;
+import static android.opengl.GLES30.GL_RGB10_A2;
 import static android.opengl.GLES30.GL_RGB8;
 import static android.opengl.GLES30.GL_RGB8I;
 import static android.opengl.GLES30.GL_RGB8UI;
@@ -56,6 +58,7 @@ import static android.opengl.GLES30.GL_SHORT;
 import static android.opengl.GLES30.GL_UNSIGNED_BYTE;
 import static android.opengl.GLES30.GL_UNSIGNED_INT;
 import static android.opengl.GLES30.GL_UNSIGNED_INT_24_8;
+import static android.opengl.GLES30.GL_UNSIGNED_INT_2_10_10_10_REV;
 import static android.opengl.GLES30.GL_UNSIGNED_SHORT;
 
 public class GLFormat {
@@ -77,7 +80,9 @@ public class GLFormat {
         UNSIGNED_32(10, 4),
         UNSIGNED_64(11, 8),
         BOOLEAN(12, 1),
-        SIMPLE_8(13, 1);
+        SIMPLE_8(13, 1),
+        /** Packed 10:10:10:2 normalized RGBA (GL_RGB10_A2, 4 bytes/pixel). */
+        UNSIGNED_10_10_10_2(14, 4);
         final int mID;
         public final int mSize;
 
@@ -109,6 +114,12 @@ public class GLFormat {
             case SIGNED_8:
             case SIMPLE_8:
                 return Bitmap.Config.ARGB_8888;
+            case UNSIGNED_10_10_10_2:
+                // valueOf keeps the API-33-only constant out of the verifier's
+                // field resolution on API 26-32.
+                return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                        ? Bitmap.Config.valueOf("RGBA_1010102")
+                        : Bitmap.Config.ARGB_8888;
         }
         return Bitmap.Config.ARGB_8888;
     }
@@ -120,6 +131,18 @@ public class GLFormat {
             filter = GL_LINEAR;
         }
     }
+    /** Bytes per pixel in a tightly packed CPU/GL buffer for this format. */
+    public int bytesPerPixel() {
+        if (mFormat == DataType.UNSIGNED_10_10_10_2) {
+            // Packed 10:10:10:2 occupies one 32-bit word, not 4 bytes/channel.
+            return 4;
+        }
+        if (mFormat == DataType.SIMPLE_8) {
+            return mChannels;
+        }
+        return mFormat.mSize * mChannels;
+    }
+
     public int getGLFormatInternal() {
         switch (mFormat) {
             case NONE:
@@ -201,6 +224,11 @@ public class GLFormat {
                     case 4:
                         return GL_RGBA8;
                 }
+            case UNSIGNED_10_10_10_2:
+                if (mChannels == 4) {
+                    return GL_RGB10_A2;
+                }
+                return 0;
             case SIGNED_16:
                 switch (mChannels) {
                     case 1:
@@ -238,6 +266,7 @@ public class GLFormat {
             case SIGNED_8:
             case SIMPLE_8:
             case UNSIGNED_8:
+            case UNSIGNED_10_10_10_2:
                 switch (mChannels) {
                     case 1:
                         return GL_RED;
@@ -284,6 +313,8 @@ public class GLFormat {
                 return GL_BYTE;
             case SIMPLE_8:
                 return GL_UNSIGNED_BYTE;
+            case UNSIGNED_10_10_10_2:
+                return GL_UNSIGNED_INT_2_10_10_10_REV;
             case SIGNED_16:
                 return GL_SHORT;
             case SIGNED_32:
@@ -302,6 +333,7 @@ public class GLFormat {
             case FLOAT_16:
             case FLOAT_32:
             case FLOAT_64:
+            case UNSIGNED_10_10_10_2:
                 switch (mChannels) {
                     case 1:
                         return "float";
@@ -370,6 +402,7 @@ public class GLFormat {
             case FLOAT_16:
             case FLOAT_32:
             case FLOAT_64:
+            case UNSIGNED_10_10_10_2:
                 return "float";
             case UNSIGNED_8:
             case UNSIGNED_16:
@@ -391,6 +424,7 @@ public class GLFormat {
             case FLOAT_32:
             case FLOAT_64:
             case FLOAT_16:
+            case UNSIGNED_10_10_10_2:
                 return "sampler2D";
             case SIGNED_8:
             case SIGNED_16:

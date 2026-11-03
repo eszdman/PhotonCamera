@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:gravity="center_vertical"
+    android:minHeight="@dimen/preference_row_min_height"
+    android:orientation="horizontal"
+    android:paddingStart="12dp"
+    android:paddingTop="@dimen/preference_row_vertical_padding"
+    android:paddingEnd="12dp"
+    android:paddingBottom="@dimen/preference_row_vertical_padding">
+
+    <com.google.android.material.checkbox.MaterialCheckBox
+        android:id="@+id/mode_hide_checkbox"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <TextView
+        android:id="@+id/mode_hide_label"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="4dp"
+        android:layout_weight="1"
+        android:textAppearance="@style/TextAppearance.Material3.BodyLarge"
+        android:textColor="?attr/colorOnSurface" />
+
+    <ImageView
+        android:id="@+id/mode_drag_handle"
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:layout_marginStart="8dp"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_drag_handle" />
+</LinearLayout>

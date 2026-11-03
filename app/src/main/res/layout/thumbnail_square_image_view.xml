@@ -45,6 +45,15 @@
                     android:layout_height="wrap_content"
                     android:layout_gravity="center" />
 
+            <ImageView
+                    android:id="@+id/video_play_overlay"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center"
+                    android:src="@drawable/ic_play_circle"
+                    android:visibility="gone"
+                    android:importantForAccessibility="no" />
+
             <TextView
                     android:id="@+id/thumb_caption_text"
                     android:layout_width="match_parent"

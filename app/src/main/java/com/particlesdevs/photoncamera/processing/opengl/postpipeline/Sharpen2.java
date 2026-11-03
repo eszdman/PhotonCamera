@@ -121,8 +121,19 @@ public class Sharpen2 extends Node {
      * draws inTile into outTile. Defines and the program bind happen once in
      * Run(), never per band. */
     void renderTile(GLTexture inTile, GLTexture outTile) {
+        renderTile(inTile, outTile, 0, 0);
+    }
+
+    /**
+     * Origin-aware band body: {@code inTile} is bound directly (it may be a
+     * larger capture tile) and the shader offsets its sampling by
+     * ({@code originX},{@code originY}) in image coordinates. Explicit origin
+     * on every call — the uniform persists on the shared program.
+     */
+    void renderTile(GLTexture inTile, GLTexture outTile, int originX, int originY) {
         glProg.setVar("size", sharpSize);
         glProg.setVar("strength", appliedStrength);
+        glProg.setVar("u_inOrigin", originX, originY);
         glProg.setTexture("InputBuffer", inTile);
         glProg.setTexture("BlurBuffer", inTile);
         WorkingTexture = outTile;

@@ -10,6 +10,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -20,12 +21,23 @@ public class UltraHdrHeicContainerTest {
                 new byte[][]{hvcC}, new String[]{"Primary"});
     }
 
+    private static byte[] singleImageHeicWithColr(byte[] mediaPayload, int w, int h,
+            byte[] hvcC) {
+        return multiImageHeic(new byte[][]{mediaPayload}, new int[]{w}, new int[]{h},
+                new byte[][]{hvcC}, new String[]{"Primary"}, true);
+    }
+
     /**
      * Builds a synthetic HEIF with N hvc1 items (item ids 1..N, pitm=1) and
      * real absolute iloc offsets (two-pass layout).
      */
     private static byte[] multiImageHeic(byte[][] payloads, int[] ws, int[] hs,
             byte[][] hvcCs, String[] names) {
+        return multiImageHeic(payloads, ws, hs, hvcCs, names, false);
+    }
+
+    private static byte[] multiImageHeic(byte[][] payloads, int[] ws, int[] hs,
+            byte[][] hvcCs, String[] names, boolean withColr) {
         byte[] ftypPayload = ByteBuffer.allocate(4 + 4 + 12).order(ByteOrder.BIG_ENDIAN)
                 .put("heic".getBytes(StandardCharsets.US_ASCII))
                 .putInt(0)
@@ -64,16 +76,26 @@ public class UltraHdrHeicContainerTest {
             props.add(IsoBmff.buildBox("ispe",
                     stripFullHeader(UltraHdrHeicContainer.buildIspe(ws[i], hs[i]))));
         }
+        int colrIndex = withColr ? props.size() + 1 : -1;
+        if (withColr) {
+            props.add(IsoBmff.buildBox("colr",
+                    UltraHdrHeicContainer.buildNclxBody(1, 1, 1, true)));
+        }
         byte[] ipco = IsoBmff.buildBox("ipco", IsoBmff.concat(props));
-        // ipma v0: one entry per item, each -> its own hvcC+ispe pair.
+        // ipma v0: one entry per item, each -> its own hvcC+ispe pair
+        // (plus the shared colr when requested).
+        int refs = withColr ? 3 : 2;
         ByteBuffer ipmaBody = ByteBuffer
-                .allocate(4 + payloads.length * (2 + 1 + 2)).order(ByteOrder.BIG_ENDIAN);
+                .allocate(4 + payloads.length * (2 + 1 + refs)).order(ByteOrder.BIG_ENDIAN);
         ipmaBody.putInt(payloads.length);
         for (int i = 0; i < payloads.length; i++) {
             ipmaBody.putShort((short) (i + 1));
-            ipmaBody.put((byte) 2);
+            ipmaBody.put((byte) refs);
             ipmaBody.put((byte) (0x80 | (2 * i + 1)));
             ipmaBody.put((byte) (2 * i + 2));
+            if (withColr) {
+                ipmaBody.put((byte) colrIndex);
+            }
         }
         byte[] ipma = IsoBmff.buildBox("ipma",
                 IsoBmff.fullBoxPayload(0, 0, ipmaBody.array()));
@@ -878,7 +900,7 @@ public class UltraHdrHeicContainerTest {
     public void injectExifAppendsItemToSingleImage() {
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
         byte[] tiff = minimalTiff();
-        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(tiff));
+        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(tiff), false);
 
         List<IsoBmff.Box> top = IsoBmff.parse(out);
         assertEquals(3, top.size());
@@ -946,7 +968,7 @@ public class UltraHdrHeicContainerTest {
     public void injectExifWithoutPayloadStillTagsSdrBase() {
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
         // Nothing to inject, but the primary still gets the 8-bit pixi/colr.
-        byte[] tagged = UltraHdrHeicContainer.injectExif(base, null);
+        byte[] tagged = UltraHdrHeicContainer.injectExif(base, null, false);
         assertBaseProps(tagged, 1, 8);
         List<IsoBmff.Box> top = IsoBmff.parse(tagged);
         List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
@@ -955,14 +977,14 @@ public class UltraHdrHeicContainerTest {
         assertEquals(1, IsoBmff.u16(findBox(kids, "iinf").payload, 4));
         assertEquals(1, IsoBmff.u16(findBox(kids, "iloc").payload, 6));
         // An unparseable payload is equally ignored.
-        byte[] tagged2 = UltraHdrHeicContainer.injectExif(base, new byte[]{0, 1, 2});
+        byte[] tagged2 = UltraHdrHeicContainer.injectExif(base, new byte[]{0, 1, 2}, false);
         assertBaseProps(tagged2, 1, 8);
     }
 
     @Test
     public void injectExifKeepsGridTiles() {
         byte[] base = gridHeic(bytes(64, (byte) 0xA5), bytes(16, (byte) 0x11));
-        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(minimalTiff()));
+        byte[] out = UltraHdrHeicContainer.injectExif(base, exifPayloadOf(minimalTiff()), false);
         List<IsoBmff.Box> top = IsoBmff.parse(out);
         List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4, top.get(1).payload.length - 4);
         // tiles 1,2 + grid 3 + Exif.
@@ -1067,8 +1089,38 @@ public class UltraHdrHeicContainerTest {
         // SDR Exif-injection path.
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
         byte[] injected = UltraHdrHeicContainer.injectExif(base,
-                exifPayloadOf(minimalTiff()));
+                exifPayloadOf(minimalTiff()), false);
         assertBaseProps(injected, 1, 8);
+    }
+
+    @Test
+    public void displayP3ReplacesExistingBt709BaseColr() {
+        byte[] base = singleImageHeicWithColr(bytes(64, (byte) 0xA5), 64, 48,
+                new byte[]{1, 2, 3});
+        UltraHdrHeicContainer.Inputs in = inputs(null);
+        in.baseHeic = base;
+        in.displayP3 = true;
+        assertBaseProps(UltraHdrHeicContainer.merge(in), 1, 8, 12, 13, 1);
+
+        byte[] injected = UltraHdrHeicContainer.injectExif(base, null, true);
+        assertBaseProps(injected, 1, 8, 12, 13, 1);
+    }
+
+    @Test
+    public void displayP3TagsBaseAndTmap() {
+        UltraHdrHeicContainer.Inputs in = inputs(null);
+        in.displayP3 = true;
+        byte[] merged = UltraHdrHeicContainer.merge(in);
+        assertBaseProps(merged, 1, 8, 12, 13, 1);
+        assertTrue("tmap P3 linear colr missing",
+                hasColr(merged, 12, 8, 1));
+        assertFalse("BT.709 colr left in a P3 file",
+                hasColr(merged, 1, 1, 1));
+
+        byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48,
+                new byte[]{1, 2, 3});
+        byte[] injected = UltraHdrHeicContainer.injectExif(base, null, true);
+        assertBaseProps(injected, 1, 8, 12, 13, 1);
     }
 
     @Test
@@ -1080,7 +1132,7 @@ public class UltraHdrHeicContainerTest {
         assertPlainColrProps(UltraHdrHeicContainer.merge(inputs(null)));
         byte[] base = singleImageHeic(bytes(64, (byte) 0xA5), 64, 48, new byte[]{1, 2, 3});
         assertPlainColrProps(UltraHdrHeicContainer.injectExif(base,
-                exifPayloadOf(minimalTiff())));
+                exifPayloadOf(minimalTiff()), false));
     }
 
     /**
@@ -1126,7 +1178,39 @@ public class UltraHdrHeicContainerTest {
      * Verifies the primary item of {@code heic} carries a {@code pixi} with
      * {@code bits} per channel and a full-range BT.709 SDR {@code colr}.
      */
+    private static boolean hasColr(byte[] heic, int primaries, int transfer, int matrix) {
+        List<IsoBmff.Box> top = IsoBmff.parse(heic);
+        List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
+                top.get(1).payload.length - 4);
+        for (IsoBmff.Box b : kids) {
+            if (!b.type.equals("iprp")) {
+                continue;
+            }
+            for (IsoBmff.Box k : IsoBmff.parse(b.payload)) {
+                if (!k.type.equals("ipco")) {
+                    continue;
+                }
+                for (IsoBmff.Box prop : IsoBmff.parse(k.payload)) {
+                    if (prop.type.equals("colr") && prop.payload.length == 11
+                            && IsoBmff.fourcc(prop.payload, 0).equals("nclx")
+                            && IsoBmff.u16(prop.payload, 4) == primaries
+                            && IsoBmff.u16(prop.payload, 6) == transfer
+                            && IsoBmff.u16(prop.payload, 8) == matrix
+                            && (prop.payload[10] & 0x80) != 0) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private static void assertBaseProps(byte[] heic, int primaryId, int bits) {
+        assertBaseProps(heic, primaryId, bits, 1, 1, 1);
+    }
+
+    private static void assertBaseProps(byte[] heic, int primaryId, int bits,
+            int primaries, int transfer, int matrix) {
         List<IsoBmff.Box> top = IsoBmff.parse(heic);
         List<IsoBmff.Box> kids = IsoBmff.parse(top.get(1).payload, 4,
                 top.get(1).payload.length - 4);
@@ -1152,6 +1236,7 @@ public class UltraHdrHeicContainerTest {
         assertTrue(refs != null);
         boolean pixiOk = false;
         boolean colrOk = false;
+        int colrCount = 0;
         for (UltraHdrHeicContainer.PropRef r : refs) {
             IsoBmff.Box prop = ipco.get(r.index - 1);
             if (prop.type.equals("pixi")) {
@@ -1161,16 +1246,19 @@ public class UltraHdrHeicContainerTest {
             } else if (prop.type.equals("colr")) {
                 // colr is a plain Box (no FullBox version/flags): colour_type
                 // 'nclx' is the first payload field.
+                colrCount++;
                 colrOk = prop.payload.length == 11
                         && IsoBmff.fourcc(prop.payload, 0).equals("nclx")
-                        && IsoBmff.u16(prop.payload, 4) == 1
-                        && IsoBmff.u16(prop.payload, 6) == 1
-                        && IsoBmff.u16(prop.payload, 8) == 1
+                        && IsoBmff.u16(prop.payload, 4) == primaries
+                        && IsoBmff.u16(prop.payload, 6) == transfer
+                        && IsoBmff.u16(prop.payload, 8) == matrix
                         && (prop.payload[10] & 0x80) != 0;
             }
         }
         assertTrue("primary pixi " + bits + "/" + bits + "/" + bits, pixiOk);
-        assertTrue("primary colr BT709 full range", colrOk);
+        assertTrue("primary colr " + primaries + "/" + transfer + "/" + matrix,
+                colrOk);
+        assertEquals("primary must have exactly one colr", 1, colrCount);
     }
 
     @Test

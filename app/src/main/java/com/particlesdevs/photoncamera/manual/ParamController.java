@@ -140,7 +140,7 @@ public class ParamController implements Observer {
             return;
         }
 
-        // If Spot WB is active and the slider position matches the measured spot's knob position, ignore circular bar echo
+        // If Spot WB is active and the slider position matches the measured spot's slider position, ignore the echo
         int expectedKnobEcho = (int) (Math.round(this.WB / 50.0) * 50);
         if (this.isSpotWb && this.spotGains != null && wbVal == expectedKnobEcho) {
             return;

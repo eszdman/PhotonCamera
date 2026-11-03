@@ -91,7 +91,7 @@ public class TunableSeekBarPreference extends Preference {
             seekBar.setLabelFormatter(value -> formatValue(progressToValue(Math.round(value))));
             seekBar.clearOnChangeListeners();
             seekBar.addOnChangeListener((slider, value, fromUser) -> {
-                if (fromUser && vibration != null) vibration.Tick();
+                if (fromUser && vibration != null) vibration.sliderTick();
                 if (fromUser) set(Math.round(value));
             });
 

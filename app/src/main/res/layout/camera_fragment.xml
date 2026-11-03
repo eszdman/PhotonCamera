@@ -53,13 +53,12 @@
                     android:id="@+id/layout_viewfinder"
                     layout="@layout/layout_main_viewfinder"
                     android:layout_width="0dp"
-                    android:layout_height="wrap_content"
+                    android:layout_height="0dp"
                     tools:visibility="visible"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintEnd_toEndOf="parent"
                     app:layout_constraintTop_toTopOf="parent"
                     app:layout_constraintBottom_toBottomOf="parent"
-                    app:layout_constraintBaseline_toBottomOf="parent"
                     app:layout_constraintVertical_bias="0.0" />
 
             <!--    Block 1.2-->
@@ -217,19 +216,12 @@
                     app:layout_constraintVertical_bias="1.0" />
 
             <!--    Block 1.5-->
-            <!--   arrow-->
-
-            <ImageView
-                    android:id="@+id/open_close_manual"
-                    android:layout_width="@dimen/arrow_size"
-                    android:layout_height="@dimen/arrow_size"
-                    android:background="@drawable/chevron_up"
-                    android:contentDescription="Arrow"
-                    android:visibility="visible"
-                    app:layout_constraintTop_toBottomOf="@id/layout_viewfinder"
-                    app:layout_constraintEnd_toEndOf="parent"
-                    app:layout_constraintStart_toStartOf="parent"
-                    android:layout_marginTop="8dp" />
+            <!--   arrow: a direct child of this container (declared after the
+                 bottom bar, so it draws above it), anchored to the container's
+                 bottom. CameraFragment sets its bottom margin from the bar
+                 content's top, so it keeps a constant gap above the shutter in
+                 4:3 and 16:9 and moves with the chrome - and, being inside its
+                 own parent, no ancestor clip can reach it. -->
 
             <!--    Block 1.6-->
             <!--    includes the Layout resource of BottomBar-->
@@ -243,6 +235,18 @@
                     app:layout_constraintTop_toBottomOf="@id/dummy_reference_view"
                     app:layout_constraintStart_toStartOf="parent"
                     app:layout_constraintHorizontal_bias="0.0" />
+
+            <ImageView
+                    android:id="@+id/open_close_manual"
+                    android:layout_width="@dimen/arrow_size"
+                    android:layout_height="@dimen/arrow_size"
+                    android:background="@drawable/chevron_up"
+                    android:contentDescription="Arrow"
+                    android:visibility="visible"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:layout_marginBottom="8dp" />
 
             <!--    Block 1.7-->
             <!--    floating settings bar menu-->

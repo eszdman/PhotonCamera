@@ -1,14 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <dimen name="manual_knob_dash_length">8dp</dimen>
-    <dimen name="manual_knob_dash_padding">11dp</dimen>
-    <dimen name="manual_knob_icon_padding">10dp</dimen>
-    <dimen name="manual_knob_text_size">13sp</dimen>
-    <dimen name="manual_knob_icon_size">17dp</dimen>
-    <!-- Vertical extent of the selector dome grown out of the palette bubble;
-         raising it makes the dome taller (and its arc slightly tighter).
-         96dp matches the wheel's height before the M3E merge. -->
-    <dimen name="manual_knob_height">96dp</dimen>
+    <!-- Height of one slider row; two rows stack while a secondary control is remembered. -->
+    <dimen name="manual_slider_row_height">56dp</dimen>
+    <!-- Horizontal distance between adjacent slider values. -->
+    <dimen name="manual_slider_item_pitch">72dp</dimen>
+    <!-- Width of the edge fade where values dissolve; drawn via per-item alpha. -->
+    <dimen name="manual_slider_edge_fade_width">32dp</dimen>
+    <dimen name="manual_slider_text_size">14sp</dimen>
+    <dimen name="manual_slider_text_size_selected">18sp</dimen>
     <!-- Panel reveal/hide travel, mirroring the quick settings bar. -->
     <dimen name="manual_panel_slide">125dp</dimen>
     <dimen name="icon_size">35dp</dimen>

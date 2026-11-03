@@ -4,6 +4,10 @@ precision mediump sampler2D;
 uniform sampler2D InputBuffer;
 uniform float size;
 uniform float strength;
+// Origin of this draw's tile in full-image coordinates (see
+// capturesharpening.glsl); every caller sets it explicitly, 0,0 for the
+// legacy full-frame path.
+uniform ivec2 u_inOrigin;
 out vec3 Output;
 #define INSIZE 1,1
 #define SHARPSIZE 1.25
@@ -20,7 +24,7 @@ float pdfSharp(float i, float sig) {
     return 1.0/(1.0+i*i*i*i);
 }
 void main() {
-    ivec2 xy = ivec2(gl_FragCoord.xy);
+    ivec2 xy = ivec2(gl_FragCoord.xy) + u_inOrigin;
     const int size = 2;
     const int size2 = (size*2 + 1);
     float edges[size2*size2];

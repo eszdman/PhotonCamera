@@ -4,6 +4,8 @@ import android.app.Application;
 import android.graphics.Bitmap;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
+import android.os.Handler;
+import android.os.Looper;
 import com.particlesdevs.photoncamera.util.Log;
 
 import androidx.annotation.NonNull;
@@ -15,6 +17,7 @@ import com.bumptech.glide.request.target.CustomTarget;
 import com.bumptech.glide.request.transition.Transition;
 import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
+import com.particlesdevs.photoncamera.gallery.helper.GalleryExecutors;
 import com.particlesdevs.photoncamera.ui.camera.CustomOrientationEventListener;
 import com.particlesdevs.photoncamera.ui.camera.model.CameraFragmentModel;
 
@@ -29,6 +32,9 @@ public class CameraFragmentViewModel extends AndroidViewModel {
     private final CameraFragmentModel cameraFragmentModel;
     //listen to device orientation changes
     private CustomOrientationEventListener mCustomOrientationEventListener;
+    private final Handler mainHandler = new Handler(Looper.getMainLooper());
+    /** Guards against stale latest-image lookups publishing after a clear. */
+    private long galleryThumbGeneration;
 
 
     public CameraFragmentViewModel(@NonNull Application application) {
@@ -83,30 +89,41 @@ public class CameraFragmentViewModel extends AndroidViewModel {
         };
     }
     public void updateGalleryThumb(@Nullable Uri uri) {
-        Uri lastImageUri = uri;
-        if (lastImageUri == null) {
+        if (uri != null) {
+            galleryThumbGeneration++;
+            loadGalleryThumb(uri);
+            return;
+        }
+        // The latest-image lookup is two MediaStore cursors: run it on the
+        // shared gallery IO thread and only touch the model once it is known.
+        final long generation = ++galleryThumbGeneration;
+        GalleryExecutors.io().execute(() -> {
             ImageFile lastImage = GalleryFileOperations.fetchLatestImage(getApplication().getContentResolver());
-            if (lastImage != null) {
-                lastImageUri = lastImage.getFileUri();
-            }
-        }
-        if (lastImageUri != null) {
-            Glide.with(getApplication())
-                    .asBitmap()
-                    .load(lastImageUri)
-                    .override(200)
-                    .into(new CustomTarget<Bitmap>() {
-                        @Override
-                        public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
-                            cameraFragmentModel.setBitmap(resource);
-                        }
+            final Uri lastImageUri = lastImage != null ? lastImage.getFileUri() : null;
+            if (lastImageUri == null) return;
+            mainHandler.post(() -> {
+                if (generation != galleryThumbGeneration) return;
+                loadGalleryThumb(lastImageUri);
+            });
+        });
+    }
 
-                        @Override
-                        public void onLoadCleared(@Nullable Drawable placeholder) {
+    private void loadGalleryThumb(Uri uri) {
+        Glide.with(getApplication())
+                .asBitmap()
+                .load(uri)
+                .override(200)
+                .into(new CustomTarget<Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull Bitmap resource, @Nullable Transition<? super Bitmap> transition) {
+                        cameraFragmentModel.setBitmap(resource);
+                    }
 
-                        }
-                    });
-        }
+                    @Override
+                    public void onLoadCleared(@Nullable Drawable placeholder) {
+
+                    }
+                });
     }
 
     /**
@@ -115,6 +132,9 @@ public class CameraFragmentViewModel extends AndroidViewModel {
      * (history query after unlock, or explicit session-capture Uri while locked).
      */
     public void clearGalleryThumb() {
+        // Invalidate any latest-image lookup still in flight so a pre-lock
+        // photo can never be published after the screen was locked.
+        galleryThumbGeneration++;
         cameraFragmentModel.setBitmap(null);
     }
 

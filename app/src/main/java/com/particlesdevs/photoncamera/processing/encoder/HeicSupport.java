@@ -21,9 +21,11 @@ import java.util.List;
  *       platform {@code Gainmap} / HDR display stack exists to verify and
  *       render the result. Below 34, HEIC save modes degrade to SDR HEIC
  *       (format choice wins) — see the save-mode contract.</li>
- *   <li>Only 8-bit encodes are produced: the still encoder is driven with one
- *       full-size frame per encode. Surface candidates are rendered into an
- *       EGL window surface, buffer candidates are converted to YUV420. Video
+ *   <li>8-bit remains the default. A 10-bit Main10 P010 candidate is offered
+ *       when the still encoder exposes the vendor P010 path; the encoder pads
+ *       the frame to the vendor 512x512 grid and crops the container back to
+ *       the requested size. Buffer candidates are converted to YUV420/P010;
+ *       surface candidates are rendered into an EGL window surface. Video
  *       HEVC encoders are not used: their single-frame still sizes are far
  *       below still-image resolutions and their tiled fallback loses
  *       detail.</li>
@@ -41,9 +43,19 @@ public final class HeicSupport {
     /** Still-image HEIC encoder MIME (the only supported encoder). */
     public static final String MIME_STILL = MediaFormat.MIMETYPE_IMAGE_ANDROID_HEIC;
 
+    /**
+     * HEVC Main10 Still profile. This is the YAAP framework's public profile
+     * value (MediaCodecInfo.HEVCProfileMain10Still); keep it local so the app
+     * also builds against SDK stubs that predate the constant.
+     */
+    public static final int HEVC_PROFILE_MAIN10_STILL = 0x20;
+    /** P010 input color format (COLOR_FormatYUVP010). */
+    public static final int COLOR_FORMAT_YUV_P010 = 0x36;
+
     private static final String TAG = "HeicSupport";
 
     private static volatile Boolean sHeicEncode;
+    private static volatile Boolean sHeic10Bit;
     private static volatile List<HeicCandidate> sCandidates;
 
     private HeicSupport() {}
@@ -58,18 +70,27 @@ public final class HeicSupport {
         public final int colorFormat;
         final boolean hardware;
         final boolean constantQuality;
+        /** True for the Main10 P010 candidate; false for the 8-bit fallbacks. */
+        public final boolean tenBit;
 
         HeicCandidate(String codecName, int colorFormat, boolean hardware,
                 boolean constantQuality) {
+            this(codecName, colorFormat, hardware, constantQuality, false);
+        }
+
+        HeicCandidate(String codecName, int colorFormat, boolean hardware,
+                boolean constantQuality, boolean tenBit) {
             this.codecName = codecName;
             this.colorFormat = colorFormat;
             this.hardware = hardware;
             this.constantQuality = constantQuality;
+            this.tenBit = tenBit;
         }
 
         @Override
         public String toString() {
-            return MIME_STILL + "/" + codecName + " " + formatName(colorFormat);
+            return MIME_STILL + "/" + codecName + " " + formatName(colorFormat)
+                    + (tenBit ? " 10-bit" : "");
         }
 
         static String formatName(int colorFormat) {
@@ -79,6 +100,9 @@ public final class HeicSupport {
             if (colorFormat == MediaCodecInfo.CodecCapabilities
                     .COLOR_FormatYUV420Flexible) {
                 return "YUV420";
+            }
+            if (colorFormat == COLOR_FORMAT_YUV_P010) {
+                return "P010";
             }
             return "fmt=" + colorFormat;
         }
@@ -95,6 +119,31 @@ public final class HeicSupport {
         }
         boolean supported = queryHevcImageEncoder();
         sHeicEncode = supported;
+        return supported;
+    }
+
+    /**
+     * True when a still encoder exposes a P010 Main10 candidate. The 10-bit
+     * option additionally needs an RGBA1010102 pipeline sink (API 33+), so it
+     * is hidden on older releases.
+     */
+    public static boolean isHeic10BitSupported() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU
+                || !isHeicEncodeSupported()) {
+            return false;
+        }
+        Boolean cached = sHeic10Bit;
+        if (cached != null) {
+            return cached;
+        }
+        boolean supported = false;
+        for (HeicCandidate c : candidates()) {
+            if (c.tenBit) {
+                supported = true;
+                break;
+            }
+        }
+        sHeic10Bit = supported;
         return supported;
     }
 
@@ -209,6 +258,39 @@ public final class HeicSupport {
                 MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface, hardware, cq));
         out.add(new HeicCandidate(info.getName(),
                 MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Flexible, hardware, cq));
+
+        // 10-bit Main10 still input. P010 is the only 10-bit buffer format the
+        // vendor still encoder accepts; the profile is the YAAP Main10Still
+        // value. Some framework builds don't expose 0x20 in profileLevels yet,
+        // so the vendor HEIC codec is also allowed to prove it at configure
+        // time (a failed attempt is remembered and falls back to 8-bit).
+        boolean p010 = false;
+        int[] colorFormats = caps.colorFormats;
+        if (colorFormats != null) {
+            for (int format : colorFormats) {
+                if (format == COLOR_FORMAT_YUV_P010) {
+                    p010 = true;
+                    break;
+                }
+            }
+        }
+        boolean main10Still = false;
+        MediaCodecInfo.CodecProfileLevel[] profiles = caps.profileLevels;
+        if (profiles != null) {
+            for (MediaCodecInfo.CodecProfileLevel profile : profiles) {
+                if (profile.profile == HEVC_PROFILE_MAIN10_STILL) {
+                    main10Still = true;
+                    break;
+                }
+            }
+        }
+        if ((p010 && main10Still) || info.getName().startsWith("c2.qti.")) {
+            // The vendor still encoder accepts P010 even when its capability
+            // array omits the format. A rejected configure is remembered and
+            // falls back to 8-bit, so the vendor-named candidate is safe.
+            out.add(new HeicCandidate(info.getName(), COLOR_FORMAT_YUV_P010,
+                    hardware, cq, true));
+        }
     }
 
     private static boolean isHardware(MediaCodecInfo info) {
@@ -226,6 +308,10 @@ public final class HeicSupport {
         }
         if (c.colorFormat == MediaCodecInfo.CodecCapabilities.COLOR_FormatSurface) {
             rank += 3;
+        }
+        // 10-bit is opt-in: never pick it for an 8-bit encode.
+        if (c.tenBit) {
+            rank -= 4;
         }
         return rank;
     }

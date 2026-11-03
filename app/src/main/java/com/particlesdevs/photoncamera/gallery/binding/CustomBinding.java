@@ -1,6 +1,7 @@
 package com.particlesdevs.photoncamera.gallery.binding;
 
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.view.animation.Animation;
 import android.view.animation.AnimationUtils;
 import android.widget.ImageView;
@@ -11,6 +12,8 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
+import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.gallery.helper.ThumbnailLoader;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
@@ -58,26 +61,47 @@ public class CustomBinding {
     @BindingAdapter("loadImage")
     public static void loadImage(ImageView imageView, GalleryItem galleryItem) {
         if (galleryItem != null && galleryItem.getFile() != null && galleryItem.getFile().getFileUri() != null) {
-            Glide.with(imageView)
-                    .asBitmap()
-                    .load(galleryItem.getFile().getFileUri())
-                    .apply(new RequestOptions()
-                            .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
-                            .signature(new ObjectKey(galleryItem.getFile().getDisplayName() + galleryItem.getFile().getLastModified()))
-                            .override(200, 200)
-                            .centerCrop()
-                    )
-                    .into(imageView);
+            Uri uri = galleryItem.getFile().getFileUri();
+            // A previous Glide request for this (recycled) view must not land on
+            // top of the provider thumbnail.
+            try {
+                Glide.with(imageView).clear(imageView);
+            } catch (Exception ignored) {
+            }
+            int target = ThumbnailLoader.targetSize(imageView.getContext());
+            boolean providerStarted = ThumbnailLoader.loadInto(imageView, uri, galleryItem.getFile().getId(),
+                    galleryItem.isVideo(), target, () -> glideLoad(imageView, galleryItem, uri, target));
+            if (!providerStarted) {
+                glideLoad(imageView, galleryItem, uri, target);
+            }
         } else {
-            Glide.with(imageView).clear(imageView);
-            imageView.setImageDrawable(null);
+            clearImage(imageView);
         }
+    }
+
+    /**
+     * Fallback for files MediaProvider has no thumbnail for: decode through
+     * Glide at the same target size the provider path asked for.
+     */
+    private static void glideLoad(ImageView imageView, GalleryItem galleryItem, Uri uri, int targetPx) {
+        Glide.with(imageView)
+                .asBitmap()
+                .load(uri)
+                .apply(new RequestOptions()
+                        .diskCacheStrategy(DiskCacheStrategy.RESOURCE)
+                        .signature(new ObjectKey(galleryItem.getFile().getDisplayName() + galleryItem.getFile().getLastModified()))
+                        .override(targetPx, targetPx)
+                        .centerCrop()
+                )
+                .into(imageView);
     }
 
     public static void clearImage(ImageView imageView) {
         try {
             Glide.with(imageView).clear(imageView);
         } catch (Exception ignored) {}
+        // Invalidate an in-flight MediaProvider thumbnail request for this view.
+        imageView.setTag(R.id.gallery_thumbnail_request, null);
         imageView.setImageDrawable(null);
     }
 }

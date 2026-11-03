@@ -2,9 +2,12 @@ package com.particlesdevs.photoncamera.processing.encoder;
 
 import android.content.Context;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Toast;
+
+import androidx.exifinterface.media.ExifInterface;
 
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.api.ParseExif;
@@ -54,6 +57,30 @@ public final class StillEncoder {
         }
     }
 
+    /** True when the pipeline produced a packed 10-bit RGBA bitmap. */
+    private static boolean isTenBit(Bitmap bitmap) {
+        return Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU
+                && bitmap != null && bitmap.getConfig() != null
+                && "RGBA_1010102".equals(bitmap.getConfig().name());
+    }
+
+    /**
+     * Materializes an ARGB_8888 copy for the 8-bit/JPEG fallbacks. The 10-bit
+     * pipeline sink is a software bitmap, so this is a plain Skia conversion
+     * and never touches a hardware buffer.
+     */
+    private static Bitmap ensure8Bit(Bitmap bitmap) {
+        if (!isTenBit(bitmap)) {
+            return bitmap;
+        }
+        Bitmap copy = bitmap.copy(Bitmap.Config.ARGB_8888, false);
+        if (copy == null) {
+            throw new UnsupportedOperationException(
+                    "Cannot convert 10-bit bitmap for 8-bit fallback");
+        }
+        return copy;
+    }
+
     /**
      * Releases gain-map bitmaps once encoded (compute output and source may
      * alias when normalized in place; guarded). Never touches sdr: callers
@@ -91,9 +118,14 @@ public final class StillEncoder {
      * @param gain   raw gain map from {@code RunHDRGainMap}, may be null.
      */
     public static Result encodeStill(Path dest, Bitmap sdr, PostPipeline.GainMapRaw gain,
-            ParseExif.ExifData exif, boolean useHeic) {
+            ParseExif.ExifData exif, boolean useHeic, boolean displayP3) {
+        if (exif != null && displayP3) {
+            // An ICC profile carries the actual color space; Exif's sRGB tag
+            // would contradict it.
+            exif.COLOR_SPACE = String.valueOf(ExifInterface.COLOR_SPACE_UNCALIBRATED);
+        }
         try {
-            return encodeStillInternal(dest, sdr, gain, exif, useHeic);
+            return encodeStillInternal(dest, sdr, gain, exif, useHeic, displayP3);
         } catch (Throwable t) {
             // Never lose the shot: an Error-level failure (missing JNI, OOM,
             // codec abort) that escaped the layered fallbacks gets one last
@@ -103,7 +135,7 @@ public final class StillEncoder {
                 notifyHeicFallback();
             }
             try {
-                return encodeJpegSibling(dest, sdr, gain, exif);
+                return encodeJpegSibling(dest, sdr, gain, exif, displayP3);
             } catch (Throwable t2) {
                 Log.e(TAG, "JPEG last resort failed: " + describe(t2));
                 return new Result(false, dest);
@@ -118,15 +150,34 @@ public final class StillEncoder {
     }
 
     private static Result encodeStillInternal(Path dest, Bitmap sdr, PostPipeline.GainMapRaw gain,
-            ParseExif.ExifData exif, boolean useHeic) {
+            ParseExif.ExifData exif, boolean useHeic, boolean displayP3) {
         boolean wantUhdr = PhotonCamera.getSettings().ultraHdr && gain != null;
         if (!useHeic) {
-            return new Result(encodeJpeg(dest, sdr, wantUhdr ? gain : null, exif), dest);
+            Bitmap jpegSource = isTenBit(sdr) ? ensure8Bit(sdr) : sdr;
+            boolean saved = encodeJpeg(dest, jpegSource, wantUhdr ? gain : null, exif, displayP3);
+            if (jpegSource != sdr) {
+                recycleQuietly(jpegSource);
+                recycleQuietly(sdr);
+            }
+            return new Result(saved, dest);
         }
         if (!HeicSupport.isHeicEncodeSupported()) {
             Log.e(TAG, "HEIC requested but unsupported; falling back to JPEG sibling");
             notifyHeicFallback();
-            return encodeJpegSibling(dest, sdr, gain, exif);
+            return encodeJpegSibling(dest, sdr, gain, exif, displayP3);
+        }
+        // The SDR base encode does not depend on the gain map, so start it on
+        // a worker before the gain-map normalization passes and join it at the
+        // mux. Saves ~130 ms of serial encode time per show.
+        UltraHdrHeicEncoder.BaseEncodeJob baseJob = null;
+        boolean ultraHdrHeic = wantUhdr && HeicSupport.isUltraHdrHeicSupported();
+        if (ultraHdrHeic) {
+            try {
+                baseJob = UltraHdrHeicEncoder.startBaseEncode(sdr);
+            } catch (Throwable t) {
+                Log.e(TAG, "SDR base pre-encode failed to start, encoding in order", t);
+                baseJob = null;
+            }
         }
         GainMapComputer.Result res = null;
         if (wantUhdr) {
@@ -137,28 +188,46 @@ public final class StillEncoder {
                 res = null;
             }
         }
-        if (res != null && HeicSupport.isUltraHdrHeicSupported()) {
+        if (res != null && baseJob != null) {
             try {
-                UltraHdrHeicEncoder.encodeToFile(dest, sdr, res, exif);
+                UltraHdrHeicEncoder.encodeWithBase(dest, sdr, res, exif, baseJob, displayP3);
                 return new Result(true, dest);
             } catch (Throwable e) {
                 Log.e(TAG, "HEIC Ultra HDR encode failed, SDR HEIC fallback", e);
                 recycleQuietly(res.gainMap);
             }
         } else if (res != null) {
-            Log.d(TAG, "Ultra HDR gain map available but HEIC gain maps need API 34+; SDR HEIC");
+            if (ultraHdrHeic) {
+                // The pre-encode could not start; fall back to the classic
+                // in-order Ultra HDR HEIC path rather than losing the gain map.
+                try {
+                    UltraHdrHeicEncoder.encodeToFile(dest, sdr, res, exif, displayP3);
+                    return new Result(true, dest);
+                } catch (Throwable e) {
+                    Log.e(TAG, "HEIC Ultra HDR encode failed, SDR HEIC fallback", e);
+                    recycleQuietly(res.gainMap);
+                }
+            } else {
+                Log.d(TAG, "Ultra HDR gain map available but HEIC gain maps need API 34+; SDR HEIC");
+            }
+        } else if (baseJob != null) {
+            // Gain map unavailable: drop the pre-encode and let the SDR path
+            // below do its own encode.
+            baseJob.abort();
         }
         if (exif != null) {
             exif.IMAGE_WIDTH = String.valueOf(sdr.getWidth());
             exif.IMAGE_LENGTH = String.valueOf(sdr.getHeight());
         }
+        boolean tenBitSource = isTenBit(sdr);
+        boolean tenBit = tenBitSource && PhotonCamera.getSettings().isHeic10Bit();
         try {
             StillHeicEncoder.encodeToFile(dest, sdr,
                     sdr.getWidth(), sdr.getHeight(),
-                    ExifBlob.fromExifData(exif), true);
+                    ExifBlob.fromExifData(exif), true, displayP3, tenBit);
             recycleQuietly(sdr);
             recycleGain(res, gain);
-            Log.d(TAG, "SDR HEIC written: " + dest);
+            Log.d(TAG, "SDR HEIC written (" + (tenBit ? "10-bit" : "8-bit") + "): " + dest);
             return new Result(true, dest);
         } catch (Throwable e) {
             Log.e(TAG, "HEIC encode failed, JPEG fallback: " + describe(e));
@@ -167,9 +236,41 @@ public final class StillEncoder {
             } catch (Exception ignored) {
             }
         }
+        if (tenBit) {
+            // The 10-bit candidate was rejected: retry the same shot through
+            // the encoder's 8-bit path rather than losing HEIC entirely.
+            Bitmap sdr8 = ensure8Bit(sdr);
+            try {
+                StillHeicEncoder.encodeToFile(dest, sdr8,
+                        sdr8.getWidth(), sdr8.getHeight(),
+                        ExifBlob.fromExifData(exif), true, displayP3, false);
+                recycleQuietly(sdr);
+                recycleQuietly(sdr8);
+                recycleGain(res, gain);
+                Log.d(TAG, "SDR HEIC written (8-bit fallback): " + dest);
+                return new Result(true, dest);
+            } catch (Throwable e) {
+                Log.e(TAG, "8-bit HEIC fallback failed, JPEG fallback: " + describe(e));
+                try {
+                    Files.deleteIfExists(dest);
+                } catch (Exception ignored) {
+                }
+                recycleQuietly(sdr8);
+            }
+        }
         recycleGain(res, gain);
         notifyHeicFallback();
-        return encodeJpegSibling(dest, sdr, gain, exif);
+        Bitmap jpegSource = isTenBit(sdr) ? ensure8Bit(sdr) : sdr;
+        try {
+            return encodeJpegSibling(dest, jpegSource, gain, exif, displayP3);
+        } finally {
+            if (jpegSource != sdr) {
+                recycleQuietly(jpegSource);
+            }
+            if (tenBitSource) {
+                recycleQuietly(sdr);
+            }
+        }
     }
 
     private static void recycleQuietly(Bitmap bitmap) {
@@ -182,7 +283,7 @@ public final class StillEncoder {
     }
 
     private static boolean encodeJpeg(Path dest, Bitmap sdr, PostPipeline.GainMapRaw gain,
-            ParseExif.ExifData exif) {
+            ParseExif.ExifData exif, boolean displayP3) {
         if (sdr == null || sdr.isRecycled()) {
             Log.e(TAG, "encodeJpeg with null/recycled bitmap; nothing saved");
             return false;
@@ -192,7 +293,7 @@ public final class StillEncoder {
             try {
                 res = GainMapComputer.compute(
                         gain.bitmap, gain.scale);
-                byte[] uhdr = UltraHdrEncoder.encode(sdr, res, exif);
+                byte[] uhdr = UltraHdrEncoder.encode(sdr, res, exif, displayP3);
                 Files.write(dest, uhdr);
                 sdr.recycle();
                 recycleGain(res, gain);
@@ -202,11 +303,12 @@ public final class StillEncoder {
                 recycleGain(res, gain);
             }
         }
-        return ImageSaver.Util.saveBitmapAsJPG(dest, sdr, ImageSaver.JPG_QUALITY, exif);
+        return ImageSaver.Util.saveBitmapAsJPG(
+                dest, sdr, ImageSaver.JPG_QUALITY, exif, displayP3);
     }
 
     private static Result encodeJpegSibling(Path heicDest, Bitmap sdr,
-            PostPipeline.GainMapRaw gain, ParseExif.ExifData exif) {
+            PostPipeline.GainMapRaw gain, ParseExif.ExifData exif, boolean displayP3) {
         // Sibling encodes SDR only; the gain bitmap is dead here.
         recycleGain(null, gain);
         if (sdr == null || sdr.isRecycled()) {
@@ -217,7 +319,7 @@ public final class StillEncoder {
         Path jpgDest = abs.toLowerCase().endsWith(".heic")
                 ? Paths.get(abs.substring(0, abs.length() - 5) + ".jpg")
                 : heicDest;
-        boolean ok = encodeJpeg(jpgDest, sdr, null, exif);
+        boolean ok = encodeJpeg(jpgDest, sdr, null, exif, displayP3);
         return new Result(ok, jpgDest);
     }
 }

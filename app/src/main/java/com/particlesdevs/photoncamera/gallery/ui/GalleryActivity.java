@@ -72,9 +72,11 @@ public class GalleryActivity extends BaseActivity {
                 && intent.getData() != null) {
             handleExternalViewIntent(intent.getData());
         } else {
-            // Normal gallery mode - show all media
-            viewModel.fetchAllMedia();
-            viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue());
+            // Normal gallery mode - show all media. The MediaStore scan runs on
+            // a background thread; the current folder is projected once the
+            // folder lists have been published.
+            viewModel.fetchAllMedia(() ->
+                    viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue()));
         }
     }
     
@@ -83,89 +85,94 @@ public class GalleryActivity extends BaseActivity {
      * Loads all gallery images but starts viewing at the selected image
      */
     private void handleExternalViewIntent(Uri uri) {
-        try {
-            // Load all media from the gallery first
-            viewModel.fetchAllMedia();
+        // Load all media from the gallery first, then resolve the position on
+        // the main thread once the background scan has published the folders.
+        viewModel.fetchAllMedia(() -> {
+            try {
+                setUpExternalViewIntent(uri);
+            } catch (Exception e) {
+                e.printStackTrace();
+                // Fallback to normal gallery mode if something goes wrong
+                viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue());
+            }
+        });
+    }
+
+    /** Runs on the main thread, after the folder lists have been enumerated. */
+    private void setUpExternalViewIntent(Uri uri) {
+        // Create an ImageFile from the external URI
+        ImageFile externalImageFile = createImageFileFromUri(uri);
+        
+        // Get all images from the gallery
+        GalleryItem allImagesFolder = viewModel.getAllSelectedImageFolder().getValue();
+        
+        int initialPosition = 0;
+        
+        if (allImagesFolder != null && !allImagesFolder.getFiles().isEmpty()) {
+            List<GalleryItem> allImages = allImagesFolder.getFiles();
             
-            // Create an ImageFile from the external URI
-            ImageFile externalImageFile = createImageFileFromUri(uri);
+            // Try to find the external image in the existing gallery
+            // Match by URI, absolute path, or display name
+            int foundPosition = -1;
+            String externalPath = uri.getPath();
+            String externalDisplayName = externalImageFile.getDisplayName();
             
-            // Get all images from the gallery
-            GalleryItem allImagesFolder = viewModel.getAllSelectedImageFolder().getValue();
-            
-            int initialPosition = 0;
-            
-            if (allImagesFolder != null && !allImagesFolder.getFiles().isEmpty()) {
-                List<GalleryItem> allImages = allImagesFolder.getFiles();
-                
-                // Try to find the external image in the existing gallery
-                // Match by URI, absolute path, or display name
-                int foundPosition = -1;
-                String externalPath = uri.getPath();
-                String externalDisplayName = externalImageFile.getDisplayName();
-                
-                for (int i = 0; i < allImages.size(); i++) {
-                    GalleryItem item = allImages.get(i);
-                    if (item.getFile() != null) {
-                        // Try to match by URI (most reliable for content:// URIs)
-                        if (uri.equals(item.getFile().getFileUri())) {
-                            foundPosition = i;
-                            break;
-                        }
-                        // Try to match by absolute path (for file:// URIs)
-                        if (externalPath != null && item.getFile().getAbsolutePath() != null 
-                                && externalPath.equals(item.getFile().getAbsolutePath())) {
-                            foundPosition = i;
-                            break;
-                        }
-                        // Try to match by display name and size as last resort
-                        if (externalDisplayName != null && externalDisplayName.equals(item.getFile().getDisplayName())
-                                && externalImageFile.getSize() == item.getFile().getSize()) {
-                            foundPosition = i;
-                            break;
-                        }
+            for (int i = 0; i < allImages.size(); i++) {
+                GalleryItem item = allImages.get(i);
+                if (item.getFile() != null) {
+                    // Try to match by URI (most reliable for content:// URIs)
+                    if (uri.equals(item.getFile().getFileUri())) {
+                        foundPosition = i;
+                        break;
+                    }
+                    // Try to match by absolute path (for file:// URIs)
+                    if (externalPath != null && item.getFile().getAbsolutePath() != null 
+                            && externalPath.equals(item.getFile().getAbsolutePath())) {
+                        foundPosition = i;
+                        break;
+                    }
+                    // Try to match by display name and size as last resort
+                    if (externalDisplayName != null && externalDisplayName.equals(item.getFile().getDisplayName())
+                            && externalImageFile.getSize() == item.getFile().getSize()) {
+                        foundPosition = i;
+                        break;
                     }
                 }
-                
-                if (foundPosition >= 0) {
-                    // Image found in gallery, use its position
-                    initialPosition = foundPosition;
-                } else {
-                    // Image not in gallery, add it at the beginning
-                    GalleryItem externalGalleryItem = new GalleryItem(externalImageFile);
-                    allImages.add(0, externalGalleryItem);
-                    initialPosition = 0;
-                }
-                
-                // Set the current folder images
-                viewModel.setCurrentFolderImages(allImagesFolder);
-            } else {
-                // No gallery images found, create a single-item list with just the external image
-                GalleryItem externalGalleryItem = new GalleryItem(externalImageFile);
-                List<GalleryItem> singleItemList = new ArrayList<>();
-                singleItemList.add(externalGalleryItem);
-                viewModel.getCurrentFolderImages().setValue(singleItemList);
             }
             
-            // Set up the navigation graph with initial arguments for the start destination
-            // This avoids creating a duplicate back stack entry
-            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.gallery_navigation_host);
-            if (navHostFragment != null) {
-                NavController navController = navHostFragment.getNavController();
-                Bundle bundle = new Bundle();
-                bundle.putInt(Constants.IMAGE_POSITION_KEY, initialPosition);
-                bundle.putString(Constants.EXTERNAL_URI_KEY, uri.toString());
-                
-                // Set the graph with default arguments instead of navigating
-                // Since imageViewerFragment is the start destination, this prevents duplicate back stack entries
-                navController.setGraph(R.navigation.gallery_nav_graph, bundle);
+            if (foundPosition >= 0) {
+                // Image found in gallery, use its position
+                initialPosition = foundPosition;
+            } else {
+                // Image not in gallery, add it at the beginning
+                GalleryItem externalGalleryItem = new GalleryItem(externalImageFile);
+                allImages.add(0, externalGalleryItem);
+                initialPosition = 0;
             }
-        } catch (Exception e) {
-            e.printStackTrace();
-            // Fallback to normal gallery mode if something goes wrong
-            viewModel.fetchAllMedia();
-            viewModel.setCurrentFolderImages(viewModel.getAllSelectedImageFolder().getValue());
+            
+            // Set the current folder images
+            viewModel.setCurrentFolderImages(allImagesFolder);
+        } else {
+            // No gallery images found, create a single-item list with just the external image
+            GalleryItem externalGalleryItem = new GalleryItem(externalImageFile);
+            List<GalleryItem> singleItemList = new ArrayList<>();
+            singleItemList.add(externalGalleryItem);
+            viewModel.getCurrentFolderImages().setValue(singleItemList);
+        }
+        
+        // Set up the navigation graph with initial arguments for the start destination
+        // This avoids creating a duplicate back stack entry
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.gallery_navigation_host);
+        if (navHostFragment != null) {
+            NavController navController = navHostFragment.getNavController();
+            Bundle bundle = new Bundle();
+            bundle.putInt(Constants.IMAGE_POSITION_KEY, initialPosition);
+            bundle.putString(Constants.EXTERNAL_URI_KEY, uri.toString());
+            
+            // Set the graph with default arguments instead of navigating
+            // Since imageViewerFragment is the start destination, this prevents duplicate back stack entries
+            navController.setGraph(R.navigation.gallery_nav_graph, bundle);
         }
     }
     

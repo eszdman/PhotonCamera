@@ -150,7 +150,71 @@ public class GalleryFileOperations {
             }
             cursor.close();
         }
+        // Videos may be newer than the latest image; prefer whichever was added last.
+        final Cursor videoCursor = contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                projection, selection, selectionArgs, sortOrder);
+        if (videoCursor != null) {
+            try {
+                int idColumn = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID);
+                int dateModifiedColumn = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED);
+                int displayNameColumn = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME);
+                int sizeColumn = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE);
+                int dataColumn = videoCursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
+                if (videoCursor.moveToFirst()) {
+                    long id = videoCursor.getLong(idColumn);
+                    Uri contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id);
+                    String displayName = videoCursor.getString(displayNameColumn);
+                    long dateModified = TimeUnit.SECONDS.toMillis(videoCursor.getLong(dateModifiedColumn));
+                    long size = videoCursor.getLong(sizeColumn);
+                    String absolutePath = videoCursor.getString(dataColumn);
+                    ImageFile videoFile = new ImageFile(id, contentUri, displayName, dateModified, size, absolutePath);
+                    if (imageFile == null || videoFile.getLastModified() > imageFile.getLastModified()) {
+                        imageFile = videoFile;
+                    }
+                }
+            } catch (Exception e) {
+                Log.d("GalleryFileOperations", "Warning: latest video query failed " + Log.getStackTraceString(e));
+            } finally {
+                videoCursor.close();
+            }
+        }
         return imageFile;
+    }
+
+    /**
+     * Groups a media file into ALL_FOLDERS by bucket, shared by the image and
+     * video queries so both media kinds land in the same folders.
+     */
+    private static void addMediaToFolders(ImageFile file, String bucketName, long bucketId) {
+        if (bucketName == null) {
+            return;
+        }
+        boolean alreadyAdded = false;
+        int position = 0;
+        for (int i = 0; i < ALL_FOLDERS.size(); i++) {
+            String fname = ALL_FOLDERS.get(i).getFolderName();
+            if (fname == null) {
+                ALL_FOLDERS.remove(i);
+                i--;
+                continue;
+            }
+            if (fname.equals(bucketName)) {
+                alreadyAdded = true;
+                position = i;
+                break;
+            }
+        }
+        if (alreadyAdded) {
+            ALL_FOLDERS.get(position).getAllImageFiles().add(file);
+        } else {
+            ArrayList<ImageFile> imageFileList = new ArrayList<>();
+            imageFileList.add(file);
+            ImagesFolder newFolder = new ImagesFolder();
+            newFolder.setFolderName(bucketName);
+            newFolder.setFolderId(bucketId);
+            newFolder.setAllImageFiles(imageFileList);
+            ALL_FOLDERS.add(newFolder);
+        }
     }
 
     public static Uri createNewImageFile(ContentResolver contentResolver, String relativePath, String newImageName) {
@@ -176,7 +240,8 @@ public class GalleryFileOperations {
             ContentResolver contentResolver = activity.getContentResolver();
             for (ImageFile file : toDelete) {
                 try {
-                    contentResolver.delete(file.getFileUri(), MediaStore.Images.Media._ID + "= ?", new String[]{String.valueOf(file.getId())});
+                    // Delete by URI directly so both image and video URIs work.
+                    contentResolver.delete(file.getFileUri(), null, null);
                 } catch (SecurityException e) {
                     e.printStackTrace();
                     deletedCallback.deleted(false);
@@ -221,8 +286,6 @@ public class GalleryFileOperations {
     public static ArrayList<ImagesFolder> FindAllFoldersWithImages(@NonNull ContentResolver contentResolver) {
 
         ALL_FOLDERS.clear();
-        boolean is_folder_already_added = false;
-        int position = 0;
         int column_index_data, column_bucket_name,column_bucket_id,column_id,column_date_modified,column_display_name,column_size;
         Uri uri;
         uri = MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
@@ -254,40 +317,39 @@ public class GalleryFileOperations {
 //                Log.i("Path", absolutePathOfImage);
 //                Log.i("Folder", bucketName);
 //                Log.i("FolderID", String.valueOf(bucketId));
-                if (bucketName == null) {
-                    continue;
-                }
-                for (int i = 0; i < ALL_FOLDERS.size(); i++) {
-                    String fname = ALL_FOLDERS.get(i).getFolderName();
-                    if (fname == null){
-                        ALL_FOLDERS.remove(i);
-                        i--;
-                        continue;
-                    }
-
-                    if (fname.equals(bucketName)) {
-                        is_folder_already_added = true;
-                        position = i;
-                        break;
-                    } else {
-                        is_folder_already_added = false;
-                    }
-                }
-
-                if (is_folder_already_added) {
-                    ALL_FOLDERS.get(position).getAllImageFiles().add(new ImageFile(id, contentUri, displayName, dateModified, size, absolutePathOfImage));
-                } else {
-                    ArrayList<ImageFile> imageFileList = new ArrayList<>();
-                    imageFileList.add(new ImageFile(id, contentUri, displayName, dateModified, size, absolutePathOfImage));
-
-                    ImagesFolder newFolder = new ImagesFolder();
-                    newFolder.setFolderName(bucketName);
-                    newFolder.setFolderId(bucketId);
-                    newFolder.setAllImageFiles(imageFileList);
-                    ALL_FOLDERS.add(newFolder);
-                }
+                addMediaToFolders(new ImageFile(id, contentUri, displayName, dateModified, size, absolutePathOfImage), bucketName, bucketId);
             }
             cursor.close();
+        }
+        // Videos (MP4 incl. HDR) live in the same folders; merge them in.
+        String[] videoProjection = {MediaStore.MediaColumns.DATA, MediaStore.Video.Media.BUCKET_DISPLAY_NAME, MediaStore.Video.Media.BUCKET_ID, MediaStore.Video.Media._ID, MediaStore.Video.Media.DISPLAY_NAME, MediaStore.Video.Media.DATE_ADDED, MediaStore.Video.Media.SIZE};
+        final Cursor videoCursor = contentResolver.query(MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                videoProjection, null, null, MediaStore.Video.Media.DATE_TAKEN + " DESC");
+        if (videoCursor != null) {
+            try {
+                int vData = videoCursor.getColumnIndexOrThrow(MediaStore.MediaColumns.DATA);
+                int vBucketName = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_DISPLAY_NAME);
+                int vBucketId = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.BUCKET_ID);
+                int vId = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media._ID);
+                int vDate = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.DATE_ADDED);
+                int vName = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.DISPLAY_NAME);
+                int vSize = videoCursor.getColumnIndexOrThrow(MediaStore.Video.Media.SIZE);
+                while (videoCursor.moveToNext()) {
+                    long id = videoCursor.getLong(vId);
+                    String displayName = videoCursor.getString(vName);
+                    Uri contentUri = ContentUris.withAppendedId(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, id);
+                    long dateModified = TimeUnit.SECONDS.toMillis(videoCursor.getLong(vDate));
+                    long size = videoCursor.getLong(vSize);
+                    String absolutePath = videoCursor.getString(vData);
+                    long bucketId = videoCursor.getLong(vBucketId);
+                    String bucketName = videoCursor.getString(vBucketName);
+                    addMediaToFolders(new ImageFile(id, contentUri, displayName, dateModified, size, absolutePath), bucketName, bucketId);
+                }
+            } catch (Exception e) {
+                Log.d("GalleryFileOperations", "Warning: video query failed " + Log.getStackTraceString(e));
+            } finally {
+                videoCursor.close();
+            }
         }
         //find latest image:
         ALL_FOLDERS.forEach(imagesFolder -> {

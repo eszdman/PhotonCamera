@@ -56,6 +56,10 @@ public final class UltraHdrHeicContainer {
         public float gainMapMin;
         public float gainMapMax;
         public float hdrCapacityMax;
+        /** True when the base and derived HDR rendition are Display P3. */
+        public boolean displayP3;
+        /** True when the base HEVC item is 10-bit Main10. */
+        public boolean baseTenBit;
         /** Raw {@code Exif\0\0 + TIFF} payload, may be null. */
         public byte[] exifPayload;
     }
@@ -208,9 +212,33 @@ public final class UltraHdrHeicContainer {
         mdatParts.add(tmapPayload);
 
         // New ipco = base children + gain referenced props + auxC [+ aux ispe].
+        // The base item's color profile must describe the actual pixel
+        // primaries. Replace any colr the muxer wrote instead of appending a
+        // second, contradictory one; P3 uses SMPTE ST 432-1 primaries with the
+        // sRGB transfer.
         List<byte[]> ipcoBoxes = new ArrayList<>();
+        int baseColrIndex = -1;
         for (IsoBmff.Box b : baseIpco) {
-            ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
+            if (b.type.equals("colr")) {
+                ipcoBoxes.add(IsoBmff.buildBox("colr", baseColrBody(in.displayP3)));
+                if (baseColrIndex < 0) {
+                    baseColrIndex = ipcoBoxes.size();
+                }
+            } else {
+                ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
+            }
+        }
+        if (in.displayP3) {
+            // The gain-map item's color profile is ignored by decoders, but
+            // leaving a BT.709 colr there makes metadata inspection report
+            // mixed color spaces. Keep every hvc1 item on P3/SDR as well;
+            // the derived-HDR tmap below still gets linear P3.
+            for (int i = 0; i < gg.propBoxes.size(); i++) {
+                byte[] box = gg.propBoxes.get(i);
+                if (box.length >= 8 && IsoBmff.fourcc(box, 4).equals("colr")) {
+                    gg.propBoxes.set(i, IsoBmff.buildBox("colr", baseColrBody(true)));
+                }
+            }
         }
         ipcoBoxes.addAll(gg.propBoxes);
         ipcoBoxes.add(IsoBmff.buildBox("auxC", auxC));
@@ -218,31 +246,36 @@ public final class UltraHdrHeicContainer {
             ipcoBoxes.add(IsoBmff.buildBox("ispe", auxIspe));
         }
         // tmap properties per the reference recipe: ispe sized to the BASE
-        // photo, 8-bit pixi (matching the encoded stream), and the derived-HDR
+        // display size, pixi at the encoded base depth, and the derived-HDR
         // nclx colr. Readers check the tmap ispe; the colr describes the
-        // derived rendition (linear-light BT.709, full range — matching our
-        // gain math space).
+        // derived rendition (linear light in the base's primaries).
+        int baseBits = in.baseTenBit ? 10 : 8;
         int propCursor = basePropCount + (ipcoBoxes.size() - baseIpco.size());
         byte[] tmapIspe = buildIspe(in.baseW, in.baseH);
         int tmapIspeIndex = propCursor + 1;
         byte[] tmapPixi = IsoBmff.fullBoxPayload(0, 0,
-                buildPixiBody(8, 8, 8));
+                buildPixiBody(baseBits, baseBits, baseBits));
         int tmapPixiIndex = propCursor + 2;
-        byte[] tmapColr = buildNclxBody(1, 8, 1, true);
+        byte[] tmapColr = tmapColrBody(in.displayP3);
         int tmapColrIndex = propCursor + 3;
         ipcoBoxes.add(IsoBmff.buildBox("ispe", tmapIspe));
         ipcoBoxes.add(IsoBmff.buildBox("pixi", tmapPixi));
         ipcoBoxes.add(IsoBmff.buildBox("colr", tmapColr));
-        // Encoded base item gets its own 8-bit pixi/colr (full-range BT.709
-        // SDR, matching the color aspects set on the encoder).
+        // Encoded base item gets a pixi at the encoded depth. Its colr was
+        // replaced above when the muxer supplied one; otherwise append it.
         List<PropRef> primaryExtras = new ArrayList<>();
         int basePixiIndex = tmapColrIndex + 1;
-        int baseColrIndex = tmapColrIndex + 2;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
-        ipcoBoxes.add(IsoBmff.buildBox("colr", buildNclxBody(1, 1, 1, true)));
+                IsoBmff.fullBoxPayload(0, 0,
+                        buildPixiBody(baseBits, baseBits, baseBits))));
         primaryExtras.add(new PropRef(false, basePixiIndex));
-        primaryExtras.add(new PropRef(false, baseColrIndex));
+        if (baseColrIndex < 0) {
+            baseColrIndex = ipcoBoxes.size() + 1;
+            ipcoBoxes.add(IsoBmff.buildBox("colr", baseColrBody(in.displayP3)));
+        }
+        if (!hasPropertyRef(base.ipmaAssoc.get(primaryId), baseColrIndex)) {
+            primaryExtras.add(new PropRef(false, baseColrIndex));
+        }
         byte[] newIpco = IsoBmff.buildBox("ipco", ipcoBoxes);
         List<Integer> tmapPropIdx = new ArrayList<>();
         tmapPropIdx.add(tmapIspeIndex);
@@ -363,6 +396,12 @@ public final class UltraHdrHeicContainer {
         System.arraycopy(ftypBox, 0, merged, 0, ftypBox.length);
         System.arraycopy(metaBox, 0, merged, ftypBox.length, metaBox.length);
         System.arraycopy(mdatBox, 0, merged, ftypBox.length + metaBox.length, mdatBox.length);
+        if (in.displayP3) {
+            // The container colr is P3, but MediaCodec still writes BT.709
+            // color aspects into the SPS VUI. Keep the bitstream metadata in
+            // sync for readers that prefer VUI over colr.
+            HevcSpsColor.patchDisplayP3(merged);
+        }
         return merged;
     }
 
@@ -517,7 +556,8 @@ public final class UltraHdrHeicContainer {
 
     /**
      * Adds an Exif item (when a payload exists) to a single-image HEIC plus an
-     * 8-bit {@code pixi} and a full-range BT.709 SDR {@code colr} on the
+     * 8-bit {@code pixi} and a full-range SDR {@code colr} (BT.709/sRGB or
+     * Display P3) on the
      * primary item, and returns the rebuilt file. The container is
      * reconstructed from the kept item set (primary + {@code dimg} grid tiles)
      * with the Exif item appended to a fresh {@code mdat}; every kept item's
@@ -526,8 +566,22 @@ public final class UltraHdrHeicContainer {
      *
      * @param heic        complete HEIC file bytes
      * @param exifPayload raw {@code Exif\0\0 + TIFF} payload, may be null
+     * @param displayP3   true to tag the primary with Display P3 primaries
      */
-    public static byte[] injectExif(byte[] heic, byte[] exifPayload) {
+    public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean displayP3) {
+        return injectExif(heic, exifPayload, displayP3, false, -1, -1);
+    }
+
+    /**
+     * Adds the Exif item, a {@code pixi} at the encoded bit depth, a
+     * full-range SDR {@code colr}, and — when the coded size differs from the
+     * display size — a {@code clap} clean-aperture property for the primary
+     * item. The 10-bit still encoder pads the frame to its 512x512 grid, so
+     * the HEVC item is coded at the aligned size while the visible image is
+     * the requested size; {@code clap} crops it without re-encoding.
+     */
+    public static byte[] injectExif(byte[] heic, byte[] exifPayload, boolean displayP3,
+            boolean tenBit, int displayW, int displayH) {
         if (heic == null) {
             throw new IllegalArgumentException("Null HEIC");
         }
@@ -594,17 +648,41 @@ public final class UltraHdrHeicContainer {
         }
 
         List<byte[]> ipcoBoxes = new ArrayList<>();
+        int colrIndex = -1;
         for (IsoBmff.Box b : m.ipcoChildren) {
-            ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
+            if (b.type.equals("colr")) {
+                // Replace the muxer's color aspect instead of adding a second
+                // colr that may contradict it.
+                ipcoBoxes.add(IsoBmff.buildBox("colr", baseColrBody(displayP3)));
+                if (colrIndex < 0) {
+                    colrIndex = ipcoBoxes.size();
+                }
+            } else {
+                ipcoBoxes.add(IsoBmff.buildBox(b.type, b.payload));
+            }
         }
         List<PropRef> primaryExtras = new ArrayList<>();
+        int bitDepth = tenBit ? 10 : 8;
         int pixiIndex = ipcoBoxes.size() + 1;
-        int colrIndex = ipcoBoxes.size() + 2;
         ipcoBoxes.add(IsoBmff.buildBox("pixi",
-                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(8, 8, 8))));
-        ipcoBoxes.add(IsoBmff.buildBox("colr", buildNclxBody(1, 1, 1, true)));
+                IsoBmff.fullBoxPayload(0, 0, buildPixiBody(bitDepth, bitDepth, bitDepth))));
         primaryExtras.add(new PropRef(false, pixiIndex));
-        primaryExtras.add(new PropRef(false, colrIndex));
+        if (displayW > 0 && displayH > 0) {
+            int[] coded = primaryIspe(m);
+            if (coded[0] != displayW || coded[1] != displayH) {
+                int clapIndex = ipcoBoxes.size() + 1;
+                ipcoBoxes.add(IsoBmff.buildBox("clap",
+                        buildClapBody(coded[0], coded[1], displayW, displayH)));
+                primaryExtras.add(new PropRef(true, clapIndex));
+            }
+        }
+        if (colrIndex < 0) {
+            colrIndex = ipcoBoxes.size() + 1;
+            ipcoBoxes.add(IsoBmff.buildBox("colr", baseColrBody(displayP3)));
+        }
+        if (!hasPropertyRef(m.ipmaAssoc.get(primaryId), colrIndex)) {
+            primaryExtras.add(new PropRef(false, colrIndex));
+        }
         byte[] iprpBox = IsoBmff.buildBox("iprp",
                 listOf(IsoBmff.buildBox("ipco", ipcoBoxes),
                         filterIpma(m, keep, primaryId, primaryExtras)));
@@ -656,6 +734,10 @@ public final class UltraHdrHeicContainer {
         System.arraycopy(ftyp, 0, out, 0, ftyp.length);
         System.arraycopy(meta, 0, out, ftyp.length, meta.length);
         System.arraycopy(mdat, 0, out, ftyp.length + meta.length, mdat.length);
+        if (displayP3) {
+            // Keep the SPS VUI primaries/transfer in sync with the P3 colr.
+            HevcSpsColor.patchDisplayP3(out);
+        }
         return out;
     }
 
@@ -759,6 +841,49 @@ public final class UltraHdrHeicContainer {
             }
             return primaryIspe(Meta.parse(metaPayload));
         }
+    }
+
+    /**
+     * Display size of the primary item: the {@code clap} clean aperture when
+     * present, otherwise the coded {@code ispe}. The 10-bit encoder writes a
+     * grid-aligned {@code ispe} plus a {@code clap} for the requested size.
+     */
+    static int[] displaySize(byte[] heic) {
+        if (IsoBmff.boxDataRange(heic, "ftyp") == null) {
+            throw new IllegalStateException("merged HEIC has no ftyp box");
+        }
+        long[] mdat = IsoBmff.boxDataRange(heic, "mdat");
+        if (mdat == null || mdat[1] <= 0) {
+            throw new IllegalStateException("merged HEIC has no mdat box");
+        }
+        long[] metaRange = IsoBmff.boxDataRange(heic, "meta");
+        if (metaRange == null || metaRange[1] < 4 || metaRange[1] > Integer.MAX_VALUE) {
+            throw new IllegalStateException("merged HEIC has no usable meta box");
+        }
+        byte[] metaPayload = new byte[(int) metaRange[1]];
+        System.arraycopy(heic, (int) metaRange[0], metaPayload, 0, metaPayload.length);
+        return primaryDisplaySize(Meta.parse(metaPayload));
+    }
+
+    private static int[] primaryDisplaySize(Meta m) {
+        List<PropRef> assoc = m.ipmaAssoc.get(m.primaryItemId);
+        if (assoc != null) {
+            for (PropRef r : assoc) {
+                if (r.index - 1 >= 0 && r.index - 1 < m.ipcoChildren.size()) {
+                    IsoBmff.Box prop = m.ipcoChildren.get(r.index - 1);
+                    if (prop.type.equals("clap") && prop.payload.length >= 16) {
+                        long wn = IsoBmff.u32(prop.payload, 0);
+                        long wd = IsoBmff.u32(prop.payload, 4);
+                        long hn = IsoBmff.u32(prop.payload, 8);
+                        long hd = IsoBmff.u32(prop.payload, 12);
+                        if (wd > 0 && hd > 0) {
+                            return new int[]{(int) (wn / wd), (int) (hn / hd)};
+                        }
+                    }
+                }
+            }
+        }
+        return primaryIspe(m);
     }
 
     private static int[] primaryIspe(Meta m) {
@@ -888,6 +1013,27 @@ public final class UltraHdrHeicContainer {
     }
 
     /**
+     * Clean-aperture ({@code clap}) property body. The aperture is centered on
+     * the coded image; the top-left crop therefore has a negative vertical
+     * offset of half the padding. All values are rational (N/D).
+     */
+    static byte[] buildClapBody(int codedW, int codedH, int displayW, int displayH) {
+        ByteBuffer bb = ByteBuffer.allocate(32).order(ByteOrder.BIG_ENDIAN);
+        IsoBmff.putU32(bb, displayW);
+        IsoBmff.putU32(bb, 1);
+        IsoBmff.putU32(bb, displayH);
+        IsoBmff.putU32(bb, 1);
+        // The image occupies the top-left of the padded coded frame. A clean
+        // aperture is defined from the coded center, so shift it up/left by
+        // half the padding to keep the content instead of centering the crop.
+        IsoBmff.putU32(bb, (displayW - codedW) / 2);
+        IsoBmff.putU32(bb, 1);
+        IsoBmff.putU32(bb, (displayH - codedH) / 2);
+        IsoBmff.putU32(bb, 1);
+        return bb.array();
+    }
+
+    /**
      * nclx colr property body: colour_type 'nclx' + primaries/transfer/matrix
      * u16 + full_range flag byte. {@code colr} is a plain Box per ISO/IEC
      * 14496-12 (no version/flags), so this body is used as the box payload
@@ -902,6 +1048,37 @@ public final class UltraHdrHeicContainer {
         IsoBmff.putU16(bb, matrix);
         bb.put((byte) (fullRange ? 0x80 : 0));
         return bb.array();
+    }
+
+    /**
+     * SDR base color profile: full-range BT.709/sRGB, or Display P3
+     * (primaries 12, sRGB transfer 13, BT.709 matrix coefficients 1).
+     */
+    static byte[] baseColrBody(boolean displayP3) {
+        return displayP3
+                ? buildNclxBody(12, 13, 1, true)
+                : buildNclxBody(1, 1, 1, true);
+    }
+
+    /**
+     * Derived HDR (tmap) color profile: linear light in the base's primaries.
+     */
+    static byte[] tmapColrBody(boolean displayP3) {
+        return displayP3
+                ? buildNclxBody(12, 8, 1, true)
+                : buildNclxBody(1, 8, 1, true);
+    }
+
+    private static boolean hasPropertyRef(List<PropRef> refs, int index) {
+        if (refs == null) {
+            return false;
+        }
+        for (PropRef ref : refs) {
+            if (ref.index == index) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
