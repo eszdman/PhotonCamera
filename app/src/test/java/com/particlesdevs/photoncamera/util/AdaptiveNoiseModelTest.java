@@ -159,6 +159,24 @@ public class AdaptiveNoiseModelTest {
     }
 
     @Test
+    public void positiveMeasuredSlopeSurvivesAnOverstatedSensorPrior() {
+        // Daylight replay: the fitted shot term agrees with independent RAW
+        // temporal measurements; the sensor prior overstates it by about 20x.
+        AdaptiveNoiseModel.Model fitted = new AdaptiveNoiseModel.Model(
+                1.5247443561421413e-5, 2.904060094640181e-6, 1343);
+        double baselineS = 2.837911306414753e-4;
+        double baselineO = 3.833145001408411e-7;
+        AdaptiveNoiseModel.Model bounded = AdaptiveNoiseModel.limitToBaseline(
+                fitted, baselineS, baselineO, 2);
+        assertEquals(fitted.s, bounded.s, 1e-15);
+        assertEquals(2 * baselineO, bounded.o, 1e-15);
+        for (double brightness : new double[]{0, .01, .1, .5, 1}) {
+            assertTrue(bounded.s * brightness + bounded.o
+                    <= fitted.s * brightness + fitted.o);
+        }
+    }
+
+    @Test
     public void spatialRowsRecoverGaussianNoiseInLowerRawRegionWithoutBaselineCaps() {
         int[] histogram = spatialHistogram(1200, 0.14, 24000, false);
         AdaptiveNoiseModel.Model fitted = spatialFit(histogram, 0.14, 24000);

@@ -340,9 +340,11 @@ public final class AdaptiveNoiseModel {
                 || baselineS < 0 || baselineO < 0 || baselineS + baselineO <= 0) return fitted;
         double s = Math.min(fitted.s, baselineS * varianceAllowance);
         double o = Math.min(fitted.o, baselineO * varianceAllowance);
-        if (fitted.o > o && fitted.s < baselineS * 0.25) {
-            // A near-zero-S/high-O fit has lost the shot-noise term. Restore
-            // the prior as a pair; clipping O alone would erase shot noise.
+        if (fitted.o > o && fitted.s <= 1e-10) {
+            // Only the zero-slope NNLS boundary has lost the shot-noise term
+            // (1e-10 is the caller's storage floor). A positive measured slope
+            // can be much lower than an inaccurate sensor prior. Limiting O
+            // must not replace that measurement with a larger shot-noise curve.
             s = baselineS * varianceAllowance;
             o = baselineO * varianceAllowance;
         }
