@@ -51,7 +51,7 @@ public class BurstReplayTest {
         SharedPreferences prefs = PhotonCamera.getSettingsManagerStatic().getDefaultPreferences();
         Map<String, ?> saved = prefs.getAll();
         String[] keys = {"alignerselect", "gyroprealignment", "gyroonly", "haliderefineflow", "halideaccuratesubpixel",
-                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
+                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enablehotpixelcorrection", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
         int savedCount = FrameNumberSelector.frameCount;
         double savedStrength = PhotonCamera.getSettings().mergeStrength;
         ArrayList<ImageFrame> frames = new ArrayList<>();
@@ -67,6 +67,7 @@ public class BurstReplayTest {
                     .putFloat(PREFIX+"cfaresidualfusion", Float.parseFloat(args.getString("residualFusion","0")))
                     .putInt(PREFIX+"cfaresidualrobustness", Boolean.parseBoolean(args.getString("residualRobustness","true")) ? 1 : 0)
                     .putInt(PREFIX+"cfajointgreen", Boolean.parseBoolean(args.getString("jointGreen","false")) ? 1 : 0)
+                    .putInt(PREFIX+"enablehotpixelcorrection", Boolean.parseBoolean(args.getString("hotPixels","false")) ? 1 : 0)
                     .putString(PREFIX+"halidemergesampling", variant.equals("nearest") || variant.equals("bilinear") ? variant : "cubic")
                     .putInt(PREFIX+"enablenoisestore", 0).putInt(PREFIX+"profilegpusync", 0).putInt(PREFIX+"aligndebugcompare", 0).commit();
             if (args.containsKey("noiseProfile")) prefs.edit().putInt(PREFIX+"enableadaptivenoise",0).commit();
@@ -162,6 +163,17 @@ public class BurstReplayTest {
             pipeline.Run();
             report.put("processing_ms", (SystemClock.elapsedRealtimeNanos()-start)/1e6);
             report.put("diagnostic_readbacks", pipeline.mergeObserver != null);
+            if (pipeline.hotPixelResult != null) {
+                JSONObject hot = new JSONObject();
+                hot.put("candidates", pipeline.hotPixelResult.candidates);
+                hot.put("rejected_overfull", pipeline.hotPixelResult.rejectedOverfull);
+                JSONArray sites = new JSONArray(), counts = new JSONArray();
+                for (int site : pipeline.hotPixelResult.sites)
+                    sites.put(new JSONArray().put(site % parameters.rawSize.x).put(site / parameters.rawSize.x));
+                for (int count : pipeline.hotPixelResult.correctedPerFrame) counts.put(count);
+                hot.put("raw_xy", sites).put("corrected_per_frame", counts);
+                report.put("hot_pixels", hot);
+            }
             encoded = Allocator.createU16FromF16(pipeline.Output, parameters.rawSize.x, parameters.rawSize.y, 65535, new float[4]);
             assertNotNull(encoded);
             File rawFile = new File(output, outputName+".u16");

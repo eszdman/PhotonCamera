@@ -28,6 +28,7 @@ import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.AdaptiveNoiseModel;
 import com.particlesdevs.photoncamera.util.NoiseHistogramCalibration;
 import com.particlesdevs.photoncamera.util.BufferUtils;
+import com.particlesdevs.photoncamera.util.BurstHotPixelFilter;
 import com.particlesdevs.photoncamera.util.Math2;
 
 import java.nio.ByteBuffer;
@@ -84,201 +85,99 @@ public class ESD4D extends GLOneScript {
     }
     float noiseS;
     float noiseO;
-    GLBuffer hotPixelBuffer;
-    int hotPixelCount;
-    /** Frames averaged into the hot-pixel detection input (buildAveragedFrame). */
-    int hotAvgFrames = 1;
+    /** Sparse defect diagnostics; null when correction is disabled. */
+    public BurstHotPixelFilter.Result hotPixelResult;
     /** Sensor red-site offset ((cfa%2, cfa/2)); the packed grid is rawHalf + cfaShift. */
     Point cfaShift;
     /** Packed texture size (rawSize/2 + cfaShift) shared by all quad-packed stages. */
     Point packedSize;
-    @Tunable(title = "Max hotPixels", category = "Merge", description = "Statistical cpu filtering count threshold", min = 16384, max = 262144, step = 1000, defaultValue = 65535)
+    @Tunable(title = "Max hotPixels", category = "Merge", description = "Maximum proposed Bayer quads; skip correction if exceeded", min = 16384, max = 262144, step = 1000, defaultValue = 65535)
     int MAX_HOT_PIXELS;
-    @Tunable(title = "Max reasonable hotPixels", category = "Merge", description = "Statistical cpu filtering count threshold", min = 1000, max = 10000, step = 100, defaultValue = 2000)
+    @Tunable(title = "Max reasonable hotPixels", category = "Merge", description = "Maximum confirmed defect sites; skip correction if exceeded", min = 1000, max = 10000, step = 100, defaultValue = 2000)
     int MAX_REASONABLE_HOTPIXELS;
 
-    @Tunable(title = "Enable hotPixel correction", category = "Merge", min = 0, max = 1, step = 1, defaultValue = 0)
+    @Tunable(title = "Enable hotPixel correction", category = "Merge", description = "Conservative burst-only correction of persistent isolated bright sensor defects before alignment. Requires at least three frames", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean enableHotPixelCorrection;
 
-    /**
-     * Averages up to 10 frames (or fewer if not available) into a single rgba16f texture
-     * at rawHalf resolution. Uses incremental mix: mix(current, new, 1/(i+1)) which yields
-     * a proper running average without overflow.
-     */
-    private GLTexture buildAveragedFrame(int tile) {
-        int maxFrames = Math.min(10, images.size());
-        hotAvgFrames = maxFrames;
-
-        GLTexture avgA     = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        GLTexture avgB     = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        GLTexture tempFloat = new GLTexture(packedSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4), null, GL_NEAREST, GL_CLAMP_TO_EDGE);
-        GLTexture tempRaw  = maxFrames > 1
-                ? new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_CLAMP_TO_EDGE)
-                : null;
-
-        GLTexture avgCurrent = avgA;
-        GLTexture avgNext    = avgB;
-
-        for (int i = 0; i < maxFrames; i++) {
-            GLTexture rawSrc = (i == 0) ? inputBase : tempRaw;
-            if (i > 0) {
-                tempRaw.loadRawHalf(images.get(i).buffer);
+    private void hotPixels(float sensorNoiseS, float sensorNoiseO) {
+        if (images.size() < 3 || parameters.cfaPattern < 0 || parameters.cfaPattern > 3) return;
+        ImageFrame reference = images.get(0);
+        for (ImageFrame frame : images) {
+            if (frame.cropOriginX != reference.cropOriginX || frame.cropOriginY != reference.cropOriginY
+                    || frame.binned != reference.binned) {
+                Log.d(Name, "Sensor coordinate mapping changes within burst; hot pixel correction skipped");
+                return;
             }
-
-            // Convert raw Bayer -> normalized rgba16f vec4 (one texel per 2x2 Bayer quad)
-            glProg.setLayout(tile, tile, 1);
-            glProg.useAssetProgram("merge/merge00", true);
-            glProg.setVar("exposure", 1.0f / images.get(0).pair.layerMpy);
-            glProg.setVar("createDiff", 0);
+        }
+        long proposalStart = System.nanoTime();
+        float sigma = BurstHotPixelFilter.sigmaThreshold(detectThr);
+        int[] candidates;
+        try (GLBuffer proposals = new GLBuffer(MAX_HOT_PIXELS * 4 + 1,
+                new GLFormat(GLFormat.DataType.UNSIGNED_32))) {
+            glProg.setLayout(8, 8, 1);
+            glProg.useAssetProgram("merge/hotpixeldetect", true);
+            glProg.setVar("rawSize", parameters.rawSize);
             glProg.setVar("cfaShift", cfaShift);
-            glProg.setTexture("inTexture", rawSrc);
-            glProg.setTextureCompute("outTexture", tempFloat, true);
+            glProg.setVar("exposure", 1.f / images.get(0).pair.layerMpy);
+            glProg.setVar("noiseS", sensorNoiseS);
+            glProg.setVar("noiseO", sensorNoiseO);
+            glProg.setVar("detectThr", sigma);
+            glProg.setVar("maxCount", MAX_HOT_PIXELS);
+            glProg.setTexture("inTexture", base);
+            glProg.setBufferCompute("HotPixelList", proposals);
             glProg.computeAuto(packedSize, 1);
-
-            // Incremental mix: mix(currentAvg, newFrame, 1/(i+1))
-            // i=0 → weight=1.0 copies newFrame wholesale (currentAvg is uninitialised zeros)
-            float weight = 1.0f / (i + 1);
-            glProg.setLayout(tile, tile, 1);
-            glProg.useAssetProgram("merge/avermix", true);
-            glProg.setTextureCompute("currentTexture", avgCurrent, false);
-            glProg.setTextureCompute("newTexture",     tempFloat,  false);
-            glProg.setTextureCompute("outTexture",     avgNext,    true);
-            glProg.setVar("weight", weight);
-            glProg.computeAuto(packedSize, 1);
-
-            // Ping-pong: avgNext becomes the new accumulator
-            GLTexture swap = avgCurrent;
-            avgCurrent = avgNext;
-            avgNext    = swap;
-        }
-
-        avgNext.close();
-        tempFloat.close();
-        if (tempRaw != null) tempRaw.close();
-        Log.d(Name, "Averaged " + maxFrames + " frame(s) for hot pixel detection");
-        return avgCurrent; // caller must close
-    }
-
-    private GLBuffer detectHotPixels(GLTexture avgTex) {
-        GLBuffer res = new GLBuffer(MAX_HOT_PIXELS*4+1, new GLFormat(GLFormat.DataType.UNSIGNED_32));
-        glProg.setLayout(8,8,1);
-        glProg.useAssetProgram("merge/hotpixeldetect", true);
-        // avgTex averages hotAvgFrames frames, so its noise variance is
-        // (S*b + O)/n: divide both coefficients or the sigma threshold and
-        // z-scores run sqrt(n) (~3.2x at 10 frames) too insensitive.
-        glProg.setVar("noiseS", noiseS / hotAvgFrames);
-        glProg.setVar("noiseO", noiseO / hotAvgFrames);
-        glProg.setVar("detectThr", (float) detectThr);
-        glProg.setVar("maxCount", MAX_HOT_PIXELS);
-        glProg.setTexture("inTexture", avgTex);
-        glProg.setBufferCompute("HotPixelList",res);
-        glProg.computeAuto(base.mSize, 1);
-        int[] outputArr = res.readBufferIntegers(false);
-        int rawCount = Math.min(outputArr[0], MAX_HOT_PIXELS);
-        Log.d(Name, "Hot pixels detected (raw):" + rawCount);
-        
-        hotPixelCount = filterHotPixels(outputArr, rawCount, res);
-        Log.d(Name, "Hot pixels after filtering:" + hotPixelCount);
-        return res;
-    }
-    
-    private int filterHotPixels(int[] data, int count, GLBuffer buffer) {
-        if (count <= 0) return 0;
-        
-        // Structure: data[0] = count, then for each pixel: x, y, channels, strength
-        ArrayList<int[]> candidates = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            int idx = 1 + i * 4;
-            int x = data[idx];
-            int y = data[idx + 1];
-            int ch = data[idx + 2];
-            int strength = data[idx + 3];
-            candidates.add(new int[]{x, y, ch, strength, i});
-        }
-        
-        // If too many detections, likely false positives - filter by strength
-        if (count > MAX_REASONABLE_HOTPIXELS) {
-            Log.d(Name, "Too many hot pixels, filtering by strength");
-            // Sort by strength (descending)
-            candidates.sort((a, b) -> Integer.compare(b[3], a[3]));
-            // Keep only the strongest
-            while (candidates.size() > MAX_REASONABLE_HOTPIXELS) {
-                candidates.remove(candidates.size() - 1);
+            int[] data = proposals.readBufferIntegers(false);
+            if (data == null || data[0] < 0 || data[0] > MAX_HOT_PIXELS) {
+                Log.d(Name, "Hot pixel proposals unavailable or overfull; correction skipped");
+                return;
             }
-        }
-        
-        ArrayList<int[]> filtered = candidates;
-        
-        // Statistical outlier removal based on strength distribution
-        if (filtered.size() > 50) {
-            // Calculate mean and stddev of strength
-            double sum = 0, sumSq = 0;
-            for (int[] c : filtered) {
-                sum += c[3];
-                sumSq += (double)c[3] * c[3];
-            }
-            double mean = sum / filtered.size();
-            double variance = sumSq / filtered.size() - mean * mean;
-            double stddev = Math.sqrt(Math.max(variance, 1));
-            
-            // Remove weak outliers (strength < mean - 1.5*stddev)
-            double threshold = mean - 1.5 * stddev;
-            ArrayList<int[]> statistical = new ArrayList<>();
-            for (int[] c : filtered) {
-                if (c[3] >= threshold) {
-                    statistical.add(c);
+            int[] sites = new int[data[0] * 4];
+            int count = 0;
+            for (int i = 0; i < data[0]; ++i) {
+                int offset = 1 + 4 * i;
+                for (int c = 0; c < 4; ++c) {
+                    if ((data[offset + 2] & (1 << c)) == 0) continue;
+                    int x = 2 * data[offset] - cfaShift.x + c % 2;
+                    int y = 2 * data[offset + 1] - cfaShift.y + c / 2;
+                    sites[count++] = y * parameters.rawSize.x + x;
                 }
             }
-            Log.d(Name, "Statistical filtering: mean=" + (int)mean + " stddev=" + (int)stddev + " thr=" + (int)threshold);
-            Log.d(Name, "Removed " + (filtered.size() - statistical.size()) + " weak detections");
-            filtered = statistical;
+            candidates = java.util.Arrays.copyOf(sites, count);
         }
-        
-        // Repack filtered results back into buffer
-        int finalCount = filtered.size();
-        data[0] = finalCount;
-        for (int i = 0; i < finalCount; i++) {
-            int[] c = filtered.get(i);
-            int idx = 1 + i * 4;
-            data[idx] = c[0];
-            data[idx + 1] = c[1];
-            data[idx + 2] = c[2];
-            data[idx + 3] = c[3];
+        long verifyStart = System.nanoTime();
+        BurstHotPixelFilter.Frame[] frames = new BurstHotPixelFilter.Frame[images.size()];
+        for (int i = 0; i < frames.length; ++i) {
+            // createF16 has already normalized each native buffer. Sparse reads
+            // avoid uploading ten full frames just to verify a few candidates.
+            final ByteBuffer buffer = images.get(i).buffer.duplicate().order(ByteOrder.nativeOrder());
+            frames[i] = new BurstHotPixelFilter.Frame() {
+                @Override public float get(int index) {
+                    return android.util.Half.toFloat(buffer.getShort(index * 2));
+                }
+                @Override public void set(int index, float value) {
+                    buffer.putShort(index * 2, android.util.Half.toHalf(value));
+                }
+            };
         }
-        buffer.uploadBuffer(data, finalCount * 4 + 1);
-        
-        return finalCount;
-    }
-
-    private void correctHotPixelsBase(GLBuffer buffer, int count){
-        if (count > 0) {
-            glProg.setLayout(64, 1, 1);
-            glProg.useAssetProgram("merge/hotpixelcorrect", true);
-            glProg.setBufferCompute("HotPixelList", buffer);
-            glProg.setTextureCompute("inTexture", base, false);
-            glProg.setTextureCompute("outTexture", base, true);
-            glProg.computeManual((count + 63) / 64, 1, 1);
-            Log.d(Name, "Hot pixels corrected in base:" + count);
-        }
-    }
-
-    private void correctHotPixelsInAlter(GLBuffer buffer, int count){
-        if (count > 0) {
-            glProg.setLayout(64, 1, 1);
-            glProg.useAssetProgram("merge/hotpixelcorrect", true);
-            glProg.setBufferCompute("HotPixelList", buffer);
-            glProg.setTextureCompute("inTexture", alter, false);
-            glProg.setTextureCompute("outTexture", alter, true);
-            glProg.computeManual((count + 63) / 64, 1, 1);
-            Log.d(Name, "Hot pixels corrected in alter:" + count);
-        }
-    }
-
-    private void hotPixels(){
-        GLTexture avgTex = buildAveragedFrame(8);
-        hotPixelBuffer = detectHotPixels(avgTex);
-        avgTex.close();
-        correctHotPixelsBase(hotPixelBuffer, hotPixelCount);
+        hotPixelResult = BurstHotPixelFilter.correct(frames, parameters.rawSize.x,
+                parameters.rawSize.y, parameters.cfaPattern, candidates,
+                sensorNoiseS, sensorNoiseO, sigma, MAX_REASONABLE_HOTPIXELS);
+        Log.d(Name, "Hot pixels: proposed=" + candidates.length + " confirmed="
+                + hotPixelResult.sites.length + " overfull=" + hotPixelResult.rejectedOverfull
+                + " proposal_ms=" + (verifyStart - proposalStart) / 1e6
+                + " verify_correct_ms=" + (System.nanoTime() - verifyStart) / 1e6);
+        if (hotPixelResult.sites.length == 0) return;
+        // Correct every frame before any alignment/warp. Refresh the already
+        // uploaded reference; alter uploads later consume the repaired buffers.
+        inputBase.loadRawHalf(images.get(0).buffer);
+        glProg.setLayout(8, 8, 1);
+        glProg.useAssetProgram("merge/merge00", true);
+        glProg.setVar("exposure", 1.f / images.get(0).pair.layerMpy);
+        glProg.setVar("createDiff", 0);
+        glProg.setVar("cfaShift", cfaShift);
+        glProg.setTexture("inTexture", inputBase);
+        glProg.setTextureCompute("outTexture", base, true);
+        glProg.computeAuto(packedSize, 1);
     }
 
     GLTexture inputBase;
@@ -322,7 +221,7 @@ public class ESD4D extends GLOneScript {
     GLTexture alignmentTex;
     /** Dense optical-flow alignment (FlowNet); non-null when useNcnnFlow ran. */
     FlowNetAlignment flowNetAlignment;
-    @Tunable(title = "HotPixels detect threshold", category = "Merge", description = "Higher multiplier detects less hotpixels", min = 0.5f, max = 5.0f, step = 0.1f, defaultValue = 1.5f)
+    @Tunable(title = "HotPixels detect threshold", category = "Merge", description = "Higher values require stronger outliers; minimum six-sigma and burst/texture safeguards always apply", min = 0.5f, max = 5.0f, step = 0.1f, defaultValue = 1.5f)
     double detectThr;
 
     @Tunable(title = "Enable Adaptive Noise Model", category = "Merge", description = "Creates noise multiplier based on stdev", min = 0, max = 1, step = 1, defaultValue = 1)
@@ -856,7 +755,7 @@ public class ESD4D extends GLOneScript {
         noiseO = (float)Math.max(noiseO * noisempy * adaptiveNMpy * adaptiveNMpy,noiseMin);
         if(enableHotPixelCorrection) {
             long hotT = System.currentTimeMillis();
-            hotPixels();
+            hotPixels(rawNoiseS, rawNoiseO);
             Log.d("ESD4D", "Stage[hotpixels] elapsed:" + (System.currentTimeMillis() - hotT) + " ms");
         }
 
@@ -1075,7 +974,6 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
 
-            correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", mergeTile);
             boolean gyroWarp = gyroHomographies[ind] != null;
@@ -1337,7 +1235,6 @@ public class ESD4D extends GLOneScript {
         // (this phase). Release it here so post-merge MemStage baselines are
         // unchanged vs per-upload malloc/free.
         ImageFrame.releaseUploadStaging();
-        if(hotPixelBuffer != null) hotPixelBuffer.close();
         // baseDiff/alter/inputAlter/inputBase/brightMap may already be
         // released post-loop (nulled there); guard so a stale close can
         // never delete a recycled texture ID.
