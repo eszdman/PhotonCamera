@@ -490,6 +490,9 @@ public class CameraFragment extends Fragment {
     @Override
     public void onResume() {
         super.onResume();
+        // Another camera activity may have cleared this reference when closing.
+        // Reclaim it when returning to this fragment's retained camera view.
+        PhotonCamera.setCaptureController(captureController);
         updateSettingsBar();
         lensZoomBarController.applyPosition(PreferenceKeys.getLensBarPosition(), true);
         edgeBlurController.setEnabled(PreferenceKeys.isBlurViewfinderEdgesOn());
