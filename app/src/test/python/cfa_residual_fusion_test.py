@@ -16,17 +16,15 @@ from halide_subpixel_test import Renderer, SRC, RAW_H, RAW_W
 
 
 class Merge:
-    def __init__(self, ctx, strength=None, motion=False, fallback=True, robust=False, joint_green=False):
+    def __init__(self, ctx, strength=None, motion=False, robust=False, sampling=3):
         self.ctx=ctx
         self.robust=robust; self.support=None
         code=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
         if strength is not None: code=code.replace('#define CFA_RESIDUAL_FUSION 0','#define CFA_RESIDUAL_FUSION 1')
-        if joint_green: code=code.replace('#define CFA_GREEN_QUINCUNX 0','#define CFA_GREEN_QUINCUNX 1')
         if motion: code=code.replace('#define HALIDE_MOTION_FIELD 0','#define HALIDE_MOTION_FIELD 1')
-        if not fallback: code=code.replace('#define HALIDE_PIXEL_FALLBACK 1','#define HALIDE_PIXEL_FALLBACK 0')
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'merge.glsl';path.write_text(code)
-            self.align=Renderer(ctx,3,32,shader_path=path)
+            self.align=Renderer(ctx,sampling,32,shader_path=path)
         if strength is not None:self.align.program['cfaResidualStrength'].value=strength
         code=(SRC/'main/assets/shaders/merge/mergeCombineWeight1.glsl').read_text()
         if robust:code=code.replace('#define RESIDUAL_ROBUSTNESS 0','#define RESIDUAL_ROBUSTNESS 1')
@@ -61,47 +59,11 @@ class Merge:
 
 
 def oracle(ctx):
-    rng=np.random.default_rng(9302);y,x=np.mgrid[:RAW_H//2,:RAW_W//2]
-    base=rng.uniform(.2,.7,(*x.shape,4)).astype('f2').astype('f4')
-    source=rng.uniform(.2,.7,base.shape).astype('f2').astype('f4')
-    merge=Merge(ctx,.5);errors=[]
-    for dx,dy in ((0,0),(2,-3),(.375,-.625),(-1.125,2.75)):
-        actual,d=merge.align.run(source,base,dx,dy)
-        predicted=np.stack([map_coordinates(base[...,c],[y-d[1],x-d[0]],order=1,mode='nearest') for c in range(4)],-1)
-        residual=source-predicted
-        back=np.stack([map_coordinates(residual[...,c],[y+d[1],x+d[0]],order=1,mode='nearest') for c in range(4)],-1)
-        direct=np.stack([map_coordinates(source[...,c],[y+d[1],x+d[0]],order=1,mode='nearest') for c in range(4)],-1)
-        expected=.5*(base+back)+.5*direct
-        err=float(np.max(abs(actual[8:-8,8:-8]-expected[8:-8,8:-8])))
-        assert err<.0007,(d,err)
-        errors.append(err)
-    # CFA borders, black, DC and exposure: no foreign-color padding may leak.
-    checks=0
-    for cfa in ((0,0),(1,0),(0,1),(1,1)):
-        h,w=RAW_H//2+cfa[1],RAW_W//2+cfa[0]
-        source=np.broadcast_to(np.array([.125,.25,.5,.75],'f4'),(h,w,4)).copy()
-        for exposure in (.5,1,1.25):
-            base=source*exposure
-            actual,_=merge.align.run(source,base,.375,-.625,cfa=cfa,exposure=exposure)
-            np.testing.assert_allclose(actual,base,atol=.0006,rtol=0);checks+=1
-        black=np.zeros_like(source);actual,_=merge.align.run(black,black,.125,-.4,cfa=cfa)
-        assert np.max(abs(actual))==0;checks+=1
-    padding_checks=0
-    for cfa in ((0,0),(1,0),(0,1),(1,1)):
-        h,w=RAW_H//2+cfa[1],RAW_W//2+cfa[0]; yy,xx=np.mgrid[:h,:w]
-        colors=np.array([.125,.25,.5,.75],'f4')
-        source=np.broadcast_to(colors,(h,w,4)).copy(); base=source.copy(); valid=[]
-        for c in range(4):
-            low=(np.array(cfa)-[c%2,c//2]+1)//2
-            high=(np.array([RAW_W,RAW_H])-1+np.array(cfa)-[c%2,c//2])//2
-            mask=(xx>=low[0])&(xx<=high[0])&(yy>=low[1])&(yy<=high[1]);valid.append(mask)
-            source[~mask,c]=1-c*.2; base[~mask,c]=c*.21
-        for d in ((.375,-.625),(-20.4,30.2)):
-            actual,_=merge.align.run(source,base,*d,cfa=cfa)
-            for c in range(4):np.testing.assert_allclose(actual[...,c][valid[c]],colors[c],atol=.0006,rtol=0)
-            padding_checks+=1
-    return {'forward_adjoint_max_abs':max(errors),'forward_adjoint_cases':len(errors),
-            'cfa_dc_exposure_black_cases':checks,'poisoned_cfa_padding_cases':padding_checks}
+    # Every residual path now uses the physical green lattice. Check it with
+    # two independently resampled lattice images, including all CFA borders.
+    from cfa_quincunx_cubic_test import oracle as lattice_oracle
+    code=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+    return {str(mode):lattice_oracle(ctx,code,mode) for mode in (2,3,4)}
 
 
 def scene(x,y,frequency):
@@ -110,7 +72,7 @@ def scene(x,y,frequency):
 
 
 def quality(ctx):
-    variants={'cubic':Merge(ctx),'motion_cubic':Merge(ctx,motion=True,fallback=False),
+    variants={'cubic':Merge(ctx),'motion_cubic':Merge(ctx,motion=True),
               'residual_0':Merge(ctx,0),'residual_025':Merge(ctx,.25),
               'residual_05':Merge(ctx,.5),'residual_075':Merge(ctx,.75),'residual_1':Merge(ctx,1)}
     y,x=np.mgrid[:RAW_H//2,:RAW_W//2];roi=np.s_[12:-12,12:-12,:]

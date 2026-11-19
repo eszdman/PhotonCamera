@@ -38,13 +38,14 @@ public class BurstReplayTest {
         Bundle args = InstrumentationRegistry.getArguments();
         assertFalse("Removed experiment: use automatic noise-aware alignment", args.containsKey("gaussianScore"));
         assertFalse("Wider search failed the regression tests and was removed", args.containsKey("wideSearch"));
+        assertFalse("Pixel fallback was removed; replay always uses the estimated warp", args.containsKey("pixelFallback"));
         Assume.assumeTrue("Opt in with -e burstReplay true", args.getString("burstReplay", "false").equals("true"));
         assertTrue(HalideAlignment.isAvailable());
         File input = new File(args.getString("burstPath", "/storage/emulated/0/DCIM/PhotonCamera/Raw"));
         JSONObject manifest = new JSONObject(new String(Files.readAllBytes(new File(input, "manifest.json").toPath()), "UTF-8"));
         JSONArray entries = manifest.getJSONArray("frames");
         String variant = args.getString("variant", "accurate");
-        assertTrue(variant.equals("accurate") || variant.equals("legacy") || variant.equals("nearest") || variant.equals("bilinear") || variant.equals("motion"));
+        assertTrue(variant.equals("accurate") || variant.equals("legacy") || variant.equals("nearest") || variant.equals("bilinear") || variant.equals("motion") || variant.equals("lanczos2"));
         String outputName = args.getString("outputName",variant);
         assertTrue(outputName.matches("[a-zA-Z0-9_-]+"));
         File output = new File(InstrumentationRegistry.getInstrumentation().getTargetContext().getExternalFilesDir(null), "burst-replay");
@@ -53,7 +54,7 @@ public class BurstReplayTest {
         SharedPreferences prefs = PhotonCamera.getSettingsManagerStatic().getDefaultPreferences();
         Map<String, ?> saved = prefs.getAll();
         String[] keys = {"alignerselect", "gyroprealignment", "gyroonly", "haliderefineflow", "halideaccuratesubpixel",
-                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "halidecoarseglobal", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enablehotpixelcorrection", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
+                "halidemergesampling", "halideinterpolatemotion", "halidecoarseglobal", "cfaresidualfusion", "cfaresidualrobustness", "enablehotpixelcorrection", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
         int savedCount = FrameNumberSelector.frameCount;
         double savedStrength = PhotonCamera.getSettings().mergeStrength;
         ArrayList<ImageFrame> frames = new ArrayList<>();
@@ -66,13 +67,13 @@ public class BurstReplayTest {
                     .putInt(PREFIX+"haliderefineflow", 0).putInt(PREFIX+"halideaccuratesubpixel", variant.equals("legacy") ? 0 : 1)
                     .putInt(PREFIX+"halidecoarseglobal", Boolean.parseBoolean(args.getString("coarseGlobal","false")) ? 1 : 0)
                     .putInt(PREFIX+"halideinterpolatemotion", variant.equals("motion") ? 1 : 0)
-                    .putInt(PREFIX+"halidepixelfallback", Boolean.parseBoolean(args.getString("pixelFallback","true")) ? 1 : 0)
                     .putFloat(PREFIX+"cfaresidualfusion", Float.parseFloat(args.getString("residualFusion","0")))
                     .putInt(PREFIX+"cfaresidualrobustness", Boolean.parseBoolean(args.getString("residualRobustness","true")) ? 1 : 0)
-                    .putInt(PREFIX+"cfajointgreen", Boolean.parseBoolean(args.getString("jointGreen","false")) ? 1 : 0)
                     .putInt(PREFIX+"enablehotpixelcorrection", Boolean.parseBoolean(args.getString("hotPixels","false")) ? 1 : 0)
-                    .putString(PREFIX+"halidemergesampling", variant.equals("nearest") || variant.equals("bilinear") ? variant : "cubic")
-                    .putInt(PREFIX+"enablenoisestore", 0).putInt(PREFIX+"profilegpusync", 0).putInt(PREFIX+"aligndebugcompare", 0).commit();
+                    .putString(PREFIX+"halidemergesampling", variant.equals("nearest") || variant.equals("bilinear") || variant.equals("lanczos2") ? variant : "cubic")
+                    .putInt(PREFIX+"enablenoisestore", 0)
+                    .putInt(PREFIX+"profilegpusync", Boolean.parseBoolean(args.getString("profileGpuSync","false")) ? 1 : 0)
+                    .putInt(PREFIX+"aligndebugcompare", 0).commit();
             if (args.containsKey("noiseProfile")) prefs.edit().putInt(PREFIX+"enableadaptivenoise",0).commit();
             else if (args.containsKey("adaptiveNoise")) prefs.edit().putInt(PREFIX+"enableadaptivenoise",
                     Boolean.parseBoolean(args.getString("adaptiveNoise")) ? 1 : 0).commit();

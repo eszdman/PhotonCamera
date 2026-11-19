@@ -12,7 +12,7 @@ import numpy as np
 
 SRC = Path(__file__).resolve().parents[2]
 RAW_W, RAW_H = 260, 196
-MODES = ('texel_floor', 'texel_nearest', 'cfa_bilinear', 'cfa_cubic')
+MODES = ('texel_floor', 'texel_nearest', 'cfa_bilinear', 'cfa_cubic', 'cfa_lanczos2')
 
 
 def weights(t):
@@ -20,6 +20,38 @@ def weights(t):
     d = np.abs(np.arange(-1, 3).reshape(4, 1, 1) - t)
     return np.where(d <= 1, 1.5*d**3-2.5*d**2+1,
                     np.where(d < 2, -0.5*d**3+2.5*d**2-4*d+2, 0))
+
+
+def projection_weights(t,mode):
+    if mode!=4:return weights(t)
+    d=np.arange(-1,3).reshape(4,1,1)-t
+    w=np.where(abs(d)<2,np.sinc(d)*np.sinc(d/2),0)
+    return w/w.sum(0)
+
+
+def green_reference(source,px,py,mode,cfa):
+    u=px+py;v=px-py;out=[]
+    def fetch(u,v):
+        rx=u+v+1;ry=u-v;ch=np.where(rx%2==1,1,2)
+        qx=rx//2;qy=ry//2
+        lowx=(cfa[0]-ch%2+1)//2;lowy=(cfa[1]-ch//2+1)//2
+        highx=(RAW_W-1+cfa[0]-ch%2)//2;highy=(RAW_H-1+cfa[1]-ch//2)//2
+        return source[np.clip(qy,lowy,highy),np.clip(qx,lowx,highx),ch]
+    for phase in range(2):
+        vp=v-phase
+        if mode==1:
+            out.append(fetch(np.floor(u+.5).astype(int),np.floor(vp+.5).astype(int)));continue
+        iu=np.floor(u).astype(int);iv=np.floor(vp).astype(int);fu=u-iu;fv=vp-iv
+        taps=[fetch(iu+i,iv+j) for j in range(2) for i in range(2)]
+        if mode==2:
+            value=(taps[0]*(1-fu)+taps[1]*fu)*(1-fv)+(taps[2]*(1-fu)+taps[3]*fu)*fv
+        else:
+            wu=projection_weights(fu,mode);wv=projection_weights(fv,mode);value=np.zeros_like(u)
+            for j in range(4):
+                for i in range(4):value+=fetch(iu+i-1,iv+j-1)*wu[i]*wv[j]
+            value=np.clip(value,np.minimum.reduce(taps),np.maximum.reduce(taps))
+        out.append(value)
+    return np.stack(out,-1)
 
 
 def reference(source, dx, dy, mode, cfa):
@@ -37,18 +69,23 @@ def reference(source, dx, dy, mode, cfa):
             out[..., c] = source[np.clip(y, low[1], high[1]), np.clip(x, low[0], high[0]), c]
         return out
     if mode < 2:
-        return fetch(np.floor(x+(0.5 if mode else 0)).astype(int),
-                     np.floor(y+(0.5 if mode else 0)).astype(int))
+        out=fetch(np.floor(x+(0.5 if mode else 0)).astype(int),np.floor(y+(0.5 if mode else 0)).astype(int))
+        if mode==1:out[...,1:3]=green_reference(source,x,y,mode,cfa)
+        return out
     taps = [fetch(lo_x+ix, lo_y+iy) for iy in range(2) for ix in range(2)]
     if mode == 2:
-        return ((taps[0]*(1-fx[..., None])+taps[1]*fx[..., None])*(1-fy[..., None])
+        out=((taps[0]*(1-fx[..., None])+taps[1]*fx[..., None])*(1-fy[..., None])
                 +(taps[2]*(1-fx[..., None])+taps[3]*fx[..., None])*fy[..., None])
-    wx, wy = weights(fx), weights(fy)
+        out[...,1:3]=green_reference(source,x,y,mode,cfa)
+        return out
+    wx, wy = projection_weights(fx,mode), projection_weights(fy,mode)
     out = np.zeros_like(source)
     for iy in range(4):
         for ix in range(4):
             out += fetch(lo_x+ix-1, lo_y+iy-1)*(wx[ix]*wy[iy])[..., None]
-    return np.clip(out, np.minimum.reduce(taps), np.maximum.reduce(taps))
+    out=np.clip(out,np.minimum.reduce(taps),np.maximum.reduce(taps))
+    out[...,1:3]=green_reference(source,x,y,mode,cfa)
+    return out
 
 
 class Renderer:
@@ -107,16 +144,20 @@ void main() {
 
 
 def scene(x, y, frequency=0.13):
-    # Distinct channel DC levels and phases expose cross-color interpolation.
-    return np.stack([0.17+0.17*c+0.055*np.sin(2*np.pi*(frequency*x+0.027*y)+c*0.53)
-                      +0.035*np.cos(2*np.pi*(0.041*x+frequency*0.6*y)+c*0.31)
-                      for c in range(4)], axis=-1)
+    # Physical RGB scene sampled at each CFA position; both greens are the
+    # same color filter at different coordinates, not different color signals.
+    channels=[]
+    for c in range(4):
+        color=[0,1,1,2][c];px=x+(c%2)*.5;py=y+(c//2)*.5
+        channels.append(.17+.17*color+.055*np.sin(2*np.pi*(frequency*px+.027*py)+color*.53)
+                        +.035*np.cos(2*np.pi*(.041*px+frequency*.6*py)+color*.31))
+    return np.stack(channels,-1)
 
 
 def checks(ctx):
     count = 0
     for tile in (16,32):
-        for mode in range(4):
+        for mode in range(5):
             sampler, merge = Renderer(ctx,mode,tile,True), Renderer(ctx,mode,tile)
             for cfa in ((0,0),(1,0),(0,1),(1,1)):
                 y,x=np.mgrid[:RAW_H//2+cfa[1],:RAW_W//2+cfa[0]]
@@ -131,7 +172,7 @@ def checks(ctx):
                     actual,d=sampler.run(source,source,dx,dy,cfa)
                     expected=reference(source,*d,mode,cfa)
                     np.testing.assert_allclose(actual,expected,atol=5e-4,rtol=0)
-                    # Real production entry point: test the corrected selection gate too.
+                    # Real production entry point must preserve the requested warp.
                     base=expected.astype('f2').astype('f4')
                     output,_=merge.run(source,base,dx,dy,cfa)
                     np.testing.assert_allclose(output,base,atol=1e-3,rtol=0)
@@ -139,19 +180,21 @@ def checks(ctx):
                 black=np.zeros_like(source)
                 output,_=merge.run(black,black,-0.1,0.4,cfa)
                 assert np.isfinite(output).all() and np.max(np.abs(output))==0
-                # Reject a bad alignment when the unshifted source equals the reference.
-                output,_=merge.run(source,source,3.2,-2.4,cfa)
-                np.testing.assert_allclose(output,source,atol=5e-4,rtol=0)
+                # Even when the base equals the unshifted source, sampling must
+                # honor motion. Rejection belongs to the following combine pass.
+                output,d=merge.run(source,source,3.2,-2.4,cfa)
+                expected=reference(source,*d,mode,cfa)
+                np.testing.assert_allclose(output,expected,atol=5e-4,rtol=0)
                 count+=2
             sampler.program.release();merge.program.release()
-    print(f'CFA precision/gate checks: {count} GPU shader executions passed')
+    print(f'CFA precision/warp checks: {count} GPU shader executions passed')
 
 
 def quality(ctx):
     y,x=np.mgrid[:RAW_H//2,:RAW_W//2]
     shifts=((0.125,-0.375),(0.375,-0.625),(-0.75,0.25),(0.5,0.5),(-1.125,1.875))
     report={}
-    for mode in range(4):
+    for mode in range(5):
         sampler=Renderer(ctx,mode,32,True)
         errors=[]
         for frequency in (0.05,0.13,0.23):
@@ -192,12 +235,15 @@ def optimized_equivalence(ctx):
                 elif kind == 'large': vectors *= 40
                 a,_ = old.run(source,base,0,0,cfa,vectors=vectors)
                 b,_ = new.run(source,base,0,0,cfa,vectors=vectors)
-                np.testing.assert_allclose(a,b,atol=5e-4,rtol=0,
+                # Green sampling intentionally changed to its physical lattice;
+                # its independent oracle is exercised by checks(). R/B retain
+                # the existing cubic optimization and must remain equivalent.
+                np.testing.assert_allclose(a[..., [0,3]],b[..., [0,3]],atol=5e-4,rtol=0,
                     err_msg=f'Cubic optimization changed pixels: tile={tile} cfa={cfa} {kind}')
-                max_error=max(max_error,float(np.max(np.abs(a-b))))
+                max_error=max(max_error,float(np.max(np.abs(a[..., [0,3]]-b[..., [0,3]]))))
                 cases += 1
         old.program.release();new.program.release()
-    print(f'Original/optimized cubic: {cases} full shader comparisons passed, max difference={max_error}')
+    print(f'Original/optimized cubic R/B: {cases} shader comparisons passed, max difference={max_error}')
     return {'comparisons':cases,'max_abs_difference':max_error}
 
 

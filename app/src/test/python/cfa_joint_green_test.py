@@ -22,7 +22,7 @@ def oracle(ctx):
     for c, off in ((1,0),(2,-1)):
         base[...,c] = gbase[v+off,u]
         source[...,c] = gsource[v+off,u]
-    merge = Merge(ctx,.5,joint_green=True)
+    merge = Merge(ctx,.5,sampling=2)
     errors = []
     for dx,dy in ((0,0),(2,-3),(.375,-.625),(-1.125,2.75),(.1,.6),(-.9,.2)):
         actual,d = merge.align.run(source,base,dx,dy)
@@ -75,7 +75,9 @@ def physical_scene(x,y,f):
 
 
 def quality(ctx):
-    variants={'separate':Merge(ctx,.5,robust=True),'joint':Merge(ctx,.5,robust=True,joint_green=True)}
+    variants={'bilinear':Merge(ctx,.5,robust=True,sampling=2),
+              'cubic':Merge(ctx,.5,robust=True),
+              'lanczos2':Merge(ctx,.5,robust=True,sampling=4)}
     y,x=np.mgrid[:RAW_H//2,:RAW_W//2];roi=np.s_[12:-12,12:-12,:];rows=[]
     for f in (0,.04,.11,.21,.32):
         for shift_error in (0,.15):

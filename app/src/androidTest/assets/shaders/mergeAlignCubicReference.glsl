@@ -168,7 +168,6 @@ void main() {
     if (any(greaterThanEqual(xy, outSize))) return;
     vec2 uvScale = vec2(outSize-border);
     vec2 uv = vec2(xy)/uvScale + vec2(0.5)/uvScale;
-    vec4 bayerBase = imageLoad(baseTexture,xy);
     vec4 bayer = getBayerVec(xy*TILE, inTexture);
     //vec4 hp = imageLoad(hotPixTexture, xy);
     //bayer = bayer * vec4(1.0-hp) + imageLoad(avrTexture, xy) * hp;
@@ -179,11 +178,6 @@ void main() {
     w[1] = windowxy4((TILE*xy)%TILE_AL + ivec2(0,TILE_AL));
     w[0] = windowxy4((TILE*xy)%TILE_AL + ivec2(TILE_AL));
     vec4 alignedSum = vec4(0.0);
-#if GYRO_WARP
-    vec4 bayerNone = warpedBayer(vec2(xy));
-#else
-    vec4 bayerNone = imageLoad(alterTexture, xy);
-#endif
     for (int i = 0; i < 4; i++) {
         ivec2 xyT = clamp(ivec2((TILE*xy)/TILE_AL + ivec2(i % 2, i / 2)),ivec2(0),alignmentSize-1);
         vec4 alignLoad = texelFetch(alignmentTexture, xyT + shift, 0);
@@ -197,12 +191,6 @@ void main() {
         ivec2 aligned = clamp(xy + align, ivec2(0), outSize - ivec2(1));
         vec4 bayerAlter = imageLoad(alterTexture, aligned);
 #endif
-        vec4 w1 = (abs(bayerAlter*vec4(exposure) - bayerBase));
-        vec4 w2 = (abs(bayerNone*vec4(exposure) - bayerBase));
-        // Correct smoothstep(edge0, edge1, x) order, including equal/black
-        // samples. The former non-gyro call used the ratio as edge0 and
-        // could reverse the edges (undefined), or divide zero by zero.
-        bayerAlter = mix(bayerNone, bayerAlter, smoothstep(vec4(0.48),vec4(0.51),w2/max(w1+w2,vec4(1e-8))));
         alignedSum += bayerAlter * w[i];
     }
 

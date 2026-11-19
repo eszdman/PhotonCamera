@@ -44,7 +44,8 @@ public class HalideSubpixelDeviceTest {
     }
 
     private static float scene(double x,double y,int c) {
-        return (float)(0.2+0.13*c+0.07*Math.sin(x*0.34+y*0.12)
+        int color=c==2?1:c;
+        return (float)(0.2+0.13*color+0.07*Math.sin(x*0.34+y*0.12)
                 +0.05*Math.cos(y*0.27)+0.04*Math.sin(x*0.13-y*0.08));
     }
 
@@ -125,8 +126,10 @@ public class HalideSubpixelDeviceTest {
                                             .order(ByteOrder.nativeOrder()).asFloatBuffer();
                                     if(mode==3) optimizedPixels=actual;
                                     if(mode==4) {
-                                        for(int i=0;i<truth.length;i++) assertEquals("Old/new cubic at "+i,
-                                                actual.get(i),optimizedPixels.get(i),0.0005f);
+                                        // R/B retain the old optimized cubic. Greens now
+                                        // use the quincunx lattice and intentionally differ.
+                                        for(int i=0;i<truth.length;i++) if(i%4==0 || i%4==3)
+                                            assertEquals("Old/new cubic R/B at "+i,actual.get(i),optimizedPixels.get(i),0.0005f);
                                     }
                                     int samples=0;double error=0;
                                     for(int y=48;y<half.y-48;y++) for(int x=48;x<half.x-48;x++) for(int c=0;c<4;c++) {

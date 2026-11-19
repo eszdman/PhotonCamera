@@ -265,25 +265,19 @@ public class ESD4D extends GLOneScript {
     boolean halideCoarseGlobal;
 
     @Tunable(title = "Halide merge sampling", category = "Alignment",
-            description = "Without gyro: cubic preserves fractional shifts with sharper CFA-plane interpolation and an edge clamp; bilinear is softer; nearest rounds to 2x2 raw blocks; legacy texel floors shifts. All modes keep Bayer colors separate",
-            entries = {"CFA cubic (sharp subpixel)", "CFA bilinear (subpixel)", "Texel nearest (rounded)", "Texel legacy (floor)"},
-            entryValues = {"cubic", "bilinear", "nearest", "texel"}, defaultValue = 0)
-    String halideMergeSampling = "cubic";
+            description = "Without gyro: cubic and Lanczos preserve fine detail; bilinear smooths more. Interpolated greens share their physical quincunx lattice while retaining distinct CFA positions. Residual fusion uses the matching sampling model",
+            entries = {"CFA cubic (sharp subpixel)", "CFA bilinear (subpixel)", "CFA Lanczos-2", "Texel nearest (rounded)", "Texel legacy (floor)"},
+            entryValues = {"cubic", "bilinear", "lanczos2", "nearest", "texel"}, defaultValue = 2)
+    String halideMergeSampling = "lanczos2";
 
     @Tunable(title = "Halide interpolate motion", category = "Alignment", description = "Experimental: interpolate vectors at their patch centers and sample the CFA once, instead of blending four warped samples", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean halideInterpolateMotion;
 
-    @Tunable(title = "Halide pixel fallback", category = "Alignment", description = "Choose the unshifted value when it matches the running merge more closely. Off tests the estimated warp directly; the merge robustness filter still rejects inconsistent frames", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean halidePixelFallback = true;
-
-    @Tunable(title = "CFA residual fusion", category = "Merge", description = "Experimental Halide merge without gyro: 0 keeps the selected sampler; 0.5 tests regularized CFA residual reconstruction at 1x. Uses one interpolated motion vector, bypasses pixel fallback, and retains robust merge rejection. Higher values can amplify noise and ringing", min = 0, max = 1, step = 0.05f, defaultValue = 0)
+    @Tunable(title = "CFA residual fusion", category = "Merge", description = "Experimental Halide merge without gyro: 0 keeps the selected sampler; 0.5 tests regularized CFA residual reconstruction at 1x. Uses one interpolated motion vector and retains robust merge rejection. Higher values can amplify noise and ringing", min = 0, max = 1, step = 0.05f, defaultValue = 0)
     float cfaResidualFusion;
 
-    @Tunable(title = "CFA residual robustness", category = "Merge", description = "For CFA residual fusion: track locally accepted frame weights to reduce unmerged blotches. Off restores the original robustness for comparison", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean cfaResidualRobustness = true;
-
-    @Tunable(title = "CFA joint green", category = "Merge", description = "Experimental residual fusion: jointly sample both green Bayer positions. May reduce patterned noise but can alter fine detail; output remains 1x CFA", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean cfaJointGreen;
+    @Tunable(title = "CFA residual robustness", category = "Merge", description = "Track locally accepted frame weights to reduce unmerged blotches, independently of CFA residual fusion strength. Off restores the original robustness for comparison", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean cfaResidualRobustness;
 
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
@@ -969,6 +963,9 @@ public class ESD4D extends GLOneScript {
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
             long stageT = System.currentTimeMillis();
             inputAlter.loadRawHalf(frame.buffer);
+            gpuSyncProfile();
+            if (profileGpuSync)
+                Log.d("ESD4D", "Stage[merge:upload] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             GLTexture flowTex = null;
             if(Objects.equals(alignerSelect, "flownet")) {
@@ -988,6 +985,9 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", inputAlter);
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
+            gpuSyncProfile();
+            if (profileGpuSync)
+                Log.d("ESD4D", "Stage[merge:pack] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", mergeTile);
@@ -998,14 +998,13 @@ public class ESD4D extends GLOneScript {
                 if (Objects.equals(halideMergeSampling, "nearest")) halideSampling = 1;
                 else if (Objects.equals(halideMergeSampling, "bilinear")) halideSampling = 2;
                 else if (Objects.equals(halideMergeSampling, "cubic")) halideSampling = 3;
+                else if (Objects.equals(halideMergeSampling, "lanczos2")) halideSampling = 4;
             }
             glProg.setDefine("HALIDE_SAMPLING", halideSampling);
             glProg.setDefine("HALIDE_MOTION_FIELD", halideInterpolateMotion ? 1 : 0);
-            glProg.setDefine("HALIDE_PIXEL_FALLBACK", halidePixelFallback ? 1 : 0);
             boolean residualFusion = cfaResidualFusion > 0.0f && !gyroWarp
                     && Objects.equals(alignerSelect, "halide") && halideSampling > 0;
             glProg.setDefine("CFA_RESIDUAL_FUSION", residualFusion ? 1 : 0);
-            glProg.setDefine("CFA_GREEN_QUINCUNX", residualFusion && cfaJointGreen ? 1 : 0);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
@@ -1014,9 +1013,11 @@ public class ESD4D extends GLOneScript {
                 glProg.setVar("gyroHomography", false, GyroAlignment.columnMajor(gyroHomographies[ind]));
             }
             glProg.setVar("rawHalf", rawHalf);
-            glProg.setVar("cfaResidualStrength", Math.max(0.0f, Math.min(cfaResidualFusion, 1.0f)));
-            glProg.setVar("cfaNoiseS", rawNoiseS);
-            glProg.setVar("cfaNoiseO", rawNoiseO);
+            if (residualFusion) {
+                glProg.setVar("cfaResidualStrength", Math.min(cfaResidualFusion, 1.0f));
+                glProg.setVar("cfaNoiseS", rawNoiseS);
+                glProg.setVar("cfaNoiseO", rawNoiseO);
+            }
             glProg.setVar("whitePoint", parameters.whitePoint);
             // Red-site origin shift for mergeAlign's noise-model repack
             // (harmless no-op uniform for mergeAlignFlow).
@@ -1045,7 +1046,11 @@ public class ESD4D extends GLOneScript {
                 glProg.setTexture("alignmentTexture", alignmentTex);
             }
             glProg.setTexture("inTexture", inputBase);
-            glProg.setTextureCompute("baseTexture",mergeAcc, false);
+            // Zero-strength Halide warping does not read the accumulator.
+            // FlowNet still needs it for its luma guide.
+            if (residualFusion || Objects.equals(alignerSelect, "flownet")) {
+                glProg.setTextureCompute("baseTexture", mergeAcc, false);
+            }
             glProg.setTextureCompute("alterTexture", alter, false);
             glProg.setTextureCompute("outTexture", baseDiff, true);
             glProg.computeAuto(baseDiff.mSize, 1);
@@ -1078,7 +1083,9 @@ public class ESD4D extends GLOneScript {
 
             glProg.setLayout(tile, tile, 1);
             stageT = System.currentTimeMillis();
-            boolean robustResidual = residualFusion && cfaResidualRobustness;
+            // Robustness measures frame-minus-base residuals for every sampler;
+            // it does not require the optional residual reconstruction update.
+            boolean robustResidual = cfaResidualRobustness;
             glProg.setDefine("RESIDUAL_ROBUSTNESS", robustResidual ? 1 : 0);
             glProg.useAssetProgram("merge/mergeCombineWeight1", true);
             if (robustResidual) {

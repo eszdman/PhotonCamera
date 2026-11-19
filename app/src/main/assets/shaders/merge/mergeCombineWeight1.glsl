@@ -56,6 +56,12 @@ vec4 getBayerVec(ivec2 coords, highp usampler2D tex){
 vec4 robustWeight(vec4 w){
     return vec4(min(w.r, min(w.g, min(w.b, w.a))));
 }
+#if RESIDUAL_ROBUSTNESS
+vec4 residualRobustWeight(vec4 penalty, float scale){
+    // min(scale / penalty) = scale / max(penalty), for positive penalties.
+    return vec4(scale / max(penalty.r, max(penalty.g, max(penalty.b, penalty.a))));
+}
+#endif
 
 #define EPS 1e-6
 #define EPS2 1e-5
@@ -64,14 +70,17 @@ vec4 robustWeight(vec4 w){
 #define SIG_ABS 0.6027980    // sqrt(1 - 2/pi): std|X|
 #define SQRT2   1.41421356   // Var(r^2) = 2*sigma^4 for Gaussian r
 #define GATE_SENSITIVITY 2.5 // reject at this many statistic-sigmas (higher = merge more)
+// Called with a constant mask flag so the interior variant can eliminate
+// per-tap validity, masked weight sums, and exposure-count accumulation.
+#if RESIDUAL_ROBUSTNESS
+void combine(bool masked) {
+#else
 void main() {
+#endif
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
 #if RESIDUAL_ROBUSTNESS
     ivec2 size = imageSize(outTexture);
     if (any(greaterThanEqual(xy,size))) return;
-    bool fullWindow = all(greaterThanEqual(xy-ivec2(5),cfaShift))
-                   && all(lessThan(xy+ivec2(5),rawHalf));
-    float accepted = supportInitialized ? max(imageLoad(supportTexture,xy).r,1.0) : 1.0;
 #endif
     vec4 kernelParams = texture(kernelsMap, vec2(xy) / vec2(2.0 * vec2(textureSize(kernelsMap, 0)))).rgba;
     float s1 = max(kernelParams.x, EPS);
@@ -97,44 +106,16 @@ void main() {
 #if RESIDUAL_ROBUSTNESS
     vec4 exposureZ = vec4(0.0);
 #endif
-    for(int i = -5; i <= 5; i++) {
-        for(int j = -5; j <= 5; j++) {
-            ivec2 offset = ivec2(i, j);
-#if RESIDUAL_ROBUSTNESS
-            vec4 valid = vec4(1.0);
-            if (!fullWindow) {
-                ivec2 at = xy+offset;
-                if (any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,size))) continue;
-                valid = validCfaSites(at);
-            }
-#endif
-            ///vec4 neighborDiff = imageLoad(diffTexture, xy + offset);
-            //vec4 neighborBayer = getBayerVec((xy + offset) * 2, inTex);
-            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
-            //exposure1 += neighborDiff;
-#if RESIDUAL_ROBUSTNESS
-            exposure2 += neighborBayer*valid;
-            exposureZ += valid;
-#else
-            exposure2 += neighborBayer;
-#endif
-        }
-    }
-    //exposure1 /= 121.0;
-#if RESIDUAL_ROBUSTNESS
-    exposure2 /= max(exposureZ,vec4(1.0));
-#else
-    exposure2 /= 121.0;
-#endif
-    vec4 meanMain = exposure2;
-
+    // Accumulate the unweighted noise-model mean from the same base taps as
+    // the robustness statistics. This removes a second 11x11 image scan while
+    // keeping the original i-major/j-minor accumulation order.
     for(float i = -5.0; i <= 5.0; i+=1.0) {
         float qi = c * i * i;
         for(float j = -5.0; j <= 5.0; j+=1.0) {
             ivec2 offset = ivec2(i, j);
 #if RESIDUAL_ROBUSTNESS
             vec4 valid = vec4(1.0);
-            if (!fullWindow) {
+            if (masked) {
                 ivec2 at = xy+offset;
                 if (any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,size))) continue;
                 valid = validCfaSites(at);
@@ -144,6 +125,12 @@ void main() {
             // applies to the whole combine window.
             vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
             vec4 neighborBayer = imageLoad(inTexture, xy + offset);
+#if RESIDUAL_ROBUSTNESS
+            exposure2 += neighborBayer*valid;
+            exposureZ += valid;
+#else
+            exposure2 += neighborBayer;
+#endif
             //if(any(greaterThan(neighborDiff, vec4(exposure*0.99)))) {
             //    continue; // skip overexposed pixels
             //}
@@ -185,6 +172,11 @@ void main() {
 #endif
         }
     }
+#if RESIDUAL_ROBUSTNESS
+    vec4 meanMain = exposure2 / max(exposureZ,vec4(1.0));
+#else
+    vec4 meanMain = exposure2 / 121.0;
+#endif
     // Kernel-weighted statistics, normalized by the per-channel weight sum.
     // invEff = sqrt(Z2)/Z ~ 1/sqrt(effective tap count) is each statistic's
     // noise-reduction factor, so the standardized t-values below keep the
@@ -202,6 +194,8 @@ void main() {
     // systematic false rejection at large kernels.
     float nFrames = max(1.0 / weight - 1.0, 1.0);
 #if RESIDUAL_ROBUSTNESS
+    // Support is only needed after the window statistics.
+    float accepted = supportInitialized ? max(imageLoad(supportTexture,xy).r,1.0) : 1.0;
     // Rejected frames did not reduce the base noise. The accepted mass is a
     // conservative effective-count approximation for weights in [0,1],
     // unlike the scheduled frame index. Residual-fusion correlations mean
@@ -224,11 +218,17 @@ void main() {
     // an outlier of the opposite sign. Only excess disagreement is rejected.
     t = max(t,vec4(0.0));
 #endif
+#if RESIDUAL_ROBUSTNESS
+    // The shared minimum weight comes from the largest positive denominator.
+    // Reduce first, then divide once, keeping each squared statistic intact.
+    vec4 penalty = t * t + GATE_SENSITIVITY * GATE_SENSITIVITY;
+    vec4 comb = residualRobustWeight(penalty, GATE_SENSITIVITY * GATE_SENSITIVITY);
+#else
     vec4 comb = (GATE_SENSITIVITY * GATE_SENSITIVITY) / (t * t + GATE_SENSITIVITY * GATE_SENSITIVITY);
-    //vec4 comb = exp(-0.5 * (localDiff * localDiff) / (N * N));
-    // One weight per Bayer quad: per-subpixel weights blend the color filters
-    // by different amounts when their excess diverges in motion, shifting chroma.
     comb = robustWeight(comb);
+#endif
+    //vec4 comb = exp(-0.5 * (localDiff * localDiff) / (N * N));
+    // CFA statistics use one shared weight per quad.
     if(any(greaterThan(diff, vec4(exposure*0.80))) && exposure < 0.95) {
         comb = vec4(0.0); // skip overexposed pixels
     }
@@ -245,3 +245,17 @@ void main() {
 #endif
     //imageStore(outTexture, xy, localDiff2 / Z); // blur test(check kernels)
 }
+
+#if RESIDUAL_ROBUSTNESS
+void main() {
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outTexture);
+    if (any(greaterThanEqual(xy,size))) return;
+    bool fullWindow = all(greaterThanEqual(xy-ivec2(5),cfaShift))
+                   && all(lessThan(xy+ivec2(5),rawHalf));
+    // Select once for the whole window. Both paths keep the same tap order,
+    // green phases, rejection statistics, and accepted-frame update.
+    if (fullWindow) combine(false);
+    else combine(true);
+}
+#endif
