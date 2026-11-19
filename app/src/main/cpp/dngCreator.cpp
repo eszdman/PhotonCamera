@@ -607,16 +607,43 @@ public:
                         (uint32_t)input[ym      * srcWidth + X]       +
                         (uint32_t)input[yp2     * srcWidth + X];
                 } else {
-                    // R/B: 2x2 box on the slot's own colour lattice
-                    const int inRow  = (oy / 2) * 4 + (oy % 2);
-                    const int inCol  = (ox / 2) * 4 + (ox % 2);
-                    const int inRow2 = std::min(inRow + 2, srcHeight - 1);
-                    const int inCol2 = std::min(inCol + 2, srcWidth - 1);
-                    sum =
-                        (uint32_t)input[inRow  * srcWidth + inCol ] +
-                        (uint32_t)input[inRow  * srcWidth + inCol2] +
-                        (uint32_t)input[inRow2 * srcWidth + inCol ] +
-                        (uint32_t)input[inRow2 * srcWidth + inCol2];
+                    // R/B: 4 same-colour taps arranged symmetrically about
+                    // the output anchor (X, Y) so every colour samples the
+                    // same sub-pixel position — a block-framed 2x2 box puts
+                    // the (1,1) slot half an output pixel off, which shows
+                    // as a diagonal red/blue shift on edges. The colour that
+                    // owns the anchor site gets a cross of its 4 nearest
+                    // sites; the others their nearest 4 around the anchor.
+                    const int dr = oy % 2, dc = ox % 2;
+                    if (dr == 0 && dc == 0) {
+                        // (X±1, Y±1)
+                        const int c1 = std::max(X - 1, 0), c2 = std::min(X + 1, srcWidth - 2);
+                        const int r1 = std::max(Y - 1, 0), r2 = std::min(Y + 1, srcHeight - 2);
+                        sum =
+                            (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                            (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                    } else if (dr == 1 && dc == 1) {
+                        // (X±2, Y) + (X, Y±2): cross around the anchor site
+                        const int c1 = std::max(X - 2, 1), c2 = std::min(X + 2, srcWidth - 1);
+                        const int r1 = std::max(Y - 2, 1), r2 = std::min(Y + 2, srcHeight - 1);
+                        sum =
+                            (uint32_t)input[Y  * srcWidth + c1] + (uint32_t)input[Y  * srcWidth + c2] +
+                            (uint32_t)input[r1 * srcWidth + X ] + (uint32_t)input[r2 * srcWidth + X ];
+                    } else if (dr == 0) {
+                        // (X±2, Y±1)
+                        const int c1 = std::max(X - 2, 1), c2 = std::min(X + 2, srcWidth - 1);
+                        const int r1 = std::max(Y - 1, 0), r2 = std::min(Y + 1, srcHeight - 2);
+                        sum =
+                            (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                            (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                    } else {
+                        // (X±1, Y±2)
+                        const int c1 = std::max(X - 1, 0), c2 = std::min(X + 1, srcWidth - 2);
+                        const int r1 = std::max(Y - 2, 1), r2 = std::min(Y + 2, srcHeight - 1);
+                        sum =
+                            (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                            (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                    }
                 }
                 output[oy * outWidth + ox] = useAverage
                     ? static_cast<uint16_t>(sum >> 2)

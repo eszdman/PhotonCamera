@@ -239,16 +239,43 @@ static void applyBayerBinning(const uint16_t* input, uint16_t* output,
                     (uint32_t)input[ym      * srcWidth + X]       +
                     (uint32_t)input[yp2     * srcWidth + X];
             } else {
-                // R/B: 2x2 box on the slot's own colour lattice
-                int inRow  = (oy / 2) * 4 + (oy % 2);
-                int inCol  = (ox / 2) * 4 + (ox % 2);
-                int inRow2 = (inRow + 2 < srcHeight) ? inRow + 2 : srcHeight - 1;
-                int inCol2 = (inCol + 2 < srcWidth) ? inCol + 2 : srcWidth - 1;
-                sum =
-                    (uint32_t)input[inRow  * srcWidth + inCol ] +
-                    (uint32_t)input[inRow  * srcWidth + inCol2] +
-                    (uint32_t)input[inRow2 * srcWidth + inCol ] +
-                    (uint32_t)input[inRow2 * srcWidth + inCol2];
+                // R/B: 4 same-colour taps arranged symmetrically about
+                // the output anchor (X, Y) so every colour samples the
+                // same sub-pixel position — a block-framed 2x2 box puts
+                // the (1,1) slot half an output pixel off, which shows
+                // as a diagonal red/blue shift on edges. The colour that
+                // owns the anchor site gets a cross of its 4 nearest
+                // sites; the others their nearest 4 around the anchor.
+                const int dr = oy % 2, dc = ox % 2;
+                if (dr == 0 && dc == 0) {
+                    // (X±1, Y±1)
+                    int c1 = (X - 1 > 0) ? X - 1 : 0,             c2 = (X + 1 < srcWidth - 2) ? X + 1 : srcWidth - 2;
+                    int r1 = (Y - 1 > 0) ? Y - 1 : 0,             r2 = (Y + 1 < srcHeight - 2) ? Y + 1 : srcHeight - 2;
+                    sum =
+                        (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                        (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                } else if (dr == 1 && dc == 1) {
+                    // (X±2, Y) + (X, Y±2): cross around the anchor site
+                    int c1 = (X - 2 > 1) ? X - 2 : 1,             c2 = (X + 2 < srcWidth - 1) ? X + 2 : srcWidth - 1;
+                    int r1 = (Y - 2 > 1) ? Y - 2 : 1,             r2 = (Y + 2 < srcHeight - 1) ? Y + 2 : srcHeight - 1;
+                    sum =
+                        (uint32_t)input[Y  * srcWidth + c1] + (uint32_t)input[Y  * srcWidth + c2] +
+                        (uint32_t)input[r1 * srcWidth + X ] + (uint32_t)input[r2 * srcWidth + X ];
+                } else if (dr == 0) {
+                    // (X±2, Y±1)
+                    int c1 = (X - 2 > 1) ? X - 2 : 1,             c2 = (X + 2 < srcWidth - 1) ? X + 2 : srcWidth - 1;
+                    int r1 = (Y - 1 > 0) ? Y - 1 : 0,             r2 = (Y + 1 < srcHeight - 2) ? Y + 1 : srcHeight - 2;
+                    sum =
+                        (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                        (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                } else {
+                    // (X±1, Y±2)
+                    int c1 = (X - 1 > 0) ? X - 1 : 0,             c2 = (X + 1 < srcWidth - 2) ? X + 1 : srcWidth - 2;
+                    int r1 = (Y - 2 > 1) ? Y - 2 : 1,             r2 = (Y + 2 < srcHeight - 1) ? Y + 2 : srcHeight - 1;
+                    sum =
+                        (uint32_t)input[r1 * srcWidth + c1] + (uint32_t)input[r1 * srcWidth + c2] +
+                        (uint32_t)input[r2 * srcWidth + c1] + (uint32_t)input[r2 * srcWidth + c2];
+                }
             }
             output[oy * outWidth + ox] = (uint16_t)(sum > 65535u ? 65535u : sum);
         }
