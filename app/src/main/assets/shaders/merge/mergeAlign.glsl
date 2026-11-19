@@ -34,6 +34,11 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define HALIDE_SAMPLING 0 // 0 legacy floor, 1 nearest, 2 CFA bilinear, 3 bounded CFA cubic
 #define HALIDE_MOTION_FIELD 0
 #define HALIDE_PIXEL_FALLBACK 1
+#define CFA_RESIDUAL_FUSION 0
+#define CFA_GREEN_QUINCUNX 0
+uniform float cfaResidualStrength;
+uniform float cfaNoiseS;
+uniform float cfaNoiseO;
 
 #if !GYRO_WARP && HALIDE_SAMPLING > 0
 // RGBA stores four separate Bayer parity planes. Filtering each component
@@ -121,6 +126,107 @@ vec4 sampleCfa(vec2 p) {
 #endif
 #endif
 }
+
+#if CFA_RESIDUAL_FUSION
+#if CFA_GREEN_QUINCUNX
+// Packed greens form one rotated lattice, not two independent color filters.
+// u=(rawX+rawY-1)/2, v=(rawX-rawY-1)/2; both coordinates are integral at green.
+float greenLatticeTexel(ivec2 uv) {
+    ivec2 raw = ivec2(uv.x+uv.y+1,uv.x-uv.y);
+    ivec2 quad = ivec2(floor(vec2(raw)*0.5));
+    return cfaTexel(quad)[(raw.x & 1) == 1 ? 1 : 2];
+}
+
+vec2 jointGreenObservation(ivec2 xy, vec2 displacement) {
+    vec2 p = vec2(xy.x+xy.y,xy.x-xy.y)
+           + vec2(displacement.x+displacement.y,displacement.x-displacement.y);
+    ivec2 lo = ivec2(floor(p));
+    vec2 f = fract(p);
+    // The second green's v coordinate is one less, so two taps are shared.
+    float row0 = mix(greenLatticeTexel(lo+ivec2(0,-1)),greenLatticeTexel(lo+ivec2(1,-1)),f.x);
+    float row1 = mix(greenLatticeTexel(lo),greenLatticeTexel(lo+ivec2(1,0)),f.x);
+    float row2 = mix(greenLatticeTexel(lo+ivec2(0,1)),greenLatticeTexel(lo+ivec2(1,1)),f.x);
+    return vec2(mix(row1,row2,f.y),mix(row0,row1,f.y));
+}
+#endif
+vec4 baseCfaTexel(ivec2 p) {
+    if (all(greaterThanEqual(p, cfaShift)) && all(lessThan(p, rawHalf)))
+        return imageLoad(baseTexture, p);
+    vec4 value;
+    for (int c = 0; c < 4; c++) {
+        ivec2 site = ivec2(c % 2, c / 2);
+        ivec2 low = (cfaShift - site + ivec2(1)) / 2;
+        ivec2 high = (rawHalf * 2 - ivec2(1) + cfaShift - site) / 2;
+        value[c] = imageLoad(baseTexture, clamp(p, low, high))[c];
+    }
+    return value;
+}
+
+// Local-translation approximation to a CFA forward/adjoint residual update.
+// A bilinear forward warp followed by its adjoint has separable weights
+// [f*(1-f), 1-2*f*(1-f), f*(1-f)]. Evaluate this normal operator directly:
+// Four source taps + nine base taps, no intermediate warp or extra dispatch.
+// Optional joint-green sampling adds six source taps, reusing the base taps.
+// Strength below one regularizes the inverse: a full update over-amplifies
+// near-Nyquist detail/noise when the bilinear observation model is imperfect.
+vec4 residualCandidate(ivec2 xy, vec2 displacement, vec4 base) {
+    vec2 p = vec2(xy) + displacement;
+    ivec2 lo = ivec2(floor(p));
+    vec2 f = fract(p);
+    vec4 observation = mix(mix(cfaTexel(lo), cfaTexel(lo+ivec2(1,0)), f.x),
+                           mix(cfaTexel(lo+ivec2(0,1)), cfaTexel(lo+ivec2(1)), f.x), f.y);
+#if CFA_GREEN_QUINCUNX
+    observation.gb = jointGreenObservation(xy,displacement);
+    vec2 gf = fract(vec2(displacement.x+displacement.y,displacement.x-displacement.y));
+    vec2 gs = gf*(1.0-gf), gc = 1.0-2.0*gs;
+    float gCenter = gc.x*gc.y, gAxial = gs.x*gs.y;
+    float gU = gs.x*gc.y, gV = gc.x*gs.y;
+    vec2 greenPredicted = vec2(0.0);
+#endif
+    vec2 side = f*(1.0-f);
+    vec3 wx = vec3(side.x, 1.0-2.0*side.x, side.x);
+    vec3 wy = vec3(side.y, 1.0-2.0*side.y, side.y);
+    vec4 predicted = vec4(0.0);
+    vec4 sum = vec4(0.0), squareSum = vec4(0.0);
+    for (int j=-1; j<=1; ++j) {
+        vec4 left = baseCfaTexel(xy+ivec2(-1,j));
+        vec4 center = baseCfaTexel(xy+ivec2(0,j));
+        vec4 right = baseCfaTexel(xy+ivec2(1,j));
+        vec4 row = left*wx.x + center*wx.y + right*wx.z;
+        predicted += row*wy[j+1];
+#if CFA_GREEN_QUINCUNX
+        // The green-lattice A^T A stencil fits within these existing nine
+        // quad reads. Its diagonal neighbors are the opposite green phase.
+        if (j == -1) {
+            greenPredicted += gAxial*center.gb;
+            greenPredicted.x += gU*center.b+gV*right.b;
+        } else if (j == 0) {
+            greenPredicted += gCenter*center.gb+gAxial*(left.gb+right.gb);
+            greenPredicted.x += gU*right.b+gV*center.b;
+            greenPredicted.y += gU*left.g+gV*center.g;
+        } else {
+            greenPredicted += gAxial*center.gb;
+            greenPredicted.y += gU*center.g+gV*left.g;
+        }
+#endif
+        sum += left+center+right;
+        squareSum += left*left+center*center+right*right;
+    }
+#if CFA_GREEN_QUINCUNX
+    predicted.gb = greenPredicted;
+#endif
+    vec4 mean = sum/9.0;
+    vec4 variance = max(squareSum/9.0-mean*mean, vec4(0.0));
+    // Conservative single-frame noise floor: accepted frame count is not
+    // available here and scheduled 1/n would underestimate rejected regions.
+    // One shared confidence avoids independently changing Bayer color gains.
+    vec4 noiseVariance = max(mean*cfaNoiseS+cfaNoiseO, vec4(0.0));
+    float signal = dot(max(variance-noiseVariance,vec4(0.0)),vec4(0.25));
+    float total = dot(variance,vec4(0.25));
+    float confidence = signal/max(total,1e-10);
+    return observation*exposure + cfaResidualStrength*confidence*(base-predicted);
+}
+#endif
 #endif
 
 #if GYRO_WARP
@@ -217,7 +323,7 @@ void main() {
 #else
     vec4 bayerNone = imageLoad(alterTexture, xy);
 #endif
-#if !GYRO_WARP && HALIDE_SAMPLING > 0 && HALIDE_MOTION_FIELD
+#if !GYRO_WARP && HALIDE_SAMPLING > 0 && (HALIDE_MOTION_FIELD || CFA_RESIDUAL_FUSION)
     // Halide's overlapped patch spans 2*TILE_AL raw pixels. Its first
     // vector belongs at TILE_AL-0.5, not the patch origin. Interpolate the
     // motion at this Bayer quad's center, then reconstruct the CFA once.
@@ -233,6 +339,14 @@ void main() {
     }
     vec2 displacement = mix(mix(motion[0],motion[1],fraction.x),
                             mix(motion[2],motion[3],fraction.x),fraction.y);
+#if CFA_RESIDUAL_FUSION
+    // The residual is defined against the estimated warp; choosing an
+    // unwarped pixel independently would invalidate its observation model.
+    // The following combine pass still performs shared-quad robust rejection.
+    vec4 candidate = residualCandidate(xy, displacement, bayerBase);
+    imageStore(outTexture, xy, clamp(candidate, vec4(0.0), vec4(min(exposure,1.0))));
+    return;
+#else
     vec4 candidate = sampleCfa(vec2(xy)+displacement);
 #if HALIDE_PIXEL_FALLBACK
     vec4 alignedError = abs(candidate*exposure-bayerBase);
@@ -241,6 +355,7 @@ void main() {
                      unalignedError/max(alignedError+unalignedError,vec4(1e-8))));
 #else
     alignedSum = candidate;
+#endif
 #endif
 #else
 #if !GYRO_WARP && HALIDE_SAMPLING == 3

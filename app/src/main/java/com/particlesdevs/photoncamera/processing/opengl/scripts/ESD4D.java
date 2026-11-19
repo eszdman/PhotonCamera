@@ -283,6 +283,13 @@ public class ESD4D extends GLOneScript {
 
     GLTexture inputBase;
     GLTexture baseDiff;
+    GLTexture mergeSupport;
+    /** Optional test observer, called on the GL thread. Null during normal capture. */
+    public MergeObserver mergeObserver;
+    public interface MergeObserver {
+        void onMerge(int frame, float weight, float noiseS, float noiseO,
+                     GLTexture previous, GLTexture candidate, GLTexture merged, GLTexture kernels);
+    }
     /** Merge ping-pong rotation slots: fixed after allocation, only getBase()
      * picks between them; the running accumulation is mergeAcc in Run(). */
     GLTexture base;
@@ -359,6 +366,15 @@ public class ESD4D extends GLOneScript {
 
     @Tunable(title = "Halide pixel fallback", category = "Alignment", description = "Choose the unshifted value when it matches the running merge more closely. Off tests the estimated warp directly; the merge robustness filter still rejects inconsistent frames", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean halidePixelFallback = true;
+
+    @Tunable(title = "CFA residual fusion", category = "Merge", description = "Experimental Halide merge without gyro: 0 keeps the selected sampler; 0.5 tests regularized CFA residual reconstruction at 1x. Uses one interpolated motion vector, bypasses pixel fallback, and retains robust merge rejection. Higher values can amplify noise and ringing", min = 0, max = 1, step = 0.05f, defaultValue = 0)
+    float cfaResidualFusion;
+
+    @Tunable(title = "CFA residual robustness", category = "Merge", description = "For CFA residual fusion: track locally accepted frame weights to reduce unmerged blotches. Off restores the original robustness for comparison", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean cfaResidualRobustness = true;
+
+    @Tunable(title = "CFA joint green", category = "Merge", description = "Experimental residual fusion: jointly sample both green Bayer positions. May reduce patterned noise but can alter fine detail; output remains 1x CFA", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean cfaJointGreen;
 
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
@@ -1024,6 +1040,7 @@ public class ESD4D extends GLOneScript {
         GLTexture mergeAcc = base;
 
         long mergeLoopT = System.currentTimeMillis();
+        boolean supportInitialized = false;
         for (int f = 0; f < images.size(); f++) {
             startT();
             if(f == minExpIdx) continue;
@@ -1072,6 +1089,10 @@ public class ESD4D extends GLOneScript {
             glProg.setDefine("HALIDE_SAMPLING", halideSampling);
             glProg.setDefine("HALIDE_MOTION_FIELD", halideInterpolateMotion ? 1 : 0);
             glProg.setDefine("HALIDE_PIXEL_FALLBACK", halidePixelFallback ? 1 : 0);
+            boolean residualFusion = cfaResidualFusion > 0.0f && !gyroWarp
+                    && Objects.equals(alignerSelect, "halide") && halideSampling > 0;
+            glProg.setDefine("CFA_RESIDUAL_FUSION", residualFusion ? 1 : 0);
+            glProg.setDefine("CFA_GREEN_QUINCUNX", residualFusion && cfaJointGreen ? 1 : 0);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
@@ -1080,6 +1101,9 @@ public class ESD4D extends GLOneScript {
                 glProg.setVar("gyroHomography", false, GyroAlignment.columnMajor(gyroHomographies[ind]));
             }
             glProg.setVar("rawHalf", rawHalf);
+            glProg.setVar("cfaResidualStrength", Math.max(0.0f, Math.min(cfaResidualFusion, 1.0f)));
+            glProg.setVar("cfaNoiseS", rawNoiseS);
+            glProg.setVar("cfaNoiseO", rawNoiseO);
             glProg.setVar("whitePoint", parameters.whitePoint);
             // Red-site origin shift for mergeAlign's noise-model repack
             // (harmless no-op uniform for mergeAlignFlow).
@@ -1141,7 +1165,18 @@ public class ESD4D extends GLOneScript {
 
             glProg.setLayout(tile, tile, 1);
             stageT = System.currentTimeMillis();
+            boolean robustResidual = residualFusion && cfaResidualRobustness;
+            glProg.setDefine("RESIDUAL_ROBUSTNESS", robustResidual ? 1 : 0);
             glProg.useAssetProgram("merge/mergeCombineWeight1", true);
+            if (robustResidual) {
+                if (mergeSupport == null) {
+                    mergeSupport = new GLTexture(packedSize,new GLFormat(GLFormat.DataType.FLOAT_32,1),null,GL_NEAREST,GL_CLAMP_TO_EDGE);
+                }
+                glProg.setVar("supportInitialized", supportInitialized ? 1 : 0);
+                glProg.setVar("rawHalf",rawHalf);
+                glProg.setVar("cfaShift",cfaShift);
+                glProg.setTextureCompute("supportTexture",mergeSupport,android.opengl.GLES31.GL_READ_WRITE);
+            }
             glProg.setVar("cfaPattern", parameters.cfaPattern);
             glProg.setTexture("inTex", inputBase);
             glProg.setTexture("kernelsMap", kernelsMap);
@@ -1152,6 +1187,7 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("flowNoiseO", rawNoiseO);
             glProg.setTextureCompute("inTexture", mergeAcc, false);
             glProg.setTextureCompute("diffTexture", baseDiff, false);
+            GLTexture previousMerge = mergeAcc;
             mergeAcc = getBase();
             glProg.setTextureCompute("outTexture", mergeAcc, true);
             glProg.setVar("noiseS", noiseS);
@@ -1170,6 +1206,12 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(mergeAcc.mSize, 1);
+            supportInitialized = robustResidual;
+            if (mergeObserver != null) {
+                float mergeWeight = exposure >= 0.95f ? 1.0f/(cnt1-1.0f) : 1.0f/(cnt2-1.0f);
+                mergeObserver.onMerge(ind, mergeWeight, noiseS, noiseO,
+                        previousMerge, baseDiff, mergeAcc, kernelsMap);
+            }
             gpuSyncProfile();
             Log.d("ESD4D", "Stage[merge:combine] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
             // This frame's pixels are on the GPU now: inputAlter.loadData()
@@ -1193,6 +1235,7 @@ public class ESD4D extends GLOneScript {
         // null-guards them, so a stale close can never delete a recycled ID.
         long mergeOutT = System.currentTimeMillis();
         baseDiff.close(); baseDiff = null;
+        if (mergeSupport != null) { mergeSupport.close(); mergeSupport = null; }
         alter.close(); alter = null;
         inputAlter.close(); inputAlter = null;
         inputBase.close(); inputBase = null;
@@ -1302,6 +1345,7 @@ public class ESD4D extends GLOneScript {
         if (alter != null) alter.close();
         if (inputBase != null) inputBase.close();
         if (baseDiff != null) baseDiff.close();
+        if (mergeSupport != null) mergeSupport.close();
         base.close();
         baseAlter.close();
         if (brightMap != null) brightMap.close();

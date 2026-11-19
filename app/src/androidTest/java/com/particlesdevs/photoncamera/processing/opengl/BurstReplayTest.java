@@ -51,7 +51,7 @@ public class BurstReplayTest {
         SharedPreferences prefs = PhotonCamera.getSettingsManagerStatic().getDefaultPreferences();
         Map<String, ?> saved = prefs.getAll();
         String[] keys = {"alignerselect", "gyroprealignment", "gyroonly", "haliderefineflow", "halideaccuratesubpixel",
-                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
+                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
         int savedCount = FrameNumberSelector.frameCount;
         double savedStrength = PhotonCamera.getSettings().mergeStrength;
         ArrayList<ImageFrame> frames = new ArrayList<>();
@@ -64,9 +64,14 @@ public class BurstReplayTest {
                     .putInt(PREFIX+"haliderefineflow", 0).putInt(PREFIX+"halideaccuratesubpixel", variant.equals("legacy") ? 0 : 1)
                     .putInt(PREFIX+"halideinterpolatemotion", variant.equals("motion") ? 1 : 0)
                     .putInt(PREFIX+"halidepixelfallback", Boolean.parseBoolean(args.getString("pixelFallback","true")) ? 1 : 0)
+                    .putFloat(PREFIX+"cfaresidualfusion", Float.parseFloat(args.getString("residualFusion","0")))
+                    .putInt(PREFIX+"cfaresidualrobustness", Boolean.parseBoolean(args.getString("residualRobustness","true")) ? 1 : 0)
+                    .putInt(PREFIX+"cfajointgreen", Boolean.parseBoolean(args.getString("jointGreen","false")) ? 1 : 0)
                     .putString(PREFIX+"halidemergesampling", variant.equals("nearest") || variant.equals("bilinear") ? variant : "cubic")
                     .putInt(PREFIX+"enablenoisestore", 0).putInt(PREFIX+"profilegpusync", 0).putInt(PREFIX+"aligndebugcompare", 0).commit();
             if (args.containsKey("noiseProfile")) prefs.edit().putInt(PREFIX+"enableadaptivenoise",0).commit();
+            else if (args.containsKey("adaptiveNoise")) prefs.edit().putInt(PREFIX+"enableadaptivenoise",
+                    Boolean.parseBoolean(args.getString("adaptiveNoise")) ? 1 : 0).commit();
             FrameNumberSelector.frameCount = entries.length();
             PhotonCamera.getSettings().mergeStrength = Float.parseFloat(args.getString("mergeStrength", "-0.5"));
             Parameters parameters = null;
@@ -126,9 +131,37 @@ public class BurstReplayTest {
             report.put("noise_override",args.getString("noiseProfile","none"));
             pipeline = new ESD4D(parameters.rawSize, frames);
             pipeline.parameters = parameters;
+            if (Boolean.parseBoolean(args.getString("dumpMerge", "false"))) {
+                File diagnostics = new File(output,outputName+"-merge");
+                assertTrue(diagnostics.isDirectory() || diagnostics.mkdirs());
+                // Packed sensor coordinates for the tester's upright (1446,4088),
+                // the right white panel, and the earlier (900,2868) detail.
+                int[][] regions={{1920,704,128,224},{720,144,192,112},{1376,1024,160,160}};
+                JSONArray records=new JSONArray();
+                pipeline.mergeObserver=(frame,weight,ns,no,previous,candidate,merged,kernels)->{
+                    try {
+                        JSONObject record=new JSONObject().put("frame",frame).put("weight",weight)
+                                .put("noise_s",ns).put("noise_o",no);
+                        JSONArray boxes=new JSONArray();
+                        for(int i=0;i<regions.length;i++) {
+                            int[] box=regions[i]; boxes.put(new JSONArray(box));
+                            dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-base",frame,i),previous,box);
+                            dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-candidate",frame,i),candidate,box);
+                            dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-merged",frame,i),merged,box);
+                        }
+                        record.put("regions",boxes);records.put(record);
+                        if(records.length()==1) {
+                            dumpTextureRegion(diagnostics,"kernels",kernels,new int[]{0,0,kernels.mSize.x,kernels.mSize.y});
+                            Files.write(new File(diagnostics,"kernel-size.json").toPath(),new JSONArray(new int[]{kernels.mSize.x,kernels.mSize.y}).toString().getBytes("UTF-8"));
+                        }
+                        Files.write(new File(diagnostics,"records.json").toPath(),records.toString(2).getBytes("UTF-8"));
+                    } catch(Exception e) { throw new IllegalStateException("Merge diagnostics failed",e); }
+                };
+            }
             long start = SystemClock.elapsedRealtimeNanos();
             pipeline.Run();
             report.put("processing_ms", (SystemClock.elapsedRealtimeNanos()-start)/1e6);
+            report.put("diagnostic_readbacks", pipeline.mergeObserver != null);
             encoded = Allocator.createU16FromF16(pipeline.Output, parameters.rawSize.x, parameters.rawSize.y, 65535, new float[4]);
             assertNotNull(encoded);
             File rawFile = new File(output, outputName+".u16");
@@ -189,6 +222,25 @@ public class BurstReplayTest {
         java.lang.reflect.Method m = HalideAlignment.class.getDeclaredMethod(name,types);
         m.setAccessible(true); return m.invoke(null,values);
     }
+    private static void dumpTextureRegion(File directory,String name,GLTexture texture,int[] box) throws Exception {
+        assertTrue(box[0]>=0 && box[1]>=0 && box[0]+box[2]<=texture.mSize.x && box[1]+box[3]<=texture.mSize.y);
+        int[] framebuffer=new int[1],viewport=new int[4];
+        android.opengl.GLES31.glGetIntegerv(android.opengl.GLES31.GL_FRAMEBUFFER_BINDING,framebuffer,0);
+        android.opengl.GLES31.glGetIntegerv(android.opengl.GLES31.GL_VIEWPORT,viewport,0);
+        ByteBuffer pixels=ByteBuffer.allocateDirect(box[2]*box[3]*16).order(java.nio.ByteOrder.nativeOrder());
+        try {
+            texture.BufferLoad();
+            texture.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32,4),pixels,box[0],box[1],box[2],box[3]);
+            assertEquals(android.opengl.GLES31.GL_NO_ERROR,android.opengl.GLES31.glGetError());
+            try(FileOutputStream stream=new FileOutputStream(new File(directory,name+".f32"))) {
+                pixels.rewind();while(pixels.hasRemaining())stream.getChannel().write(pixels);
+            }
+        } finally {
+            android.opengl.GLES31.glBindFramebuffer(android.opengl.GLES31.GL_FRAMEBUFFER,framebuffer[0]);
+            android.opengl.GLES31.glViewport(viewport[0],viewport[1],viewport[2],viewport[3]);
+        }
+    }
+
     private static void dumpAlignment(ArrayList<ImageFrame> frames, Parameters p, File output, String variant) throws Exception {
         nativeCall("nSetRefineEnabled",new Class[]{boolean.class},false);
         nativeCall("nSetAccurateSubpixelEnabled",new Class[]{boolean.class},!variant.equals("legacy"));

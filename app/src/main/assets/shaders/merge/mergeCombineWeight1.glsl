@@ -8,6 +8,20 @@ uniform highp sampler2D kernelsMap;
 layout(rgba16f, binding = 0) uniform highp readonly image2D inTexture;
 layout(rgba16f, binding = 1) uniform highp readonly image2D diffTexture;
 layout(rgba16f, binding = 2) uniform highp writeonly image2D outTexture;
+#define RESIDUAL_ROBUSTNESS 0
+#if RESIDUAL_ROBUSTNESS
+// Each invocation owns one quad's state; no neighboring state is read.
+layout(r32f, binding = 3) uniform highp image2D supportTexture;
+uniform bool supportInitialized;
+uniform ivec2 rawHalf;
+uniform ivec2 cfaShift;
+vec4 validCfaSites(ivec2 p) {
+    vec2 raw = vec2(2*p-cfaShift);
+    vec4 x = raw.x+vec4(0,1,0,1), y = raw.y+vec4(0,0,1,1);
+    return step(vec4(0.0),x)*step(x,vec4(2*rawHalf.x-1))
+         * step(vec4(0.0),y)*step(y,vec4(2*rawHalf.y-1));
+}
+#endif
 #define TILE 2
 #define CONCAT 1
 uniform float weight;
@@ -52,6 +66,13 @@ vec4 robustWeight(vec4 w){
 #define GATE_SENSITIVITY 2.5 // reject at this many statistic-sigmas (higher = merge more)
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+#if RESIDUAL_ROBUSTNESS
+    ivec2 size = imageSize(outTexture);
+    if (any(greaterThanEqual(xy,size))) return;
+    bool fullWindow = all(greaterThanEqual(xy-ivec2(5),cfaShift))
+                   && all(lessThan(xy+ivec2(5),rawHalf));
+    float accepted = supportInitialized ? max(imageLoad(supportTexture,xy).r,1.0) : 1.0;
+#endif
     vec4 kernelParams = texture(kernelsMap, vec2(xy) / vec2(2.0 * vec2(textureSize(kernelsMap, 0)))).rgba;
     float s1 = max(kernelParams.x, EPS);
     float s2 = max(kernelParams.y, EPS);
@@ -73,24 +94,52 @@ void main() {
     vec4 localDiff2 = vec4(0.001 * diff);
     //vec4 exposure1 = vec4(0.0);
     vec4 exposure2 = vec4(0.0);
+#if RESIDUAL_ROBUSTNESS
+    vec4 exposureZ = vec4(0.0);
+#endif
     for(int i = -5; i <= 5; i++) {
         for(int j = -5; j <= 5; j++) {
             ivec2 offset = ivec2(i, j);
+#if RESIDUAL_ROBUSTNESS
+            vec4 valid = vec4(1.0);
+            if (!fullWindow) {
+                ivec2 at = xy+offset;
+                if (any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,size))) continue;
+                valid = validCfaSites(at);
+            }
+#endif
             ///vec4 neighborDiff = imageLoad(diffTexture, xy + offset);
             //vec4 neighborBayer = getBayerVec((xy + offset) * 2, inTex);
             vec4 neighborBayer = imageLoad(inTexture, xy + offset);
             //exposure1 += neighborDiff;
+#if RESIDUAL_ROBUSTNESS
+            exposure2 += neighborBayer*valid;
+            exposureZ += valid;
+#else
             exposure2 += neighborBayer;
+#endif
         }
     }
     //exposure1 /= 121.0;
+#if RESIDUAL_ROBUSTNESS
+    exposure2 /= max(exposureZ,vec4(1.0));
+#else
     exposure2 /= 121.0;
+#endif
     vec4 meanMain = exposure2;
 
     for(float i = -5.0; i <= 5.0; i+=1.0) {
         float qi = c * i * i;
         for(float j = -5.0; j <= 5.0; j+=1.0) {
             ivec2 offset = ivec2(i, j);
+#if RESIDUAL_ROBUSTNESS
+            vec4 valid = vec4(1.0);
+            if (!fullWindow) {
+                ivec2 at = xy+offset;
+                if (any(lessThan(at,ivec2(0))) || any(greaterThanEqual(at,size))) continue;
+                valid = validCfaSites(at);
+            }
+#endif
             // Local-translation assumption: the block selected at the center
             // applies to the whole combine window.
             vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
@@ -101,6 +150,9 @@ void main() {
             float q = qi + 2.0 * b * i * j + a * j * j;
             float w = exp(-1.0 * q);
             vec4 r = neighborDiff - neighborBayer;
+#if RESIDUAL_ROBUSTNESS
+            r *= valid;
+#endif
             vec4 rAbs = abs(r);
             // Green quincunx convolution: each tap contributes BOTH of its
             // greens to both green outputs - [1] weighted by the kernel
@@ -120,11 +172,17 @@ void main() {
             localDiffSigned += vec4(r.r * w, r.g * w + r.b * wg, r.b * w + r.g * wb, r.a * w);
             localEnergy += vec4(r.r * r.r * w, r.g * r.g * w + r.b * r.b * wg,
             r.b * r.b * w + r.g * r.g * wb, r.a * r.a * w);
+#if RESIDUAL_ROBUSTNESS
+            Z += vec4(w*valid.r, w*valid.g+wg*valid.b, w*valid.b+wb*valid.g, w*valid.a);
+            Z2 += vec4(w*w*valid.r, w*w*valid.g+wg*wg*valid.b,
+                       w*w*valid.b+wb*wb*valid.g, w*w*valid.a);
+#else
             Z += vec4(w, w + wg, w + wb, w);
             // Squared weight sums per channel: the quincunx greens mix two
             // independent samples (r.g*w, r.b*wg), so their variances add
             // without a cross term.
             Z2 += vec4(w*w, w*w + wg*wg, w*w + wb*wb, w*w);
+#endif
         }
     }
     // Kernel-weighted statistics, normalized by the per-channel weight sum.
@@ -143,6 +201,13 @@ void main() {
     // variance and the 1/invEff standardization amplifies the mismatch into
     // systematic false rejection at large kernels.
     float nFrames = max(1.0 / weight - 1.0, 1.0);
+#if RESIDUAL_ROBUSTNESS
+    // Rejected frames did not reduce the base noise. The accepted mass is a
+    // conservative effective-count approximation for weights in [0,1],
+    // unlike the scheduled frame index. Residual-fusion correlations mean
+    // it is not an exact propagated noise covariance.
+    nFrames = accepted;
+#endif
     vec4 sigmaR = sqrt(max(meanMain * noiseS + noiseO, NOISE_EPS) * (1.0 + 1.0 / nFrames));
     // Standardized detection statistics (mean 0, std 1 under pure noise).
     // tAbs/tSigned detect window-uniform offsets with the full 1/invEff
@@ -154,6 +219,11 @@ void main() {
     vec4 tSigned = (localSigned - E_ABS * sigmaR * invEff) / (SIG_ABS * sigmaR * invEff);
     vec4 tEnergy = (localEnergyMean - sigmaR * sigmaR) / (SQRT2 * sigmaR * sigmaR * invEff);
     vec4 t = max(tAbs, max(tSigned, tEnergy));
+#if RESIDUAL_ROBUSTNESS
+    // Less residual than predicted noise is evidence for acceptance, not
+    // an outlier of the opposite sign. Only excess disagreement is rejected.
+    t = max(t,vec4(0.0));
+#endif
     vec4 comb = (GATE_SENSITIVITY * GATE_SENSITIVITY) / (t * t + GATE_SENSITIVITY * GATE_SENSITIVITY);
     //vec4 comb = exp(-0.5 * (localDiff * localDiff) / (N * N));
     // One weight per Bayer quad: per-subpixel weights blend the color filters
@@ -166,6 +236,12 @@ void main() {
     // diff at the center tap. Convolving the output with the kernel
     // (localDiff2/Z) low-passes texture in direct proportion to the kernel
     // size, which is blur by construction, not a robustness gain.
+#if RESIDUAL_ROBUSTNESS
+    float updated = accepted+comb.r;
+    imageStore(supportTexture,xy,vec4(updated));
+    imageStore(outTexture,xy,mix(base,diff,comb/updated));
+#else
     imageStore(outTexture, xy, mix(base, diff, weight * comb));
+#endif
     //imageStore(outTexture, xy, localDiff2 / Z); // blur test(check kernels)
 }
