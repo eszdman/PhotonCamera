@@ -404,11 +404,13 @@ public class CameraActivity extends BaseActivity {
     }
 
     /**
-     * Traditional camera behavior: status bar hidden, navigation bar visible and
-     * transparent so a single swipe goes home. Delegates to {@link SystemBarsHelper}.
+     * Immersive camera behavior: status bar and navigation bar both hidden,
+     * game-style. An edge swipe reveals the bars only transiently (the system
+     * re-hides them); a swipe with the bar revealed then goes home. Delegates
+     * to {@link SystemBarsHelper}.
      */
     private void hideSystemUI() {
-        SystemBarsHelper.applyCameraBars(this);
+        SystemBarsHelper.applyCameraBars(this, true);
     }
 
 }

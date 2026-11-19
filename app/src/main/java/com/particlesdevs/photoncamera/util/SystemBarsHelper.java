@@ -14,15 +14,15 @@ import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
 /**
- * Central helper for traditional camera-app system-bar behavior:
- * status bar hidden, navigation bar visible and transparent (modern edge-to-edge).
+ * Central helper for camera-app system-bar behavior: edge-to-edge with
+ * transparent bars and the status bar always hidden. The navigation bar is
+ * either kept visible (gallery — a single swipe goes home) or auto-hidden
+ * (camera — game-style immersive: a swipe from the edge reveals it only
+ * transiently and it hides itself again).
  *
- * <p>Previously the camera and gallery used {@code SYSTEM_UI_FLAG_IMMERSIVE |
- * HIDE_NAVIGATION | FULLSCREEN}, which hid both bars and required two swipes
- * to go home (first swipe reveals the bars). This helper uses
- * {@link WindowInsetsControllerCompat} instead (the legacy flags are deprecated
- * and ignored under Android 15 edge-to-edge enforcement) so a single swipe
- * always goes home.
+ * <p>Both modes use {@link WindowInsetsControllerCompat} (the legacy
+ * {@code SYSTEM_UI_FLAG_*} flags are deprecated and ignored under Android 15
+ * edge-to-edge enforcement).
  */
 public final class SystemBarsHelper {
     private SystemBarsHelper() {
@@ -35,6 +35,19 @@ public final class SystemBarsHelper {
      * re-hide the status bar after a transient swipe reveals it.
      */
     public static void applyCameraBars(Activity activity) {
+        applyCameraBars(activity, false);
+    }
+
+    /**
+     * Same edge-to-edge setup as {@link #applyCameraBars(Activity)}, plus the
+     * navigation bar's visibility. With {@code hideNavigationBar} the camera
+     * runs immersive like a game: both bars are hidden and
+     * {@link WindowInsetsControllerCompat#BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE}
+     * makes an edge swipe reveal them only transiently — the system re-hides
+     * them on its own after a moment. Without it the transparent navigation
+     * bar stays on screen so a single swipe always goes home.
+     */
+    public static void applyCameraBars(Activity activity, boolean hideNavigationBar) {
         Window window = activity.getWindow();
         WindowCompat.setDecorFitsSystemWindows(window, false);
         window.setStatusBarColor(Color.TRANSPARENT);
@@ -47,8 +60,12 @@ public final class SystemBarsHelper {
         }
         WindowInsetsControllerCompat controller =
                 WindowCompat.getInsetsController(window, window.getDecorView());
-        controller.hide(WindowInsetsCompat.Type.statusBars());
-        controller.show(WindowInsetsCompat.Type.navigationBars());
+        if (hideNavigationBar) {
+            controller.hide(WindowInsetsCompat.Type.systemBars());
+        } else {
+            controller.hide(WindowInsetsCompat.Type.statusBars());
+            controller.show(WindowInsetsCompat.Type.navigationBars());
+        }
         controller.setSystemBarsBehavior(
                 WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
     }

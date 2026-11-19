@@ -116,7 +116,6 @@ import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.GLPreview;
 import com.particlesdevs.photoncamera.ui.camera.views.viewfinder.SurfaceViewOverViewfinder;
 import com.particlesdevs.photoncamera.ui.settings.SettingsActivity;
 import com.particlesdevs.photoncamera.util.SecureCameraHelper;
-import com.particlesdevs.photoncamera.util.SystemBarsHelper;
 import com.particlesdevs.photoncamera.util.log.Logger;
 
 import java.lang.reflect.Field;
@@ -333,12 +332,12 @@ public class CameraFragment extends Fragment {
         // through to the default behaviour (predictive-back compatible).
         requireActivity().getOnBackPressedDispatcher().addCallback(getViewLifecycleOwner(), cameraBackCallback);
         updateBackIntercept();
-        // Keep the shutter/mode bottom bar above the transparent navigation bar.
-        // The viewfinder itself stays full-bleed behind it.
-        View bottomBar = view.findViewById(R.id.layout_bottombar);
-        if (bottomBar != null) {
-            SystemBarsHelper.padBottomForNavBar(bottomBar);
-        }
+        // The bottom bar gets no navigation-bar padding: with the system
+        // navigation bar hidden, an inset-derived pad would keep cutting into
+        // the mode selector even while the buttons are gone. Flush to the
+        // screen edge is more immersive (video mode especially), and letting
+        // the selector own the bottom strip prevents accidental home-gesture
+        // swipes there. The viewfinder itself stays full-bleed.
         this.mCameraUIView = new CameraUIViewImpl(this);
         this.mCameraUIEventsListener = new CameraUIController(this);
         this.mCameraUIView.setCameraUIEventsListener(mCameraUIEventsListener);
