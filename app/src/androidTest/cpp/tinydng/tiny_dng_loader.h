@@ -159,7 +159,7 @@ struct GainMap {
 };
 
 struct DNGImage {
-  int black_level[4];  // for each spp(up to 4)
+  double black_level[4];  // Replay: retain fractional BlackLevel values per CFA site.
   int white_level[4];  // for each spp(up to 4)
   int version;         // DNG version
 
@@ -3974,8 +3974,17 @@ static bool ParseTIFFIFD(const StreamReader& sr,
         // Replay patch: a Bayer image has one sample/pixel but can carry
         // four BlackLevelRepeatDim entries. Read the tag count, not spp.
         for (int s = 0; s < static_cast<int>(std::min<unsigned int>(len, 4)); s++) {
-          if (!sr.read_uint(type, reinterpret_cast<unsigned int*>(
-                                      &image.black_level[s]))) {
+          // BlackLevel may be RATIONAL (e.g. Pixel 4a: 63.93), not just SHORT
+          // or LONG. Integer division changes normalization and noise fitting.
+          bool ok;
+          if (type == TYPE_RATIONAL || type == TYPE_SRATIONAL) {
+            ok = sr.read_real(type, &image.black_level[s]);
+          } else {
+            unsigned int value = 0;
+            ok = sr.read_uint(type, &value);
+            image.black_level[s] = static_cast<double>(value);
+          }
+          if (!ok || !std::isfinite(image.black_level[s])) {
             if (err) {
               (*err) += "Failed to parse BlackLevel Tag.\n";
             }
