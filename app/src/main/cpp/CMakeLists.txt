@@ -9,6 +9,12 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 
 add_link_options("-Wl,-z,max-page-size=16384")
 
+# Offline DNG replay is an opt-in instrumentation helper, absent from release.
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_library(burstreplay SHARED ../../androidTest/cpp/burst_replay.cpp)
+    target_compile_options(burstreplay PRIVATE -O2)
+endif()
+
 file(READ ${CMAKE_CURRENT_SOURCE_DIR}/../../../version.properties ver)
 string(REGEX MATCH "VERSION_BUILD=([0-9]*)" _ ${ver})
 set(VERSION_BUILD ${CMAKE_MATCH_1})

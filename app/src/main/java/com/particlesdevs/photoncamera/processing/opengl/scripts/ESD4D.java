@@ -354,6 +354,12 @@ public class ESD4D extends GLOneScript {
             entryValues = {"cubic", "bilinear", "nearest", "texel"}, defaultValue = 0)
     String halideMergeSampling = "cubic";
 
+    @Tunable(title = "Halide interpolate motion", category = "Alignment", description = "Experimental: interpolate vectors at their patch centers and sample the CFA once, instead of blending four warped samples", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean halideInterpolateMotion;
+
+    @Tunable(title = "Halide pixel fallback", category = "Alignment", description = "Choose the unshifted value when it matches the running merge more closely. Off tests the estimated warp directly; the merge robustness filter still rejects inconsistent frames", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean halidePixelFallback = true;
+
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
 
@@ -1064,6 +1070,8 @@ public class ESD4D extends GLOneScript {
                 else if (Objects.equals(halideMergeSampling, "cubic")) halideSampling = 3;
             }
             glProg.setDefine("HALIDE_SAMPLING", halideSampling);
+            glProg.setDefine("HALIDE_MOTION_FIELD", halideInterpolateMotion ? 1 : 0);
+            glProg.setDefine("HALIDE_PIXEL_FALLBACK", halidePixelFallback ? 1 : 0);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);

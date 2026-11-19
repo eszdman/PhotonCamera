@@ -32,6 +32,8 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define TILE_AL 16
 #define GYRO_WARP 0
 #define HALIDE_SAMPLING 0 // 0 legacy floor, 1 nearest, 2 CFA bilinear, 3 bounded CFA cubic
+#define HALIDE_MOTION_FIELD 0
+#define HALIDE_PIXEL_FALLBACK 1
 
 #if !GYRO_WARP && HALIDE_SAMPLING > 0
 // RGBA stores four separate Bayer parity planes. Filtering each component
@@ -215,6 +217,32 @@ void main() {
 #else
     vec4 bayerNone = imageLoad(alterTexture, xy);
 #endif
+#if !GYRO_WARP && HALIDE_SAMPLING > 0 && HALIDE_MOTION_FIELD
+    // Halide's overlapped patch spans 2*TILE_AL raw pixels. Its first
+    // vector belongs at TILE_AL-0.5, not the patch origin. Interpolate the
+    // motion at this Bayer quad's center, then reconstruct the CFA once.
+    // Mixing four separately warped images otherwise widens edges whenever
+    // neighboring estimates differ, even for a smooth physical motion field.
+    vec2 grid = (2.0*vec2(xy) - vec2(cfaShift) + 1.0) / float(TILE_AL) - 1.0;
+    ivec2 cell = ivec2(floor(grid));
+    vec2 fraction = fract(grid);
+    vec2 motion[4];
+    for (int i=0; i<4; ++i) {
+        ivec2 at = clamp(cell + ivec2(i%2,i/2),ivec2(0),alignmentSize-1);
+        motion[i] = vec4ToAlignment(texelFetch(alignmentTexture,at+shift,0));
+    }
+    vec2 displacement = mix(mix(motion[0],motion[1],fraction.x),
+                            mix(motion[2],motion[3],fraction.x),fraction.y);
+    vec4 candidate = sampleCfa(vec2(xy)+displacement);
+#if HALIDE_PIXEL_FALLBACK
+    vec4 alignedError = abs(candidate*exposure-bayerBase);
+    vec4 unalignedError = abs(bayerNone*exposure-bayerBase);
+    alignedSum = mix(bayerNone,candidate,smoothstep(vec4(0.48),vec4(0.51),
+                     unalignedError/max(alignedError+unalignedError,vec4(1e-8))));
+#else
+    alignedSum = candidate;
+#endif
+#else
 #if !GYRO_WARP && HALIDE_SAMPLING == 3
     vec4 previousAlignment = vec4(0.0), previousSample = vec4(0.0);
 #endif
@@ -247,9 +275,12 @@ void main() {
         // Correct smoothstep(edge0, edge1, x) order, including equal/black
         // samples. The former non-gyro call used the ratio as edge0 and
         // could reverse the edges (undefined), or divide zero by zero.
+#if HALIDE_PIXEL_FALLBACK || HALIDE_SAMPLING == 0 || GYRO_WARP
         bayerAlter = mix(bayerNone, bayerAlter, smoothstep(vec4(0.48),vec4(0.51),w2/max(w1+w2,vec4(1e-8))));
+#endif
         alignedSum += bayerAlter * w[i];
     }
+#endif
 
     alignedSum = clamp(alignedSum, vec4(0.0), vec4(1.0));
     alignedSum *= vec4(exposure);
