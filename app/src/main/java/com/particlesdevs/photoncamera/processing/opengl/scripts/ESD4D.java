@@ -121,7 +121,10 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("exposure", 1.f / images.get(0).pair.layerMpy);
             glProg.setVar("noiseS", sensorNoiseS);
             glProg.setVar("noiseO", sensorNoiseO);
-            glProg.setVar("detectThr", sigma);
+            // Proposal only: a warm pixel need not cross the strong threshold
+            // in frame zero. Sparse temporal verification still requires strong
+            // evidence in a majority and spatial isolation in at least 80% of samples.
+            glProg.setVar("detectThr", Math.max(3f, sigma * .5f));
             glProg.setVar("maxCount", MAX_HOT_PIXELS);
             glProg.setTexture("inTexture", base);
             glProg.setBufferCompute("HotPixelList", proposals);

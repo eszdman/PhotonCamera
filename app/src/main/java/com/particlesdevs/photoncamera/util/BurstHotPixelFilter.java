@@ -25,30 +25,40 @@ public final class BurstHotPixelFilter {
         }
     }
 
-    // These match the cheap GPU proposal, using single-frame, unscaled noise.
+    // Strong temporal evidence, using single-frame, unscaled sensor noise.
     public static float sigmaThreshold(double tunable) {
         return (float) Math.max(6.0, 4.0 * tunable);
     }
 
     private static float threshold(float value, float s, float o, float sigma) {
-        return Math.max(.02f, sigma * (float) Math.sqrt(Math.max(0f, s * value + o)));
+        return Math.max(.02f, noiseThreshold(value, s, o, sigma));
+    }
+
+    private static float noiseThreshold(float value, float s, float o, float sigma) {
+        return sigma * (float) Math.sqrt(Math.max(0f, s * value + o));
     }
 
     private static float sample(Frame frame, int index) {
         return Math.max(0f, Math.min(1f, frame.get(index)));
     }
 
-    private static float neighborMaximum(Frame frame, int index, int width) {
-        float maximum = 0f;
+    private static float neighborMedian(Frame frame, int index, int width, float[] neighbors) {
+        int k = 0;
         for (int dy = -2; dy <= 2; dy += 2)
             for (int dx = -2; dx <= 2; dx += 2)
-                if (dx != 0 || dy != 0) maximum = Math.max(maximum, sample(frame, index + dy * width + dx));
-        return maximum;
+                if (dx != 0 || dy != 0) neighbors[k++] = sample(frame, index + dy * width + dx);
+        Arrays.sort(neighbors);
+        return .5f * (neighbors[3] + neighbors[4]);
     }
 
-    private static boolean isolated(Frame frame, int index, int width, float s, float o, float sigma) {
-        float maximum = neighborMaximum(frame, index, width);
-        return sample(frame, index) - maximum > threshold(maximum, s, o, sigma);
+    private static boolean isolated(Frame frame, int index, int width, float s, float o,
+                                    float sigma, float[] neighbors) {
+        float background = neighborMedian(frame, index, width, neighbors);
+        float center = sample(frame, index);
+        // The site already passed burst verification. The proposal's absolute
+        // 0.02 floor would leave its dimmer frames uncorrected; retain the noise
+        // and strict-maximum guards here to protect overlaid scene highlights.
+        return center > neighbors[7] && center - background > noiseThreshold(background, s, o, sigma);
     }
 
     private static float medianDeviation(float[] patch, int index, float[] scratch) {
@@ -61,14 +71,15 @@ public final class BurstHotPixelFilter {
     }
 
     private static boolean textureOutlier(Frame[] frames, int index, int width,
-                                          float[] patch, float[] scratch, float[] temporal) {
+                                          float[] patch, float[] scratch, float[] temporal,
+                                          float[] residuals) {
         // RawTherapee 5.13 findHotDeadPixels compares the center's same-CFA
         // median residual with the surrounding 24 raw-site residuals. Its
         // default threshold is 21 times their mean magnitude.
         // https://github.com/RawTherapee/RawTherapee/blob/1924179107995b01b73cdc7f4fe91e44fc8227a7/rtengine/badpixels.cc
         // Use a sensor-coordinate temporal median: single-frame read noise can
         // hide warm pixels from this ratio test. Only sparse verified candidates
-        // reach this stage; the GPU proposal still requires a strong first frame.
+        // reach this stage; the GPU supplies a deliberately permissive proposal.
         for (int dy = -4; dy <= 4; ++dy)
             for (int dx = -4; dx <= 4; ++dx) {
                 for (int j = 0; j < temporal.length; ++j)
@@ -88,6 +99,35 @@ public final class BurstHotPixelFilter {
                 }
         // One neighboring defect must not veto another. Trim only one of 24
         // residuals; optical spots/edges still have multiple supporting sites.
+        if (center > 21f * Math.max(0f, surround - largest) / 23f) return true;
+
+        // Temporal aggregation and spatial background subtraction do not commute.
+        // The estimate above suppresses read noise well on a stationary scene,
+        // but a moving edge can imprint structure on the temporal median image.
+        // Also test persistent local residuals: subtract each frame's same-CFA
+        // background first, then take the temporal median. Keep the same spatial
+        // ratio and neighbor trim; only candidates rejected above pay this cost.
+        for (int j = 0; j < temporal.length; ++j) {
+            Frame frame = frames[j * (frames.length - 1) / (temporal.length - 1)];
+            for (int dy = -4; dy <= 4; ++dy)
+                for (int dx = -4; dx <= 4; ++dx)
+                    patch[(dy + 4) * 9 + dx + 4] = sample(frame, index + dy * width + dx);
+            for (int dy = -2; dy <= 2; ++dy)
+                for (int dx = -2; dx <= 2; ++dx)
+                    residuals[((dy + 2) * 5 + dx + 2) * temporal.length + j] =
+                            medianDeviation(patch, 40 + dy * 9 + dx, scratch);
+        }
+        center = 0f; surround = 0f; largest = 0f;
+        for (int k = 0; k < 25; ++k) {
+            System.arraycopy(residuals, k * temporal.length, temporal, 0, temporal.length);
+            Arrays.sort(temporal);
+            float residual = .5f * (temporal[(temporal.length - 1) / 2] + temporal[temporal.length / 2]);
+            if (k == 12) center = residual;
+            else {
+                surround += Math.abs(residual);
+                largest = Math.max(largest, Math.abs(residual));
+            }
+        }
         return center > 21f * Math.max(0f, surround - largest) / 23f;
     }
 
@@ -99,7 +139,10 @@ public final class BurstHotPixelFilter {
             return new Result(new int[0], corrected, proposals.length, false);
         int samples = Math.min(10, frames.length);
         float[] values = new float[samples], scratch = new float[9], patch = new float[81];
+        float[] excesses = new float[samples], residuals = new float[25 * samples];
+        float[] neighbors = new float[8];
         float[] temporal = new float[samples];
+        int allowedMisses = samples / 5, trim = samples >= 5 ? 1 : 0;
         float persistenceSigma = Math.max(3f, sigma * .5f);
         BitSet defects = new BitSet(width * height);
         for (int index : proposals) {
@@ -107,27 +150,33 @@ public final class BurstHotPixelFilter {
             int x = index % width, y = index / width;
             // The texture check reaches four raw pixels in each direction.
             if (x < 4 || y < 4 || x >= width - 4 || y >= height - 4) continue;
-            boolean persistent = true;
-            int strong = 0;
+            int misses = 0, strong = 0;
             for (int j = 0; j < samples; ++j) {
                 Frame frame = frames[j * (frames.length - 1) / (samples - 1)];
                 values[j] = sample(frame, index);
-                float maximum = neighborMaximum(frame, index, width);
-                float excess = values[j] - maximum;
-                if (excess <= threshold(maximum, s, o, persistenceSigma)) {
-                    persistent = false;
-                    break;
+                float background = neighborMedian(frame, index, width, neighbors);
+                float excess = excesses[j] = values[j] - background;
+                // Compare persistent excess against the local same-CFA median.
+                // A changing scene changes the signal even at a defective site;
+                // the maximum neighbor also fluctuates with noise and edges.
+                // A passing edge or one low noise sample must not veto an
+                // otherwise persistent defect. At least 80% must pass both.
+                if (values[j] <= neighbors[7] || excess <= threshold(background, s, o, persistenceSigma)) {
+                    if (++misses > allowedMisses) break;
                 }
-                if (excess > threshold(maximum, s, o, sigma)) strong++;
+                if (excess > threshold(background, s, o, sigma)) strong++;
             }
             // Noise may move a persistent warm pixel below the strong threshold
-            // occasionally. Require weak evidence in every sample and strong
-            // evidence in a majority, rather than a ten-frame weakest-link test.
-            if (!persistent || strong <= samples / 2) continue;
+            // occasionally. Strong evidence still needs a strict majority.
+            if (misses > allowedMisses || strong <= samples / 2) continue;
             Arrays.sort(values);
-            // Moving highlights can remain maximal while their amplitude varies.
-            if (values[samples - 1] - values[0] > threshold(values[samples / 2], s, o, sigma)) continue;
-            if (!textureOutlier(frames, index, width, patch, scratch, temporal)) continue;
+            Arrays.sort(excesses);
+            // Reject changing impulses, without mistaking background motion for
+            // variation in the defect. Trim only one extreme at each end for
+            // bursts of five or more samples, and include center shot noise.
+            if (excesses[samples - 1 - trim] - excesses[trim]
+                    > threshold(values[samples / 2], s, o, sigma)) continue;
+            if (!textureOutlier(frames, index, width, patch, scratch, temporal, residuals)) continue;
             defects.set(index);
         }
         if (defects.cardinality() > maximumSites)
@@ -141,7 +190,7 @@ public final class BurstHotPixelFilter {
             for (int k = 0; k < sites.length; ++k) {
                 int index = sites[k];
                 // Unsampled frames may put genuine highlights over this site.
-                if (!isolated(frame, index, width, s, o, persistenceSigma)) continue;
+                if (!isolated(frame, index, width, s, o, persistenceSigma, neighbors)) continue;
                 replacements[k] = interpolate(frame, index, width, cfa, defects, s, o);
             }
             // Gather before any writes: adjacent repairs cannot read each other

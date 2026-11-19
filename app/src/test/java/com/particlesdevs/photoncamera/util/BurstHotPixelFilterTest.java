@@ -169,4 +169,91 @@ public class BurstHotPixelFilterTest {
         for (int f = 0; f < frames.length; ++f) frames[f].data[site] = f < 5 ? .07f : .051f;
         unchanged(frames, 0, site);
     }
+
+    @Test public void reportedWarmPixelsTrackBackgroundRatherThanAbsoluteSignal() {
+        // Actual FP16-normalized 9x9 patches from all 25 tester frames, at raw
+        // (2794,2099) and (2936,2063). The old absolute-intensity stability and
+        // maximum-neighbor significance checks rejected these visible defects.
+        try (Scanner input = new Scanner(getClass().getResourceAsStream("/burst-hot-pixels-local-excess.txt"))) {
+            input.useLocale(java.util.Locale.ROOT);
+            int cases = input.nextInt(), count = input.nextInt(), size = input.nextInt();
+            int site = 24 * W + 24;
+            for (int c = 0; c < cases; ++c) {
+                String location = input.nextInt() + "," + input.nextInt();
+                int cfa = input.nextInt();
+                Frame[] frames = flat(count, 0);
+                for (Frame frame : frames)
+                    for (int y = 0; y < size; ++y) for (int x = 0; x < size; ++x)
+                        frame.data[(24 + y - size / 2) * W + 24 + x - size / 2] = input.nextFloat();
+                float[][] before = Arrays.stream(frames).map(f -> f.data.clone()).toArray(float[][]::new);
+                BurstHotPixelFilter.Result result = BurstHotPixelFilter.correct(frames, W, H, cfa,
+                        new int[]{site}, .000570853125f, .00000317882539f, 6f, 2000);
+                assertArrayEquals(location, new int[]{site}, result.sites);
+                for (int f = 0; f < frames.length; ++f) {
+                    assertEquals(location, 1, result.correctedPerFrame[f]);
+                    assertTrue(location, frames[f].data[site] < before[f][site] - .02f);
+                    for (int i = 0; i < W * H; ++i)
+                        if (i != site) assertEquals(location, before[f][i], frames[f].data[i], 0f);
+                }
+            }
+        }
+    }
+
+    @Test public void changingBackgroundKeepsOpticalSpotsAndMovingEdgesIntact() {
+        Frame[] frames = flat(10, 0);
+        int[] sites = new int[W * H]; for (int i = 0; i < sites.length; ++i) sites[i] = i;
+        for (int f = 0; f < frames.length; ++f)
+            for (int y = 0; y < H; ++y) for (int x = 0; x < W; ++x) {
+                double background = .03 + .02 * f;
+                double spot = .3 * Math.exp(-((x - 16.) * (x - 16.) + (y - 24.) * (y - 24.)) / 2);
+                frames[f].data[y * W + x] = (float) (background + spot + (x >= 33 + f / 3 ? .4 : 0));
+            }
+        unchanged(frames, 0, sites);
+    }
+
+    @Test public void reportedDefectsSurviveOccasionalEdgesAndLocalTextureChanges() {
+        // Six newly reported defects, 25 original FP16-normalized tester frames.
+        // Some frames contain passing edges: keep the per-frame highlight guard,
+        // while ensuring that these no longer veto the entire sensor site.
+        try (Scanner input = new Scanner(getClass().getResourceAsStream("/burst-hot-pixels-moving-background.txt"))) {
+            input.useLocale(java.util.Locale.ROOT);
+            int cases = input.nextInt(), count = input.nextInt(), size = input.nextInt();
+            int site = 24 * W + 24;
+            for (int c = 0; c < cases; ++c) {
+                String location = input.nextInt() + "," + input.nextInt();
+                int cfa = input.nextInt();
+                Frame[] frames = flat(count, 0);
+                for (Frame frame : frames)
+                    for (int y = 0; y < size; ++y) for (int x = 0; x < size; ++x)
+                        frame.data[(24 + y - size / 2) * W + 24 + x - size / 2] = input.nextFloat();
+                float[][] before = Arrays.stream(frames).map(f -> f.data.clone()).toArray(float[][]::new);
+                BurstHotPixelFilter.Result result = BurstHotPixelFilter.correct(frames, W, H, cfa,
+                        new int[]{site}, .000570853125f, .00000317882539f, 6f, 2000);
+                assertArrayEquals(location, new int[]{site}, result.sites);
+                assertTrue(location, frames[0].data[site] < before[0][site] - .02f);
+                assertTrue(location, Arrays.stream(result.correctedPerFrame).sum() >= 20);
+                for (int f = 0; f < frames.length; ++f)
+                    for (int i = 0; i < W * H; ++i)
+                        if (i != site) assertEquals(location, before[f][i], frames[f].data[i], 0f);
+            }
+        }
+    }
+
+    @Test public void moreThanTwoUnsupportedSamplesStillRejectTheSite() {
+        Frame[] frames = flat(10, .03f); int site = 24 * W + 24;
+        for (Frame f : frames) f.data[site] = .15f;
+        for (int f = 0; f < 3; ++f) frames[f].data[site - 2] = .3f;
+        unchanged(frames, 0, site);
+    }
+
+    @Test public void knownDefectIsRepairedBelowProposalFloorButOverlaidHighlightIsPreserved() {
+        Frame[] frames = flat(22, .005f); int site = 24 * W + 24;
+        for (Frame f : frames) f.data[site] = .05f;
+        frames[1].data[site] = .02f; // Unsampled frame, excess < 0.02 but > 3 sigma.
+        frames[3].data[site - 2] = .1f; // Another unsampled frame with scene support.
+        BurstHotPixelFilter.Result result = correct(frames, 0, site);
+        assertArrayEquals(new int[]{site}, result.sites);
+        assertEquals(.005f, frames[1].data[site], 0f);
+        assertEquals(.05f, frames[3].data[site], 0f);
+    }
 }
