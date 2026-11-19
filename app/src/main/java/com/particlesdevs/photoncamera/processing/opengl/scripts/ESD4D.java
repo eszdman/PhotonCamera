@@ -345,6 +345,9 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine Halide vectors with Lucas-Kanade on the raw/2 grid: denser subpixel vectors, at increased alignment cost. Off uses the hierarchical field with one vector per 32 raw pixels. Only applies to Halide", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean halideRefineFlow;
 
+    @Tunable(title = "Halide accurate subpixel", category = "Alignment", description = "Fit fractional motion on the existing Halide grid, including matches at search-window edges. Off restores the original matcher for comparison. Applies when Halide flow refinement is off", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean halideAccurateSubpixel = true;
+
     @Tunable(title = "Halide merge sampling", category = "Alignment",
             description = "Without gyro: cubic preserves fractional shifts with sharper CFA-plane interpolation and an edge clamp; bilinear is softer; nearest rounds to 2x2 raw blocks; legacy texel floors shifts. All modes keep Bayer colors separate",
             entries = {"CFA cubic (sharp subpixel)", "CFA bilinear (subpixel)", "Texel nearest (rounded)", "Texel legacy (floor)"},
@@ -950,6 +953,7 @@ public class ESD4D extends GLOneScript {
             HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images, glProg, inputAlter);
             halideAlignment.parameters = parameters;
             halideAlignment.refineFlow = halideRefine;
+            halideAlignment.accurateSubpixel = halideAccurateSubpixel;
             halideAlignment.gyroHomographies = gyroHomographies;
             long startTime = System.currentTimeMillis();
             try {

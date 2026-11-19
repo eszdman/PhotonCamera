@@ -91,6 +91,8 @@ public class HalideAlignment implements AutoCloseable {
      * ESD4D "Halide flow refinement" tunable.
      */
     public boolean refineFlow = true;
+    /** Coupled fit on the existing grid; only used when refineFlow is off. */
+    public boolean accurateSubpixel = true;
     /** Per-frame reference-to-source raw homographies. Returned vectors are residuals. */
     public float[][] gyroHomographies;
 
@@ -123,6 +125,7 @@ public class HalideAlignment implements AutoCloseable {
 
     /** Runtime switch for the flow refinement; call before {@link #nInit}. */
     private static native void nSetRefineEnabled(boolean on);
+    private static native void nSetAccurateSubpixelEnabled(boolean on);
 
     public HalideAlignment(Point size, ArrayList<ImageFrame> images) {
         this(size, images, null, null);
@@ -175,6 +178,7 @@ public class HalideAlignment implements AutoCloseable {
         // push the tunable into the library first, then read back the mode
         // every downstream grid decision agrees with.
         nSetRefineEnabled(refineFlow);
+        nSetAccurateSubpixelEnabled(accurateSubpixel);
         final boolean refine = nRefineEnabled();
 
         // Halide vector grid: overlapped 16-texel tiles with origins every

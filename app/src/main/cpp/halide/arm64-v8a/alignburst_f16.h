@@ -1,5 +1,5 @@
-#ifndef HALIDE____mnt___B___AndroidStudioProjects___halide___align___build___android___android___alignburst_f16_h
-#define HALIDE____mnt___B___AndroidStudioProjects___halide___align___build___android___android___alignburst_f16_h
+#ifndef HALIDE__build___accuracy___android___alignburst_f16_h
+#define HALIDE__build___accuracy___android___alignburst_f16_h
 #include <stdint.h>
 
 // Forward declarations of the types used in the interface

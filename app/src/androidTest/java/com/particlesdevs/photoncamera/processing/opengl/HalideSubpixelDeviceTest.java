@@ -155,6 +155,69 @@ public class HalideSubpixelDeviceTest {
         }
     }
 
+    @Test public void sameGridSubpixelSwitchImprovesAlignment() {
+        assertTrue(HalideAlignment.isAvailable());
+        double[] errors=new double[2];
+        try(GLContext context=new GLContext(1,1)) {
+            for(int mode=0;mode<2;mode++) {
+                int count=0;
+                for(float[] delta:new float[][]{{1.25f,-0.75f},{-0.65f,1.4f},{2.75f,3.25f}}) {
+                    ArrayList<ImageFrame> frames=new ArrayList<>();
+                    frames.add(frame(0,0));frames.add(frame(delta[0],delta[1]));
+                    Parameters p=new Parameters();p.rawSize=new Point(W,H);p.tile=16;p.tilesX=1;
+                    p.alignmentSize=new Point(W/32+1,H/32+1);
+                    try(HalideAlignment align=new HalideAlignment(p.alignmentSize,frames)) {
+                        align.parameters=p;align.refineFlow=false;align.accurateSubpixel=mode==1;align.Run();
+                        try {
+                            assertEquals("Same coarse atlas width",p.alignmentSize.x,align.Result.mSize.x);
+                            assertEquals("Same coarse atlas height",p.alignmentSize.y,align.Result.mSize.y);
+                            align.Result.BufferLoad();
+                            FloatBuffer vectors=align.Result.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32,4),true)
+                                    .order(ByteOrder.nativeOrder()).asFloatBuffer();
+                            for(int y=3;y<p.alignmentSize.y-3;y++) for(int x=3;x<p.alignmentSize.x-3;x++) {
+                                int o=(y*p.alignmentSize.x+x)*4;
+                                float dx=2*(Math.round(vectors.get(o)*(W/2))+vectors.get(o+2));
+                                float dy=2*(Math.round(vectors.get(o+1)*(H/2))+vectors.get(o+3));
+                                assertTrue(Float.isFinite(dx)&&Float.isFinite(dy));
+                                errors[mode]+=Math.hypot(dx-delta[0],dy-delta[1]);count++;
+                            }
+                        } finally {align.Result.close();}
+                    } finally {for(ImageFrame frame:frames)frame.close();}
+                }
+                errors[mode]/=count;
+            }
+            Log.i(TAG,"SAME_GRID mean raw-pixel EPE [original,accurate]="+Arrays.toString(errors));
+            assertTrue("Subpixel fit improves the original field at unchanged density",errors[1]<errors[0]);
+            assertEquals(GL_NO_ERROR,glGetError());
+        }
+    }
+
+    @Test public void denseRefinementKeepsItsOriginalSeed() {
+        assertTrue(HalideAlignment.isAvailable());
+        try(GLContext context=new GLContext(1,1)) {
+            ArrayList<ImageFrame> frames=new ArrayList<>();
+            frames.add(frame(0,0));frames.add(frame(1.25f,-0.75f));
+            Parameters p=new Parameters();p.rawSize=new Point(W,H);p.tile=16;p.tilesX=1;
+            p.alignmentSize=new Point(W/16+1,H/16+1);
+            float[] reference=null;
+            try {
+                for(boolean accurate:new boolean[]{false,true}) {
+                    try(HalideAlignment align=new HalideAlignment(p.alignmentSize,frames)) {
+                        align.parameters=p;align.refineFlow=true;align.accurateSubpixel=accurate;align.Run();
+                        try {
+                            align.Result.BufferLoad();
+                            FloatBuffer values=align.Result.textureBuffer(new GLFormat(GLFormat.DataType.FLOAT_32,4),true)
+                                    .order(ByteOrder.nativeOrder()).asFloatBuffer();
+                            float[] actual=new float[values.remaining()];values.get(actual);
+                            if(reference==null)reference=actual;
+                            else assertArrayEquals("Coarse-fit switch must not alter dense refinement",reference,actual,0f);
+                        } finally {align.Result.close();}
+                    }
+                }
+            } finally {for(ImageFrame frame:frames)frame.close();}
+        }
+    }
+
     /** Opt-in isolated full-resolution GPU timing; no capture or settings changes. */
     @Test public void benchmarkSamplingCost() {
         Assume.assumeTrue(Boolean.parseBoolean(InstrumentationRegistry.getArguments().getString("halideSamplingBenchmark","false")));

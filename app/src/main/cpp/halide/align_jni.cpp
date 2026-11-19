@@ -49,6 +49,7 @@
 #include "align_pads.h"
 #include "alignburst_base_f16.h"
 #include "alignburst_f16.h"
+#include "alignburst_f16_reference.h"
 #include "alignflow_base.h"
 #include "alignflow_f16.h"
 
@@ -73,6 +74,7 @@ constexpr int kMinLevel = 1;
 // so a burst runs one consistent mode, and nRefineEnabled() reports it so
 // the Java side picks the matching grid and broadcast.
 bool g_refine_flow = true;
+bool g_accurate_subpixel = true;
 
 // CPU 3x3 median of the alignment field (per component, edge-replicated) -
 // the stage replaces isolated outlier tiles (confident
@@ -334,6 +336,7 @@ struct AlignCtx {
     int ntx = 0, nty = 0;    // stage-2 (seed) grid at kMinLevel
     int nt0x = 0, nt0y = 0;  // refined output grid at level 0
     bool refine = true;      // g_refine_flow snapshot taken by nInit
+    bool accurateSubpixel = true;
 };
 
 // Throws IllegalStateException carrying the kernel name, Halide's error code
@@ -363,6 +366,9 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nInit(
     ctx->rawW = rawW;
     ctx->rawH = rawH;
     ctx->refine = g_refine_flow;
+    // The optional dense LK stage has its own fractional solver and was
+    // tuned around the legacy seed. Preserve that path when it is enabled.
+    ctx->accurateSubpixel = g_accurate_subpixel && !ctx->refine;
 
     const std::vector<int> B = level_paddings();
     for (int l = 0; l <= kMaxLevel; l++) {
@@ -460,7 +466,8 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nAlignFrame(
     Halide::Runtime::Buffer<float> out(2, ctx->ntx, ctx->nty);
 
     g_last_halide_error[0] = '\0';
-    int err = alignburst_f16(ctx->levels[0].raw_buffer(),
+    auto align_kernel = ctx->accurateSubpixel ? alignburst_f16 : alignburst_f16_reference;
+    int err = align_kernel(ctx->levels[0].raw_buffer(),
                              ctx->levels[1].raw_buffer(),
                              ctx->levels[2].raw_buffer(),
                              ctx->levels[3].raw_buffer(),
@@ -560,6 +567,12 @@ JNIEXPORT void JNICALL
 Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetRefineEnabled(
         JNIEnv *env, jclass clazz, jboolean on) {
     g_refine_flow = on != JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetAccurateSubpixelEnabled(
+        JNIEnv *, jclass, jboolean on) {
+    g_accurate_subpixel = on != JNI_FALSE;
 }
 
 JNIEXPORT void JNICALL
