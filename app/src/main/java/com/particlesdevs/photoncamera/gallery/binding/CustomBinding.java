@@ -11,6 +11,7 @@ import com.bumptech.glide.Glide;
 import com.bumptech.glide.load.engine.DiskCacheStrategy;
 import com.bumptech.glide.request.RequestOptions;
 import com.bumptech.glide.signature.ObjectKey;
+import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.views.Histogram;
 
@@ -58,6 +59,15 @@ public class CustomBinding {
     @BindingAdapter("loadImage")
     public static void loadImage(ImageView imageView, GalleryItem galleryItem) {
         if (galleryItem != null && galleryItem.getFile() != null && galleryItem.getFile().getFileUri() != null) {
+            if (galleryItem.getFile().isZip()) {
+                Glide.with(imageView).clear(imageView);
+                imageView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+                imageView.setImageResource(R.drawable.ic_photo_library);
+                imageView.setContentDescription(galleryItem.getDisplayName());
+                return;
+            }
+            imageView.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            imageView.setContentDescription(null);
             Glide.with(imageView)
                     .asBitmap()
                     .load(galleryItem.getFile().getFileUri())

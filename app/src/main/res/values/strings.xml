@@ -32,6 +32,9 @@
     <string name="hdrx" translatable="false">HDRX</string>
     <string name="ultrahdr">Ultra HDR</string>
     <string name="ultrahdr_summary">Encode JPEGs with an Ultra HDR gain map (requires a second, lightweight tone pass). HEIC gain maps need Android 14+; on older versions HEIC saves as SDR.</string>
+    <string name="burst_archive_placeholder">ZIP archive\n%1$s\n%2$s</string>
+    <string name="save_burst_dngs">Save burst as ZIP</string>
+    <string name="save_burst_dngs_summary">Save burst input DNGs together in one ZIP for off-device re-merging. Archives are saved in DCIM/PhotonCamera/Raw and can be shared from the gallery’s Raw folder. The merged DNG is still controlled by the RAW save mode.</string>
     <string name="sharpness">Sharpness</string>
     <string name="turn_on_grid">Show Grid</string>
     <string name="lens_bar_position">Lens Bar Position</string>

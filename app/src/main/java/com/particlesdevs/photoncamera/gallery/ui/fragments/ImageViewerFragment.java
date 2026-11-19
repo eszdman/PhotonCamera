@@ -43,6 +43,7 @@ import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
+import com.particlesdevs.photoncamera.gallery.helper.GalleryShare;
 import com.particlesdevs.photoncamera.gallery.helper.UltraHdrGalleryUtil;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.ExifDialogViewModel;
@@ -351,7 +352,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     @Override public void onResume() {
         super.onResume();
         if (fragmentGalleryImageViewerBinding != null)
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!isCurrentArchive() && !fragmentGalleryImageViewerBinding.getButtonsVisible());
         if (adapter != null && viewPager != null) {
             int position = viewPager.getCurrentItem();
             seek_position = position;
@@ -388,6 +389,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onPageHdrSelected(int position) {
+        updateFileActions();
         if (adapter == null) return;
         if (lastHdrPosition >= 0 && lastHdrPosition != position) {
             deferredReleasePos = lastHdrPosition;
@@ -480,16 +482,46 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onQuickCompare(View view) {
-        if (galleryItems.size() >= 2) {
+        int otherPosition = comparisonPosition();
+        if (otherPosition >= 0) {
             NavController navController = Navigation.findNavController(view);
             Bundle b = new Bundle(2);
-            int image1pos = viewPager.getCurrentItem();
-            int image2pos = image1pos + 1;
-            if (image1pos == galleryItems.size() - 1) { image2pos = image1pos; image1pos -= 1; }
-            b.putInt(Constants.IMAGE1_KEY, image1pos);
-            b.putInt(Constants.IMAGE2_KEY, image2pos);
+            b.putInt(Constants.IMAGE1_KEY, viewPager.getCurrentItem());
+            b.putInt(Constants.IMAGE2_KEY, otherPosition);
             navController.navigate(R.id.action_imageViewerFragment_to_imageCompareFragment, b);
         } else Toast.makeText(getContext(), "No images to compare!", Toast.LENGTH_SHORT).show();
+    }
+
+    private int comparisonPosition() {
+        if (isCurrentArchive() || galleryItems == null || galleryItems.size() < 2) return -1;
+        int current = viewPager.getCurrentItem();
+        for (int offset = 1; offset < galleryItems.size(); offset++) {
+            int candidate = (current + offset) % galleryItems.size();
+            if (!galleryItems.get(candidate).getFile().isZip()) return candidate;
+        }
+        return -1;
+    }
+
+    private boolean isCurrentArchive() {
+        int position = viewPager == null ? seek_position : viewPager.getCurrentItem();
+        return galleryItems != null && position >= 0 && position < galleryItems.size()
+                && galleryItems.get(position).getFile().isZip();
+    }
+
+    private void updateFileActions() {
+        if (fragmentGalleryImageViewerBinding == null) return;
+        boolean archive = isCurrentArchive();
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.edit.setVisibility(archive ? View.INVISIBLE : View.VISIBLE);
+        fragmentGalleryImageViewerBinding.bottomControlsContainer.exif.setVisibility(archive ? View.INVISIBLE : View.VISIBLE);
+        fragmentGalleryImageViewerBinding.topControlsContainer.galleryQuickCompareButton
+                .setVisibility(comparisonPosition() < 0 ? View.INVISIBLE : View.VISIBLE);
+        fragmentGalleryImageViewerBinding.setMiniExifVisible(!archive && !fragmentGalleryImageViewerBinding.getButtonsVisible());
+        if (archive) {
+            isExifVisible = false;
+            fragmentGalleryImageViewerBinding.setExifDialogVisible(false);
+            resetScaleText();
+            clearExifBlur();
+        }
     }
 
     private void onGalleryButtonClick(View view) {
@@ -499,6 +531,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     }
 
     private void onEditButtonClick(View view) {
+        if (isCurrentArchive()) return;
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && getContext() != null) {
             GalleryItem galleryItem = galleryItems.get(position);
@@ -547,17 +580,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     private void onShareButtonClick(View view) {
         int position = viewPager.getCurrentItem();
         GalleryItem galleryItem = galleryItems.get(position);
-        String fileName = galleryItem.getFile().getDisplayName();
-        String mediaType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(FileUtils.getExtension(fileName));
-        Uri uri = galleryItem.getFile().getFileUri();
-        Intent intent = new Intent(Intent.ACTION_SEND);
-        intent.putExtra(Intent.EXTRA_STREAM, uri);
-        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        intent.setType(mediaType);
+        Intent intent = GalleryShare.createIntent(Collections.singletonList(galleryItem.getFile()));
         startActivity(Intent.createChooser(intent, null));
     }
 
     private void onExifButtonClick(View view) {
+        if (isCurrentArchive()) return;
         isExifVisible = !isExifVisible;
         fragmentGalleryImageViewerBinding.setExifDialogVisible(isExifVisible);
         updateExif();
@@ -571,7 +599,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             fragmentGalleryImageViewerBinding.setButtonsVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
             int position = viewPager.getCurrentItem();
             updateHdrToggleUi(adapter != null && adapter.isHdrAvailable(position), adapter != null && adapter.isHdrActive(position));
-            fragmentGalleryImageViewerBinding.setMiniExifVisible(!fragmentGalleryImageViewerBinding.getButtonsVisible());
+            fragmentGalleryImageViewerBinding.setMiniExifVisible(!isCurrentArchive() && !fragmentGalleryImageViewerBinding.getButtonsVisible());
             if (isExifVisible) {
                 fragmentGalleryImageViewerBinding.setExifDialogVisible(fragmentGalleryImageViewerBinding.getButtonsVisible());
                 updateExif();
@@ -602,6 +630,8 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
         // May run from a delayed post after navigation; never touch
         // requireContext() when detached.
         if (!isAdded() || viewPager == null) return;
+        updateFileActions();
+        if (isCurrentArchive()) return;
         int position = viewPager.getCurrentItem();
         if (galleryItems != null && !galleryItems.isEmpty() && position < galleryItems.size()) {
             GalleryItem galleryItem = galleryItems.get(position);

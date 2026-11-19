@@ -334,6 +334,12 @@ public class PreferenceKeys {
         return getBool(Key.KEY_SAVE_HEIC);
     }
 
+    /** True when Save burst as ZIP is on. Keep the existing preference key so
+     * previously enabled burst saving continues to work. */
+    public static boolean isSaveBurstDngsOn() {
+        return getBool(Key.KEY_SAVE_BURST_DNGS);
+    }
+
     /** True when the current Save mode writes a DNG (RAW+JPEG, RAW). */
     public static boolean isRawSave() {
         int v = isSaveRaw();
@@ -831,6 +837,7 @@ public class PreferenceKeys {
         KEY_SHOW_HORIZON(R.string.pref_horizon),
         KEY_SAVE_RAW(R.string.pref_save_raw_key),
         KEY_SAVE_HEIC(R.string.pref_save_heic_key),
+        KEY_SAVE_BURST_DNGS(R.string.pref_save_burst_dngs_key),
         KEY_CFA(R.string.pref_cfa_key),
         KEY_REMOSAIC(R.string.pref_remosaic_key),////TODO
 

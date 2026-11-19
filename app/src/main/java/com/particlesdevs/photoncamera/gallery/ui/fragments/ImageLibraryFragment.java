@@ -33,6 +33,7 @@ import com.particlesdevs.photoncamera.gallery.adapters.ImageGridAdapter;
 import com.particlesdevs.photoncamera.gallery.files.GalleryFileOperations;
 import com.particlesdevs.photoncamera.gallery.files.ImageFile;
 import com.particlesdevs.photoncamera.gallery.helper.Constants;
+import com.particlesdevs.photoncamera.gallery.helper.GalleryShare;
 import com.particlesdevs.photoncamera.gallery.interfaces.OnItemInteractionListener;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
 import com.particlesdevs.photoncamera.gallery.viewmodel.GalleryViewModel;
@@ -198,6 +199,7 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     }
 
     private void onCompareFabClicked(View view) {
+        if (imageGridAdapter.getSelectedItems().stream().anyMatch(item -> item.getFile().isZip())) return;
         List<GalleryItem> selectedItems = imageGridAdapter.getSelectedItems();
         if (selectedItems.size() == 2) {
             NavController navController = Navigation.findNavController(view);
@@ -225,11 +227,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     }
 
     private void onShareFabClicked(View view) {
-        ArrayList<Uri> imageUris = (ArrayList<Uri>) imageGridAdapter.getSelectedItems().stream().map(galleryItem -> galleryItem.getFile().getFileUri()).collect(Collectors.toList());
-        Intent shareIntent = new Intent();
-        shareIntent.setAction(Intent.ACTION_SEND_MULTIPLE);
-        shareIntent.putParcelableArrayListExtra(Intent.EXTRA_STREAM, imageUris);
-        shareIntent.setType("image/*");
+        Intent shareIntent = GalleryShare.createIntent(imageGridAdapter.getSelectedItems().stream()
+                .map(GalleryItem::getFile).collect(Collectors.toList()));
         startActivity(Intent.createChooser(shareIntent, null));
     }
 
@@ -282,7 +281,8 @@ public class ImageLibraryFragment extends Fragment implements ImageGridAdapter.G
     public void onImageSelectionChanged(int numOfSelectedFiles) {
         fragmentGalleryImageLibraryBinding.setButtonsVisible(true);
         fragmentGalleryImageLibraryBinding.setSelectedCount(String.valueOf(numOfSelectedFiles));
-        fragmentGalleryImageLibraryBinding.setCompareVisible(numOfSelectedFiles == 2);
+        fragmentGalleryImageLibraryBinding.setCompareVisible(numOfSelectedFiles == 2
+                && imageGridAdapter.getSelectedItems().stream().noneMatch(item -> item.getFile().isZip()));
     }
 
     @Override

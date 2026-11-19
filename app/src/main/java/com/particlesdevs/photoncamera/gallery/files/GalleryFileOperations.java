@@ -15,14 +15,23 @@ import com.particlesdevs.photoncamera.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.app.ActivityCompat;
+import androidx.core.content.FileProvider;
+import androidx.documentfile.provider.DocumentFile;
 
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.gallery.interfaces.ImagesDeletedCallback;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
+import com.particlesdevs.photoncamera.util.BurstArchiveStore;
+import com.particlesdevs.photoncamera.util.FileManager;
 
+import java.io.File;
 import java.net.URLConnection;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.WeakHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -35,6 +44,7 @@ public class GalleryFileOperations {
     private static final ArrayList<String> SELECTED_FOLDERS_IDS = new ArrayList<>();
     private static final ArrayList<ImagesFolder> ALL_FOLDERS = new ArrayList<>();
     private static final ArrayList<ImagesFolder> SELECTED_FOLDERS = new ArrayList<>();
+    private static final Map<Activity, List<ImageFile>> PENDING_ARCHIVE_DELETIONS = new WeakHashMap<>();
 
     public static ArrayList<ImagesFolder> getSelectedFolders() {
         return SELECTED_FOLDERS;
@@ -163,18 +173,26 @@ public class GalleryFileOperations {
     }
 
     public static void deleteImageFiles(Activity activity, List<ImageFile> toDelete, ImagesDeletedCallback deletedCallback) {
-        List<Uri> toDeleteUriList = toDelete.stream().map(ImageFile::getFileUri).collect(Collectors.toList());
+        List<ImageFile> images = toDelete.stream().filter(file -> !file.isZip()).collect(Collectors.toList());
+        if (images.isEmpty()) {
+            deletedCallback.deleted(deleteArchiveFiles(activity, toDelete));
+            return;
+        }
+        List<Uri> toDeleteUriList = images.stream().map(ImageFile::getFileUri).collect(Collectors.toList());
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
-            PendingIntent pi = MediaStore.createDeleteRequest(activity.getContentResolver(), toDeleteUriList);
             try {
+                PendingIntent pi = MediaStore.createDeleteRequest(activity.getContentResolver(), toDeleteUriList);
+                // Defer document deletion until the user accepts the image deletion too.
+                PENDING_ARCHIVE_DELETIONS.put(activity, new ArrayList<>(toDelete));
                 ActivityCompat.startIntentSenderForResult(activity, pi.getIntentSender(), REQUEST_PERM_DELETE, null, 0, 0, 0, null);
-            } catch (IntentSender.SendIntentException e) {
+            } catch (IntentSender.SendIntentException | RuntimeException e) {
+                PENDING_ARCHIVE_DELETIONS.remove(activity);
                 e.printStackTrace();
                 deletedCallback.deleted(false);
             }
         } else {
             ContentResolver contentResolver = activity.getContentResolver();
-            for (ImageFile file : toDelete) {
+            for (ImageFile file : images) {
                 try {
                     contentResolver.delete(file.getFileUri(), MediaStore.Images.Media._ID + "= ?", new String[]{String.valueOf(file.getId())});
                 } catch (SecurityException e) {
@@ -183,8 +201,37 @@ public class GalleryFileOperations {
                     return;
                 }
             }
-            deletedCallback.deleted(true);
+            deletedCallback.deleted(deleteArchiveFiles(activity, toDelete));
         }
+    }
+
+    public static boolean completeDeleteRequest(Activity activity, boolean accepted) {
+        List<ImageFile> pending = PENDING_ARCHIVE_DELETIONS.remove(activity);
+        return accepted && (pending == null || deleteArchiveFiles(activity, pending));
+    }
+
+    private static boolean deleteArchiveFiles(Activity activity, List<ImageFile> toDelete) {
+        // ZIPs are SAF documents (or FileProvider files on older devices), not
+        // images accepted by MediaStore.createDeleteRequest.
+        for (ImageFile file : toDelete) {
+            if (!file.isZip()) continue;
+            try {
+                Uri uri = file.getFileUri();
+                boolean deleted;
+                if ((activity.getPackageName() + ".provider").equals(uri.getAuthority())) {
+                    deleted = new File(file.getAbsolutePath()).delete();
+                } else {
+                    deleted = android.provider.DocumentsContract.deleteDocument(activity.getContentResolver(), uri);
+                }
+                if (!deleted) {
+                    return false;
+                }
+            } catch (Exception e) {
+                Log.e("GalleryFileOperations", "Archive deletion failed", e);
+                return false;
+            }
+        }
+        return true;
     }
 
     public static class ImagesFolder {
@@ -289,6 +336,7 @@ public class GalleryFileOperations {
             }
             cursor.close();
         }
+        addBurstArchives();
         //find latest image:
         ALL_FOLDERS.forEach(imagesFolder -> {
             imagesFolder.getAllImageFiles().sort(Comparator.comparingLong(value -> -value.getLastModified()));
@@ -296,6 +344,47 @@ public class GalleryFileOperations {
         });
         ALL_FOLDERS.sort(Comparator.comparing(o -> o.folderName));
         return ALL_FOLDERS;
+    }
+
+    private static void addBurstArchives() {
+        android.content.Context context = PhotonCamera.getAppContext();
+        try {
+            DocumentFile raw = BurstArchiveStore.getRawFolder(context, false);
+            if (raw == null || !raw.isDirectory()) return;
+            ImagesFolder folder = null;
+            for (ImagesFolder candidate : ALL_FOLDERS) {
+                if ("Raw".equals(candidate.folderName)) {
+                    folder = candidate;
+                    break;
+                }
+            }
+            for (DocumentFile document : raw.listFiles()) {
+                String name = document.getName();
+                if (name == null || !name.toLowerCase(Locale.ROOT).endsWith(".zip")
+                        || !document.isFile() || document.length() == 0) continue;
+                if (folder == null) {
+                    folder = new ImagesFolder();
+                    folder.folderName = "Raw";
+                    // Match MediaStore's bucket ID, so existing folder selections
+                    // still work when a ZIP is the only remaining RAW item.
+                    folder.folderId = FileManager.sPHOTON_RAW_DIR.getAbsolutePath()
+                            .toLowerCase(Locale.ROOT).hashCode();
+                    folder.imageFiles = new ArrayList<>();
+                    ALL_FOLDERS.add(folder);
+                }
+                Uri uri = document.getUri();
+                File path = new File(FileManager.sPHOTON_RAW_DIR, name);
+                if ("file".equals(uri.getScheme())) {
+                    uri = FileProvider.getUriForFile(context, context.getPackageName() + ".provider", path);
+                }
+                // Negative IDs cannot collide with the positive MediaStore image IDs.
+                long id = Long.MIN_VALUE + Integer.toUnsignedLong(uri.toString().hashCode());
+                folder.imageFiles.add(new ImageFile(id, uri, name, document.lastModified(),
+                        document.length(), path.getAbsolutePath()));
+            }
+        } catch (Exception e) {
+            Log.e("GalleryFileOperations", "Cannot list burst archives", e);
+        }
     }
 
 }

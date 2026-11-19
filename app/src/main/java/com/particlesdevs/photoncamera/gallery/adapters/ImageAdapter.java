@@ -10,10 +10,14 @@ import android.graphics.drawable.Drawable;
 import android.net.Uri;
 import android.os.Build;
 import android.util.LruCache;
+import android.view.LayoutInflater;
+import android.view.View;
 import android.view.ViewGroup;
+import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.content.res.AppCompatResources;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.bumptech.glide.Glide;
@@ -28,6 +32,7 @@ import com.davemorrissey.labs.subscaleview.ImageSource;
 import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.davemorrissey.labs.subscaleview.decoder.SkiaPooledImageRegionDecoder;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
+import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.gallery.helper.HdrTiledRegionDecoder;
 import com.particlesdevs.photoncamera.gallery.helper.UltraHdrGalleryUtil;
 import com.particlesdevs.photoncamera.gallery.model.GalleryItem;
@@ -139,6 +144,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
         int start = Math.max(0, centerPos - 2);
         int end = Math.min(galleryItemList.size() - 1, centerPos + 2);
         for (int i = start; i <= end; i++) {
+            if (galleryItemList.get(i).getFile().isZip()) continue;
             if (hdrChecked[i] || hdrRequested[i] || hdrAvailable[i]) continue;
             String ext = "";
             try { ext = FileUtils.getExtension(galleryItemList.get(i).getFile().getDisplayName()); } catch (Exception ignored) {}
@@ -184,6 +190,19 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     @NonNull
     @Override
     public Holder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+        if (viewType == 1) {
+            View page = LayoutInflater.from(parent.getContext()).inflate(R.layout.gallery_archive_page, parent, false);
+            TextView archive = page.findViewById(R.id.archive_description);
+            Drawable icon = AppCompatResources.getDrawable(parent.getContext(), R.drawable.ic_photo_library);
+            if (icon != null) {
+                icon = icon.mutate();
+                int size = Math.round(64 * parent.getResources().getDisplayMetrics().density);
+                icon.setBounds(0, 0, size, size);
+                icon.setTint(parent.getContext().getColor(R.color.cam_on_surface));
+                archive.setCompoundDrawables(null, icon, null, null);
+            }
+            return new Holder(page);
+        }
         CustomSSIV ssiv = new CustomSSIV(parent.getContext());
         ssiv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
         return new Holder(ssiv);
@@ -192,6 +211,15 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     @Override
     public void onBindViewHolder(@NonNull Holder holder, int position) {
         GalleryItem item = galleryItemList.get(position);
+        if (item.getFile().isZip()) {
+            TextView archive = holder.itemView.findViewById(R.id.archive_description);
+            archive.setText(archive.getContext().getString(R.string.burst_archive_placeholder,
+                    item.getFile().getDisplayName(), android.text.format.Formatter.formatFileSize(archive.getContext(), item.getFile().getSize())));
+            holder.itemView.setOnClickListener(view -> {
+                if (imageViewClickListener != null) imageViewClickListener.onImageViewClicked(view);
+            });
+            return;
+        }
         CustomSSIV ssiv = holder.ssiv;
         String ext = "";
         try { ext = FileUtils.getExtension(item.getFile().getDisplayName()); } catch (Exception ignored) {}
@@ -381,6 +409,8 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     @Override
     public void onViewAttachedToWindow(@NonNull Holder holder) {
         super.onViewAttachedToWindow(holder);
+        // Archive pages have no image view to register or prepare for HDR.
+        if (holder.ssiv == null) return;
         int pos = holder.getBindingAdapterPosition();
         if (pos != RecyclerView.NO_POSITION) {
             activeViews.put(pos, holder.ssiv);
@@ -393,6 +423,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     @Override
     public void onViewDetachedFromWindow(@NonNull Holder holder) {
         super.onViewDetachedFromWindow(holder);
+        if (holder.ssiv == null) return;
         Object tag = holder.ssiv.getTag();
         if (tag instanceof Integer) activeViews.remove((Integer) tag);
         int pos = holder.getBindingAdapterPosition();
@@ -537,6 +568,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
      */
     private void ensurePreview(int position) {
         if (position < 0 || position >= galleryItemList.size()) return;
+        if (galleryItemList.get(position).getFile().isZip()) return;
         if (appContext == null) return;
         // DNG never uses tiling preview – avoid clobbering full-res cachedBitmap with 360px tile
         try {
@@ -660,6 +692,10 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     public void onViewRecycled(@NonNull Holder holder) {
         super.onViewRecycled(holder);
         CustomSSIV ssiv = holder.ssiv;
+        if (ssiv == null) {
+            holder.itemView.setOnClickListener(null);
+            return;
+        }
         // Cancel Glide DNG load if in-flight – prevents late bitmap to recycled holder.
         try {
             Object tagTmp = ssiv.getTag();
@@ -695,6 +731,11 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     @Override
     public int getItemCount() { return galleryItemList.size(); }
 
+    @Override
+    public int getItemViewType(int position) {
+        return galleryItemList.get(position).getFile().isZip() ? 1 : 0;
+    }
+
     public boolean isHdrActive(int position) { return inBounds(position) && hdrActive[position]; }
     public boolean isHdrAvailable(int position) { return inBounds(position) && hdrAvailable[position]; }
 
@@ -704,6 +745,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
      */
     public void loadHdrForPosition(CustomSSIV scaleImageView, int position) {
         if (scaleImageView == null || !inBounds(position)) return;
+        if (galleryItemList.get(position).getFile().isZip()) return;
         if (hdrRequested[position] || hdrActive[position]) return;
         Context ctx = scaleImageView.getContext();
         if (!UltraHdrGalleryUtil.isDeviceHdrCapable(ctx)) return;
@@ -815,6 +857,7 @@ public class ImageAdapter extends RecyclerView.Adapter<ImageAdapter.Holder> {
     public static class Holder extends RecyclerView.ViewHolder {
         public final CustomSSIV ssiv;
         Holder(CustomSSIV ssiv) { super(ssiv); this.ssiv = ssiv; }
+        Holder(View archive) { super(archive); this.ssiv = null; }
         public CustomSSIV getSsiv() { return ssiv; }
     }
 

@@ -592,6 +592,14 @@
                 android:icon="@drawable/ic_burst_mode_black_24dp"
                 />
         <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
+                android:key="@string/pref_save_burst_dngs_key"
+                android:defaultValue="false"
+                android:layout="@layout/preference_with_margin"
+                android:title="@string/save_burst_dngs"
+                android:summary="@string/save_burst_dngs_summary"
+                android:icon="@drawable/ic_burst_mode_black_24dp"
+                />
+        <com.particlesdevs.photoncamera.ui.settings.custompreferences.ManagedSwitchPreference
                 android:key="@string/pref_ultrahdr_key"
                 android:defaultValue="@bool/pref_ultrahdr_default"
                 android:layout="@layout/preference_with_margin"

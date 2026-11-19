@@ -5,6 +5,7 @@ import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.util.Pair;
 
 import com.particlesdevs.photoncamera.processing.opengl.scripts.ESD4D;
 import com.particlesdevs.photoncamera.util.Log;
@@ -27,6 +28,7 @@ import com.particlesdevs.photoncamera.processing.ultrahdr.GainMapComputer;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.processing.parameters.IsoExpoSelector;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.util.Allocator;
 
 import java.nio.ByteBuffer;
@@ -330,6 +332,35 @@ public class HdrxProcessor extends ProcessorBase {
 
 
 
+        // Export the exact merge inputs before ESD4D replaces their buffers
+        // with fp16. Stream each DNG into the ZIP while the original buffers
+        // are still alive, including when the shot uses RAW-only save mode.
+        if (PreferenceKeys.isSaveBurstDngsOn() && images.size() > 1) {
+            short[] sensorBlackLevel = new short[4];
+            for (int i = 0; i < 4; i++) {
+                sensorBlackLevel[i] = (short) processingParameters.blackLevel[i];
+            }
+            ArrayList<ImageSaver.Util.BurstFrame> burstFrames = new ArrayList<>();
+            for (ImageFrame frame : images) {
+                if (frame.buffer == null || frame.fp16) {
+                    Log.w(TAG, "Burst ZIP: frame " + frame.number + " has no raw buffer");
+                    break;
+                }
+                burstFrames.add(new ImageSaver.Util.BurstFrame(frame.buffer, frame.packedBits,
+                        frame.width, frame.height, frame.pair.iso,
+                        frame.pair.exposure / 1e9, frame.pair.layerMpy, frame.getTimestamp()));
+            }
+            String name = dngFile.getFileName().toString();
+            String stem = name.substring(0, name.lastIndexOf('.'));
+            boolean archiveSaved = burstFrames.size() == images.size()
+                    && ImageSaver.Util.saveBurstZip(stem, burstFrames, processingParameters,
+                    sensorBlackLevel, processingParameters.whiteLevel,
+                    singleFrameNoiseModel(processingParameters));
+            // The archive is already published by BurstArchiveStore. A ZIP is
+            // not an image thumbnail and does not need the image media scanner.
+            if (!archiveSaved) processingEventsListener.notifyImageSavedStatus(false, null);
+        }
+
         Log.d(TAG, "White Level:" + processingParameters.whiteLevel);
         Log.d(TAG, "Wrapper.loadFrame");
         //float noiseLevel = (float) Math.sqrt((CaptureController.mCaptureResult.get(CaptureResult.SENSOR_SENSITIVITY)) *
@@ -413,7 +444,6 @@ public class HdrxProcessor extends ProcessorBase {
                 return;
             }
         }
-
         // PostPipeline consumes normalized fp16 raw (Bayer2Float uploads a
         // FLOAT_16 texture). The single-frame path skips ESD4D, so its raw
         // uint16 buffer is normalized here with the sensor levels.
@@ -510,6 +540,25 @@ public class HdrxProcessor extends ProcessorBase {
 
         Allocator.logStage(TAG, "hdrx-end");
         callback.onFinished();
+    }
+
+    /**
+     * Single-frame noise model for the burst input frame DNGs: the
+     * ESD4D-fitted noiseS/noiseO live in NoiseModeler.baseModel after the
+     * merge. The merged DNG keeps the stacked computeModel through
+     * DngCreator.setParameters.
+     */
+    private static double[] singleFrameNoiseModel(Parameters parameters) {
+        if (parameters.noiseModeler == null || parameters.noiseModeler.baseModel == null) {
+            return null;
+        }
+        double[] noise = new double[6];
+        for (int c = 0; c < 3; c++) {
+            Pair<Double, Double> model = parameters.noiseModeler.baseModel[c];
+            noise[2 * c] = model.first;
+            noise[2 * c + 1] = model.second;
+        }
+        return noise;
     }
 
 }

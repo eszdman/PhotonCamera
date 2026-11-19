@@ -13,8 +13,11 @@ import com.particlesdevs.photoncamera.util.Log;
 import androidx.exifinterface.media.ExifInterface;
 
 import com.particlesdevs.photoncamera.api.ParseExif;
+import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.control.GyroBurst;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
+import com.particlesdevs.photoncamera.util.Allocator;
+import com.particlesdevs.photoncamera.util.BurstArchiveStore;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -185,13 +188,96 @@ public class ImageSaver {
                                              ByteBuffer buffer, Parameters parameters) {
             return saveSingleRaw(dngFilePath, buffer, parameters);
         }
+
+        /**
+         * One burst input frame for the DNG archive export.
+         * {@code buffer} holds the sensor-domain samples: bit-packed (with
+         * {@code packedBits} > 0) or plain little-endian uint16. Owned by the
+         * caller, which must keep it alive until the synchronous export finishes.
+         */
+        public static final class BurstFrame {
+            public final ByteBuffer buffer;
+            public final int packedBits;
+            public final int width, height;
+            public final int iso;
+            public final double exposureTime; // seconds
+            public final double layerMpy;
+            public final long timestamp; // nanoseconds
+
+            public BurstFrame(ByteBuffer buffer, int packedBits, int width, int height,
+                              int iso, double exposureTime, double layerMpy, long timestamp) {
+                this.buffer = buffer;
+                this.packedBits = packedBits;
+                this.width = width;
+                this.height = height;
+                this.iso = iso;
+                this.exposureTime = exposureTime;
+                this.layerMpy = layerMpy;
+                this.timestamp = timestamp;
+            }
+        }
+
+        /** Saves the merge inputs in one ZIP; borrowed input buffers remain owned by the caller. */
+        public static boolean saveBurstZip(String stem, ArrayList<BurstFrame> frames,
+                                            Parameters parameters, short[] sensorBlackLevel,
+                                            int sensorWhiteLevel, double[] singleFrameNoise) {
+            try {
+                BurstArchiveStore.save(PhotonCamera.getAppContext(), stem, frames.size(), (index, output) -> {
+                    BurstFrame frame = frames.get(index);
+                    ByteBuffer unpacked = null;
+                    try {
+                        ByteBuffer raw = frame.buffer;
+                        if (frame.packedBits > 0) {
+                            unpacked = Allocator.allocate(frame.width * frame.height * 2);
+                            if (unpacked == null) throw new IOException("Burst frame unpack allocation failed");
+                            Allocator.unpack16(unpacked, frame.buffer,
+                                    frame.width * frame.height, frame.packedBits);
+                            raw = unpacked;
+                        }
+                        writeBurstFrameDng(output, raw, parameters, frame, sensorBlackLevel,
+                                sensorWhiteLevel, singleFrameNoise);
+                    } finally {
+                        if (unpacked != null) Allocator.free(unpacked);
+                    }
+                });
+                return true;
+            } catch (Exception e) {
+                Log.e(TAG, "Burst ZIP save failed: " + Log.getStackTraceString(e));
+                return false;
+            }
+        }
+
+        /** Writes shared camera metadata with sensor levels and the frame's own ISO/exposure. */
+        private static void writeBurstFrameDng(OutputStream output, ByteBuffer raw,
+                                                Parameters parameters, BurstFrame frame,
+                                                short[] sensorBlackLevel, int sensorWhiteLevel,
+                                                double[] singleFrameNoise) {
+            DngCreator dngCreator = new DngCreator();
+            try {
+                dngCreator.setParameters(parameters);
+                dngCreator.setCompression(false);
+                dngCreator.setBlackLevel(sensorBlackLevel);
+                dngCreator.setWhiteLevel(sensorWhiteLevel);
+                dngCreator.setIso((short) frame.iso);
+                dngCreator.setExposureTime(frame.exposureTime);
+                if (singleFrameNoise != null) {
+                    dngCreator.setNoiseProfile(singleFrameNoise);
+                }
+                dngCreator.setDescription(String.format(java.util.Locale.ROOT,
+                        "PhotonCamera burst frame layerMpy=%.4f timestamp=%d ns",
+                        frame.layerMpy, frame.timestamp));
+                dngCreator.writeBuffer(output, raw, frame.width, frame.height);
+            } finally {
+                dngCreator.close();
+            }
+        }
         public static boolean saveSingleRaw(Path dngFilePath,
                                             ImageFrame image,
                                             CameraCharacteristics characteristics,
                                             CaptureResult captureResult,
                                             int cameraRotation) {
             Parameters parameters = new Parameters();
-
+            parameters.binned = image.binned;
             parameters.FillConstParameters(characteristics, new Point(image.width, image.height));
             parameters.setCropDetails(image.cropOriginX, image.cropOriginY);
             if (image.fullWidth > 0 && image.fullHeight > 0) {

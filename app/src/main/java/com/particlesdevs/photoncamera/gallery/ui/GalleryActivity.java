@@ -239,15 +239,16 @@ public class GalleryActivity extends BaseActivity {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == GalleryFileOperations.REQUEST_PERM_DELETE) {
+            boolean deleted = GalleryFileOperations.completeDeleteRequest(this, resultCode == Activity.RESULT_OK);
             NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager().findFragmentById(R.id.gallery_navigation_host);
             Fragment fragment = null;
             if (navHostFragment != null) {
                 fragment = navHostFragment.getChildFragmentManager().getFragments().get(0);
             }
             if (fragment instanceof ImageViewerFragment) {
-                ((ImageViewerFragment) fragment).handleImagesDeletedCallback(resultCode == Activity.RESULT_OK);
+                ((ImageViewerFragment) fragment).handleImagesDeletedCallback(deleted);
             } else if (fragment instanceof ImageLibraryFragment) {
-                ((ImageLibraryFragment) fragment).handleImagesDeletedCallback(resultCode == Activity.RESULT_OK);
+                ((ImageLibraryFragment) fragment).handleImagesDeletedCallback(deleted);
             }
         }
     }
