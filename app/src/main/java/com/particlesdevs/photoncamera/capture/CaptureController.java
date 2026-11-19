@@ -1456,9 +1456,10 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             // so the HUD can read it back consistently.
             // The crop region uses the DIGITAL zoom (always >= 1.0); the effective
             // zoom is a combination of the physical lens and this digital crop.
-            builder.set(CaptureRequest.SCALER_CROP_REGION, zoomController.computeSensorCrop(activeArray));
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
                 builder.set(CaptureRequest.CONTROL_ZOOM_RATIO, zoomController.getDigitalZoom());
+            } else {
+                builder.set(CaptureRequest.SCALER_CROP_REGION, zoomController.computeSensorCrop(activeArray));
             }
         } catch (IllegalArgumentException e) {
             Log.d(TAG, "applyZoom: key not supported, skipping. " + e.getLocalizedMessage());
@@ -1758,7 +1759,14 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                 if (capability == CameraCharacteristics.REQUEST_AVAILABLE_CAPABILITIES_ULTRA_HIGH_RESOLUTION_SENSOR) {
                     Size arraySize = null;
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                        arraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE_MAXIMUM_RESOLUTION);
+                        Rect activeArray = characteristics.get(
+                                CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE_MAXIMUM_RESOLUTION);
+                        if (activeArray != null && !activeArray.isEmpty()) {
+                            // Exclude sensor margins from the full-resolution RAW target size.
+                            arraySize = new Size(activeArray.width(), activeArray.height());
+                        } else {
+                            arraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE_MAXIMUM_RESOLUTION);
+                        }
                     }
                     if(arraySize != null) {
                         useMaximumResolutionKey = true;
