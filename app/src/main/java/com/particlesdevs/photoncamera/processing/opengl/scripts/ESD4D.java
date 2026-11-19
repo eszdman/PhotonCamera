@@ -333,8 +333,8 @@ public class ESD4D extends GLOneScript {
     )
     String alignerSelect = "halide";
 
-    @Tunable(title = "Gyroscope prealignment", category = "Alignment", description = "Prewarp Halide input using timestamped gyro motion and available OIS telemetry; off restores the original local alignment path", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean gyroPrealignment = true;
+    @Tunable(title = "Gyroscope prealignment", category = "Alignment", description = "Prewarp Halide input using timestamped gyro motion and available OIS telemetry; off uses local alignment only", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean gyroPrealignment;
 
     @Tunable(title = "Gyroscope only", category = "Alignment", description = "Test mergeAlign with gyro/OIS warping and no local matcher. Overrides Aligner and enables gyro prealignment; missing gyro data uses identity", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean gyroOnly;
@@ -342,8 +342,14 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "Aligner debug compare", category = "Alignment", description = "1 = when the Halide aligner runs, also run the GL block pyramid and log per-frame vector differences (diagnoses constant biases/shift conventions)", min = 0, max = 1, step = 1, defaultValue = 0)
     int alignDebugCompare;
 
-    @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine every frame's Halide alignment field onto the level-0 (raw/2) grid with a block Lucas-Kanade Gauss-Newton pass: denser sub-texel vectors, one per merge atlas cell, roughly doubling the alignment cost - gate on phone budget/ISO. Off = the plain hierarchical level-1 field broadcast 2x2 over atlas cells. Only applies when the Halide CPU aligner is selected", min = 0, max = 1, step = 1, defaultValue = 0)
+    @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine Halide vectors with Lucas-Kanade on the raw/2 grid: denser subpixel vectors, at increased alignment cost. Off uses the hierarchical field with one vector per 32 raw pixels. Only applies to Halide", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean halideRefineFlow;
+
+    @Tunable(title = "Halide merge sampling", category = "Alignment",
+            description = "Without gyro: cubic preserves fractional shifts with sharper CFA-plane interpolation and an edge clamp; bilinear is softer; nearest rounds to 2x2 raw blocks; legacy texel floors shifts. All modes keep Bayer colors separate",
+            entries = {"CFA cubic (sharp subpixel)", "CFA bilinear (subpixel)", "Texel nearest (rounded)", "Texel legacy (floor)"},
+            entryValues = {"cubic", "bilinear", "nearest", "texel"}, defaultValue = 0)
+    String halideMergeSampling = "cubic";
 
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
@@ -1047,11 +1053,18 @@ public class ESD4D extends GLOneScript {
             glProg.setDefine("TILE_AL", mergeTile);
             boolean gyroWarp = gyroHomographies[ind] != null;
             glProg.setDefine("GYRO_WARP", gyroWarp ? 1 : 0);
+            int halideSampling = 0;
+            if (Objects.equals(alignerSelect, "halide")) {
+                if (Objects.equals(halideMergeSampling, "nearest")) halideSampling = 1;
+                else if (Objects.equals(halideMergeSampling, "bilinear")) halideSampling = 2;
+                else if (Objects.equals(halideMergeSampling, "cubic")) halideSampling = 3;
+            }
+            glProg.setDefine("HALIDE_SAMPLING", halideSampling);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
             if (gyroWarp) {
-                // GLES requires transpose=false; the native prewarp uses row-major H.
+                // GLES requires transpose=false; Java matrices are row-major.
                 glProg.setVar("gyroHomography", false, GyroAlignment.columnMajor(gyroHomographies[ind]));
             }
             glProg.setVar("rawHalf", rawHalf);

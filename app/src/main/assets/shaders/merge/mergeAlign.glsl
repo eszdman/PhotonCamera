@@ -1,6 +1,7 @@
 #define LAYOUT //
 LAYOUT
 precision highp float;
+precision highp int;
 precision highp sampler2D;
 precision highp image2D;
 // Normalized fp16 raw input (Allocator.createF16 pre-normalizes on the CPU).
@@ -30,6 +31,95 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define M_PI 3.1415926535897932384626433832795
 #define TILE_AL 16
 #define GYRO_WARP 0
+#define HALIDE_SAMPLING 0 // 0 legacy floor, 1 nearest, 2 CFA bilinear, 3 bounded CFA cubic
+
+#if !GYRO_WARP && HALIDE_SAMPLING > 0
+// RGBA stores four separate Bayer parity planes. Filtering each component
+// is CFA-safe; filtering the single-channel raw mosaic would mix colors.
+vec4 cfaTexel(ivec2 p) {
+    if (all(greaterThanEqual(p, cfaShift)) && all(lessThan(p, rawHalf)))
+        return imageLoad(alterTexture, p);
+    // merge00 duplicates raw edge pixels into its padding. Clamp each plane
+    // to its own real sites so filtering cannot pick up another CFA color.
+    vec4 value;
+    for (int c = 0; c < 4; c++) {
+        ivec2 site = ivec2(c % 2, c / 2);
+        ivec2 low = (cfaShift - site + ivec2(1)) / 2;
+        ivec2 high = (rawHalf * 2 - ivec2(1) + cfaShift - site) / 2;
+        value[c] = imageLoad(alterTexture, clamp(p, low, high))[c];
+    }
+    return value;
+}
+
+vec4 cubicWeights(float f) {
+    float f2 = f*f, f3 = f2*f;
+    // Interpolating Catmull-Rom: exact at integer shifts, sharper than a tent.
+    return vec4(-0.5*f + f2 - 0.5*f3, 1.0 - 2.5*f2 + 1.5*f3,
+                 0.5*f + 2.0*f2 - 1.5*f3, -0.5*f2 + 0.5*f3);
+}
+
+// A complete footprint inside the real CFA planes needs no per-tap bounds
+// checks. Explicit rows also avoid dynamic loop/channel indexing on mobile.
+vec4 cubicRow(ivec2 p, vec4 w) {
+    return imageLoad(alterTexture, p) * w.x
+         + imageLoad(alterTexture, p + ivec2(1,0)) * w.y
+         + imageLoad(alterTexture, p + ivec2(2,0)) * w.z
+         + imageLoad(alterTexture, p + ivec2(3,0)) * w.w;
+}
+
+vec4 cubicInterior(ivec2 lo, vec4 wx, vec4 wy) {
+    vec4 a = imageLoad(alterTexture, lo);
+    vec4 b = imageLoad(alterTexture, lo + ivec2(1,0));
+    vec4 c = imageLoad(alterTexture, lo + ivec2(0,1));
+    vec4 d = imageLoad(alterTexture, lo + ivec2(1));
+    vec4 row1 = imageLoad(alterTexture, lo + ivec2(-1,0)) * wx.x
+              + a * wx.y + b * wx.z
+              + imageLoad(alterTexture, lo + ivec2(2,0)) * wx.w;
+    vec4 row2 = imageLoad(alterTexture, lo + ivec2(-1,1)) * wx.x
+              + c * wx.y + d * wx.z
+              + imageLoad(alterTexture, lo + ivec2(2,1)) * wx.w;
+    vec4 value = cubicRow(lo + ivec2(-1,-1), wx) * wy.x
+               + row1 * wy.y + row2 * wy.z
+               + cubicRow(lo + ivec2(-1,2), wx) * wy.w;
+    return clamp(value, min(min(a,b),min(c,d)), max(max(a,b),max(c,d)));
+}
+
+vec4 sampleCfa(vec2 p) {
+#if HALIDE_SAMPLING == 1
+    return cfaTexel(ivec2(floor(p + vec2(0.5))));
+#else
+    ivec2 lo = ivec2(floor(p));
+    vec2 f = fract(p);
+#if HALIDE_SAMPLING == 2
+    return mix(mix(cfaTexel(lo), cfaTexel(lo + ivec2(1,0)), f.x),
+               mix(cfaTexel(lo + ivec2(0,1)), cfaTexel(lo + ivec2(1)), f.x), f.y);
+#else
+    vec4 wx = cubicWeights(f.x), wy = cubicWeights(f.y);
+    if (all(greaterThanEqual(lo - ivec2(1), cfaShift))
+            && all(lessThan(lo + ivec2(2), rawHalf))) {
+        return cubicInterior(lo, wx, wy);
+    }
+    // Only edge footprints need per-plane clamping of individual taps.
+    vec4 value = vec4(0.0), lower = vec4(1e20), upper = vec4(-1e20);
+    for (int y = 0; y < 4; y++) {
+        vec4 row = vec4(0.0);
+        for (int x = 0; x < 4; x++) {
+            vec4 tap = cfaTexel(lo + ivec2(x-1,y-1));
+            row += tap * wx[x];
+            if (x >= 1 && x <= 2 && y >= 1 && y <= 2) {
+                lower = min(lower, tap);
+                upper = max(upper, tap);
+            }
+        }
+        value += row * wy[y];
+    }
+    // Negative cubic lobes preserve detail but can overshoot a sharp edge.
+    // Bound each color independently by the enclosing four same-color samples.
+    return clamp(value, lower, upper);
+#endif
+#endif
+}
+#endif
 
 #if GYRO_WARP
 uniform mat3 gyroHomography;
@@ -94,7 +184,7 @@ vec4 windowxy4(ivec2 xy){
 vec2 vec4ToAlignment(vec4 alignment) {
     // Round the integer part: rgba16f precision reconstructs floor(v)/rawHalf
     // as e.g. 1.9998 and truncation would bias offsets by -1px. The fract
-    // part is retained for gyro composition; the legacy path floors it below.
+    // part is retained for gyro composition and Halide subpixel sampling.
     return floor(alignment.xy * vec2(rawHalf) + vec2(0.5)) + alignment.zw;
 }
 vec2 hash22(vec2 p)
@@ -125,12 +215,28 @@ void main() {
 #else
     vec4 bayerNone = imageLoad(alterTexture, xy);
 #endif
+#if !GYRO_WARP && HALIDE_SAMPLING == 3
+    vec4 previousAlignment = vec4(0.0), previousSample = vec4(0.0);
+#endif
     for (int i = 0; i < 4; i++) {
         ivec2 xyT = clamp(ivec2((TILE*xy)/TILE_AL + ivec2(i % 2, i / 2)),ivec2(0),alignmentSize-1);
         vec4 alignLoad = texelFetch(alignmentTexture, xyT + shift, 0);
 #if GYRO_WARP
         vec2 residual = vec4ToAlignment(alignLoad);
         vec4 bayerAlter = warpedBayer(vec2(xy)+residual);
+#elif HALIDE_SAMPLING == 3
+        // Median-filtered Halide fields often repeat neighboring vectors.
+        // Exact equality permits reuse without smoothing or rounding motion.
+        vec4 bayerAlter;
+        if (i > 0 && all(equal(alignLoad, previousAlignment))) {
+            bayerAlter = previousSample;
+        } else {
+            bayerAlter = sampleCfa(vec2(xy) + vec4ToAlignment(alignLoad));
+        }
+        previousAlignment = alignLoad;
+        previousSample = bayerAlter;
+#elif HALIDE_SAMPLING > 0
+        vec4 bayerAlter = sampleCfa(vec2(xy) + vec4ToAlignment(alignLoad));
 #else
         ivec2 align = ivec2(floor(vec4ToAlignment(alignLoad)));
         ivec2 aligned = clamp(xy + align, ivec2(0), outSize - ivec2(1));
@@ -138,12 +244,10 @@ void main() {
 #endif
         vec4 w1 = (abs(bayerAlter*vec4(exposure) - bayerBase));
         vec4 w2 = (abs(bayerNone*vec4(exposure) - bayerBase));
-#if GYRO_WARP
-        // Zero residuals (gyro-only) can make both errors zero; avoid 0/0.
+        // Correct smoothstep(edge0, edge1, x) order, including equal/black
+        // samples. The former non-gyro call used the ratio as edge0 and
+        // could reverse the edges (undefined), or divide zero by zero.
         bayerAlter = mix(bayerNone, bayerAlter, smoothstep(vec4(0.48),vec4(0.51),w2/max(w1+w2,vec4(1e-8))));
-#else
-        bayerAlter = mix(bayerNone, bayerAlter, smoothstep(w2/(w1+w2),vec4(0.48),vec4(0.51)));
-#endif
         alignedSum += bayerAlter * w[i];
     }
 

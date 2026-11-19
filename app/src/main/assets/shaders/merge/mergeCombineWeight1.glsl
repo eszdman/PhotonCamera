@@ -20,10 +20,9 @@ uniform vec4 blackLevel;
 uniform vec4 analogBalance;
 uniform int cfaPattern;
 // Optical flow refinement: per-pixel correction of the coarse alignment.
-// The diff texture packs whole 2x2 Bayer quads per texel, so fractional
-// resampling (bilinear) is illegal here - it would blend different color
-// channels across quads. The refinement therefore only selects whole
-// texel-block offsets via imageLoad.
+// This optional refinement selects whole packed-quad offsets. Component-wise
+// interpolation of packed RGBA would preserve CFA colors, but would add a
+// second resampling after mergeAlign and soften its subpixel reconstruction.
 uniform int enableFlow;
 uniform float flowMaxDisp;
 // Pre-inflation noise model (noiseS/noiseO are merge-strength inflated and
