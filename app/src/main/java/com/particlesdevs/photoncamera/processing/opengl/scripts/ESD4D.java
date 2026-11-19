@@ -185,6 +185,13 @@ public class ESD4D extends GLOneScript {
     GLTexture mergeSupport;
     /** Optional test observer, called on the GL thread. Null during normal capture. */
     public MergeObserver mergeObserver;
+    /** Optional replay hook after alignment, before any merge dispatch. */
+    public AlignmentObserver alignmentObserver;
+    /** Replay-only sensitivity control; normal capture uses the calibrated model unchanged. */
+    public float alignmentNoiseModelScale = 1.0f;
+    public interface AlignmentObserver {
+        void onAlignment(GLTexture atlas, int tile, Point frameGrid, int tilesX);
+    }
     public interface MergeObserver {
         void onMerge(int frame, float weight, float noiseS, float noiseO,
                      GLTexture previous, GLTexture candidate, GLTexture merged, GLTexture kernels);
@@ -251,8 +258,11 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine Halide vectors with Lucas-Kanade on the raw/2 grid: denser subpixel vectors, at increased alignment cost. Off uses the hierarchical field with one vector per 32 raw pixels. Only applies to Halide", min = 0, max = 1, step = 1, defaultValue = 0)
     boolean halideRefineFlow;
 
-    @Tunable(title = "Halide accurate subpixel", category = "Alignment", description = "Fit fractional motion on the existing Halide grid, including matches at search-window edges. Off restores the original matcher for comparison. Applies when Halide flow refinement is off", min = 0, max = 1, step = 1, defaultValue = 1)
+    @Tunable(title = "Halide accurate subpixel", category = "Alignment", description = "Fit fractional motion on the existing Halide grid, with noise-aware shift scoring. Off restores the original matcher for comparison. Applies when Halide flow refinement is off", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean halideAccurateSubpixel = true;
+
+    @Tunable(title = "Halide global coarse seed", category = "Alignment", description = "Experimental: ambiguous coarse tiles prefer a shift supported by the whole image; strong local matches can override it. Keeps the existing grid. Requires accurate subpixel and flow refinement off", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean halideCoarseGlobal;
 
     @Tunable(title = "Halide merge sampling", category = "Alignment",
             description = "Without gyro: cubic preserves fractional shifts with sharper CFA-plane interpolation and an edge clamp; bilinear is softer; nearest rounds to 2x2 raw blocks; legacy texel floors shifts. All modes keep Bayer colors separate",
@@ -875,6 +885,9 @@ public class ESD4D extends GLOneScript {
             halideAlignment.parameters = parameters;
             halideAlignment.refineFlow = halideRefine;
             halideAlignment.accurateSubpixel = halideAccurateSubpixel;
+            halideAlignment.coarseGlobal = halideCoarseGlobal;
+            halideAlignment.noiseS = rawNoiseS * alignmentNoiseModelScale;
+            halideAlignment.noiseO = rawNoiseO * alignmentNoiseModelScale;
             halideAlignment.gyroHomographies = gyroHomographies;
             long startTime = System.currentTimeMillis();
             try {
@@ -913,6 +926,8 @@ public class ESD4D extends GLOneScript {
 
         //Point aSize = new Point(parameters.rawSize.x/(2*parameters.tile) + 1, parameters.rawSize.y/(2*parameters.tile) + 1);
         Point border = new Point(16,16);
+        if (alignmentObserver != null)
+            alignmentObserver.onAlignment(alignmentTex, mergeTile, parameters.alignmentSize, parameters.tilesX);
         // NOTE: inputAlter is created above alignment (shared with FlowNet / gyro prewarp).
         //alignmentTex = new GLTexture(aSize, new GLFormat(GLFormat.DataType.FLOAT_32, 2), alignment, GL_NEAREST, GL_MIRRORED_REPEAT);
 

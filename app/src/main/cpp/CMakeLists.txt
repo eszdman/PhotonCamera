@@ -289,6 +289,18 @@ if (${ANDROID_ABI} STREQUAL "arm64-v8a"
     add_library(alignburst_f16_reference STATIC IMPORTED)
     set_target_properties(alignburst_f16_reference PROPERTIES
             IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16_reference.a)
+    add_library(alignburst_f16_global STATIC IMPORTED)
+    set_target_properties(alignburst_f16_global PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16_global.a)
+    add_library(alignburst_f16_gaussian STATIC IMPORTED)
+    set_target_properties(alignburst_f16_gaussian PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16_gaussian.a)
+    add_library(alignburst_base_precise_f16 STATIC IMPORTED)
+    set_target_properties(alignburst_base_precise_f16 PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_base_precise_f16.a)
+    add_library(alignburst_f16_precise STATIC IMPORTED)
+    set_target_properties(alignburst_f16_precise PROPERTIES
+            IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignburst_f16_precise.a)
     add_library(alignflow_base STATIC IMPORTED)
     set_target_properties(alignflow_base PROPERTIES
             IMPORTED_LOCATION ${SRC_DIR}/halide/arm64-v8a/alignflow_base.a)
@@ -302,6 +314,10 @@ if (${ANDROID_ABI} STREQUAL "arm64-v8a"
             alignburst_base_f16
             alignburst_f16
             alignburst_f16_reference
+            alignburst_f16_global
+            alignburst_f16_gaussian
+            alignburst_base_precise_f16
+            alignburst_f16_precise
             alignflow_base
             alignflow_f16
             halide_runtime_android

@@ -36,6 +36,8 @@ public class BurstReplayTest {
     private static final String PREFIX = "pref_tunable_esd4d_";
     @Test public void replaySavedBurst() throws Exception {
         Bundle args = InstrumentationRegistry.getArguments();
+        assertFalse("Removed experiment: use automatic noise-aware alignment", args.containsKey("gaussianScore"));
+        assertFalse("Wider search failed the regression tests and was removed", args.containsKey("wideSearch"));
         Assume.assumeTrue("Opt in with -e burstReplay true", args.getString("burstReplay", "false").equals("true"));
         assertTrue(HalideAlignment.isAvailable());
         File input = new File(args.getString("burstPath", "/storage/emulated/0/DCIM/PhotonCamera/Raw"));
@@ -51,7 +53,7 @@ public class BurstReplayTest {
         SharedPreferences prefs = PhotonCamera.getSettingsManagerStatic().getDefaultPreferences();
         Map<String, ?> saved = prefs.getAll();
         String[] keys = {"alignerselect", "gyroprealignment", "gyroonly", "haliderefineflow", "halideaccuratesubpixel",
-                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enablehotpixelcorrection", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
+                "halidemergesampling", "halideinterpolatemotion", "halidepixelfallback", "halidecoarseglobal", "cfaresidualfusion", "cfaresidualrobustness", "cfajointgreen", "enablehotpixelcorrection", "enableadaptivenoise", "enablenoisestore", "profilegpusync", "aligndebugcompare"};
         int savedCount = FrameNumberSelector.frameCount;
         double savedStrength = PhotonCamera.getSettings().mergeStrength;
         ArrayList<ImageFrame> frames = new ArrayList<>();
@@ -62,6 +64,7 @@ public class BurstReplayTest {
             edit.putString(PREFIX+"alignerselect", "halide")
                     .putInt(PREFIX+"gyroprealignment", 0).putInt(PREFIX+"gyroonly", 0)
                     .putInt(PREFIX+"haliderefineflow", 0).putInt(PREFIX+"halideaccuratesubpixel", variant.equals("legacy") ? 0 : 1)
+                    .putInt(PREFIX+"halidecoarseglobal", Boolean.parseBoolean(args.getString("coarseGlobal","false")) ? 1 : 0)
                     .putInt(PREFIX+"halideinterpolatemotion", variant.equals("motion") ? 1 : 0)
                     .putInt(PREFIX+"halidepixelfallback", Boolean.parseBoolean(args.getString("pixelFallback","true")) ? 1 : 0)
                     .putFloat(PREFIX+"cfaresidualfusion", Float.parseFloat(args.getString("residualFusion","0")))
@@ -132,20 +135,49 @@ public class BurstReplayTest {
             report.put("noise_override",args.getString("noiseProfile","none"));
             pipeline = new ESD4D(parameters.rawSize, frames);
             pipeline.parameters = parameters;
+            if (Boolean.parseBoolean(args.getString("dumpAtlas", "false")) || args.containsKey("alignmentOverride")) {
+                File diagnostics = new File(output,outputName+"-alignment");
+                assertTrue(diagnostics.isDirectory() || diagnostics.mkdirs());
+                pipeline.alignmentObserver=(atlas,tile,grid,tilesX)->{
+                    try {
+                        JSONObject metadata=new JSONObject().put("atlas_size",new JSONArray(new int[]{atlas.mSize.x,atlas.mSize.y}))
+                                .put("frame_grid",new JSONArray(new int[]{grid.x,grid.y})).put("tile_raw",tile)
+                                .put("tiles_x",tilesX).put("override",args.getString("alignmentOverride","none"));
+                        dumpTextureRegion(diagnostics,"original",atlas,new int[]{0,0,atlas.mSize.x,atlas.mSize.y});
+                        if (args.containsKey("alignmentOverride")) {
+                            File override=new File(input,args.getString("alignmentOverride"));
+                            assertEquals(input.getCanonicalFile(),override.getCanonicalFile().getParentFile());
+                            byte[] data=Files.readAllBytes(override.toPath());
+                            assertEquals(atlas.mSize.x*atlas.mSize.y*16,data.length);
+                            ByteBuffer buffer=ByteBuffer.allocateDirect(data.length).order(java.nio.ByteOrder.nativeOrder());
+                            buffer.put(data).rewind();atlas.loadData(buffer);
+                            assertEquals(android.opengl.GLES31.GL_NO_ERROR,android.opengl.GLES31.glGetError());
+                            dumpTextureRegion(diagnostics,"used",atlas,new int[]{0,0,atlas.mSize.x,atlas.mSize.y});
+                        }
+                        Files.write(new File(diagnostics,"metadata.json").toPath(),metadata.toString(2).getBytes("UTF-8"));
+                    } catch(Exception e) { throw new IllegalStateException("Alignment diagnostics failed",e); }
+                };
+            }
             if (Boolean.parseBoolean(args.getString("dumpMerge", "false"))) {
                 File diagnostics = new File(output,outputName+"-merge");
                 assertTrue(diagnostics.isDirectory() || diagnostics.mkdirs());
                 // Packed sensor coordinates for the tester's upright (1446,4088),
                 // the right white panel, and the earlier (900,2868) detail.
                 int[][] regions={{1920,704,128,224},{720,144,192,112},{1376,1024,160,160}};
+                if (args.containsKey("dumpMergeRegions")) {
+                    JSONArray boxes=new JSONArray(args.getString("dumpMergeRegions"));
+                    regions=new int[boxes.length()][4];
+                    for(int i=0;i<regions.length;++i) for(int j=0;j<4;++j) regions[i][j]=boxes.getJSONArray(i).getInt(j);
+                }
+                final int[][] selectedRegions=regions;
                 JSONArray records=new JSONArray();
                 pipeline.mergeObserver=(frame,weight,ns,no,previous,candidate,merged,kernels)->{
                     try {
                         JSONObject record=new JSONObject().put("frame",frame).put("weight",weight)
                                 .put("noise_s",ns).put("noise_o",no);
                         JSONArray boxes=new JSONArray();
-                        for(int i=0;i<regions.length;i++) {
-                            int[] box=regions[i]; boxes.put(new JSONArray(box));
+                        for(int i=0;i<selectedRegions.length;i++) {
+                            int[] box=selectedRegions[i]; boxes.put(new JSONArray(box));
                             dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-base",frame,i),previous,box);
                             dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-candidate",frame,i),candidate,box);
                             dumpTextureRegion(diagnostics,String.format(java.util.Locale.ROOT,"f%02d-r%d-merged",frame,i),merged,box);
@@ -159,10 +191,17 @@ public class BurstReplayTest {
                     } catch(Exception e) { throw new IllegalStateException("Merge diagnostics failed",e); }
                 };
             }
+            float alignmentNoiseScale = Float.parseFloat(args.getString("alignmentNoiseScale","1"));
+            assertTrue("alignmentNoiseScale must be finite and nonnegative", Float.isFinite(alignmentNoiseScale) && alignmentNoiseScale >= 0);
+            pipeline.alignmentNoiseModelScale = alignmentNoiseScale;
+            report.put("alignment_noise_scale",alignmentNoiseScale);
+            report.put("noise_aware_alignment", !variant.equals("legacy") && alignmentNoiseScale > 0);
             long start = SystemClock.elapsedRealtimeNanos();
             pipeline.Run();
             report.put("processing_ms", (SystemClock.elapsedRealtimeNanos()-start)/1e6);
-            report.put("diagnostic_readbacks", pipeline.mergeObserver != null);
+            report.put("diagnostic_readbacks", pipeline.mergeObserver != null || pipeline.alignmentObserver != null);
+            report.put("alignment_override",args.getString("alignmentOverride","none"));
+            report.put("coarse_global",Boolean.parseBoolean(args.getString("coarseGlobal","false")));
             if (pipeline.hotPixelResult != null) {
                 JSONObject hot = new JSONObject();
                 hot.put("candidates", pipeline.hotPixelResult.candidates);
@@ -256,6 +295,7 @@ public class BurstReplayTest {
     private static void dumpAlignment(ArrayList<ImageFrame> frames, Parameters p, File output, String variant) throws Exception {
         nativeCall("nSetRefineEnabled",new Class[]{boolean.class},false);
         nativeCall("nSetAccurateSubpixelEnabled",new Class[]{boolean.class},!variant.equals("legacy"));
+        nativeCall("nSetCoarseGlobalEnabled",new Class[]{boolean.class},false);
         long ctx=(Long)nativeCall("nInit",new Class[]{int.class,int.class},p.rawSize.x,p.rawSize.y);
         assertTrue(ctx!=0);
         try {

@@ -50,6 +50,10 @@
 #include "alignburst_base_f16.h"
 #include "alignburst_f16.h"
 #include "alignburst_f16_reference.h"
+#include "alignburst_f16_global.h"
+#include "alignburst_f16_gaussian.h"
+#include "alignburst_base_precise_f16.h"
+#include "alignburst_f16_precise.h"
 #include "alignflow_base.h"
 #include "alignflow_f16.h"
 
@@ -75,6 +79,7 @@ constexpr int kMinLevel = 1;
 // the Java side picks the matching grid and broadcast.
 bool g_refine_flow = true;
 bool g_accurate_subpixel = true;
+bool g_coarse_global = false;
 
 // CPU 3x3 median of the alignment field (per component, edge-replicated) -
 // the stage replaces isolated outlier tiles (confident
@@ -330,6 +335,11 @@ static bool check_input(JNIEnv *env, jobject rawBuf, int rawW, int rawH,
 
 struct AlignCtx {
     Halide::Runtime::Buffer<uint8_t> levels[kMaxLevel + 1];
+    // Keep the old pyramid for invalid-model fallback and the optional dense
+    // path. The precise pyramid is built once when accurate alignment has a
+    // valid model; both reference/source kernels use the same Q3/filter ABI.
+    Halide::Runtime::Buffer<uint16_t> preciseLevels[kMaxLevel + 1];
+    bool preciseReady = false;
     // Flow-refinement precompute (alignflow_base output), once per burst.
     Halide::Runtime::Buffer<int32_t> gprod;
     int rawW = 0, rawH = 0;
@@ -337,6 +347,8 @@ struct AlignCtx {
     int nt0x = 0, nt0y = 0;  // refined output grid at level 0
     bool refine = true;      // g_refine_flow snapshot taken by nInit
     bool accurateSubpixel = true;
+    bool coarseGlobal = false;
+    float noiseS = 0.0f, noiseO = 0.0f;
 };
 
 // Throws IllegalStateException carrying the kernel name, Halide's error code
@@ -369,6 +381,7 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nInit(
     // The optional dense LK stage has its own fractional solver and was
     // tuned around the legacy seed. Preserve that path when it is enabled.
     ctx->accurateSubpixel = g_accurate_subpixel && !ctx->refine;
+    ctx->coarseGlobal = g_coarse_global && ctx->accurateSubpixel;
 
     const std::vector<int> B = level_paddings();
     for (int l = 0; l <= kMaxLevel; l++) {
@@ -426,6 +439,25 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nBase(
         throw_kernel_error(env, "alignburst_base_f16", err);
         return err;
     }
+    ctx->preciseReady = false;
+    if (ctx->accurateSubpixel && (ctx->noiseS > 0 || ctx->noiseO > 0)) {
+        const std::vector<int> B = level_paddings();
+        for (int l = 0; l <= kMaxLevel; ++l) {
+            ctx->preciseLevels[l] = Halide::Runtime::Buffer<uint16_t>(
+                    ctx->levels[l].width(), ctx->levels[l].height());
+            ctx->preciseLevels[l].translate(0, -B[l]);
+            ctx->preciseLevels[l].translate(1, -B[l]);
+        }
+        err = alignburst_base_precise_f16(&base, white,
+                ctx->preciseLevels[0].raw_buffer(), ctx->preciseLevels[1].raw_buffer(),
+                ctx->preciseLevels[2].raw_buffer(), ctx->preciseLevels[3].raw_buffer(),
+                ctx->preciseLevels[4].raw_buffer());
+        if (err != 0) {
+            throw_kernel_error(env, "alignburst_base_precise_f16", err);
+            return err;
+        }
+        ctx->preciseReady = true;
+    }
     if (ctx->refine) {
         // Per-tile gradient products at level 0 from the just-realized
         // base_l0 (central differences reach +-1 texel past the tile; the
@@ -466,8 +498,29 @@ Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nAlignFrame(
     Halide::Runtime::Buffer<float> out(2, ctx->ntx, ctx->nty);
 
     g_last_halide_error[0] = '\0';
-    auto align_kernel = ctx->accurateSubpixel ? alignburst_f16 : alignburst_f16_reference;
-    int err = align_kernel(ctx->levels[0].raw_buffer(),
+    auto align_kernel = ctx->coarseGlobal ? alignburst_f16_global
+            : ctx->accurateSubpixel ? alignburst_f16 : alignburst_f16_reference;
+    const float exposure = 1.0f / std::max(white, 1.0e-6f);
+    const float pairNoiseS = ctx->noiseS * (1.0f + exposure);
+    const float pairNoiseO = ctx->noiseO * (1.0f + exposure * exposure);
+    // Missing/invalid noise retains the original accurate kernel. If a model
+    // was supplied only after nBase, use the u8 scorer for that context; normal
+    // bursts set the model before nBase and use the precise pyramid.
+    const bool noiseAware = ctx->accurateSubpixel && (pairNoiseS > 0 || pairNoiseO > 0)
+            && std::isfinite(pairNoiseS) && std::isfinite(pairNoiseO);
+    int err = noiseAware && ctx->preciseReady
+            ? alignburst_f16_precise(ctx->preciseLevels[0].raw_buffer(), ctx->preciseLevels[1].raw_buffer(),
+                                    ctx->preciseLevels[2].raw_buffer(), ctx->preciseLevels[3].raw_buffer(),
+                                    ctx->preciseLevels[4].raw_buffer(), &alt, white,
+                                    pairNoiseS, pairNoiseO, ctx->coarseGlobal ? 1 : 0,
+                                    out.raw_buffer())
+            : noiseAware ? alignburst_f16_gaussian(ctx->levels[0].raw_buffer(), ctx->levels[1].raw_buffer(),
+                                     ctx->levels[2].raw_buffer(), ctx->levels[3].raw_buffer(),
+                                     ctx->levels[4].raw_buffer(), &alt, white,
+                                     pairNoiseS, pairNoiseO,
+                                     ctx->coarseGlobal ? 1 : 0,
+                                     out.raw_buffer())
+            : align_kernel(ctx->levels[0].raw_buffer(),
                              ctx->levels[1].raw_buffer(),
                              ctx->levels[2].raw_buffer(),
                              ctx->levels[3].raw_buffer(),
@@ -573,6 +626,26 @@ JNIEXPORT void JNICALL
 Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetAccurateSubpixelEnabled(
         JNIEnv *, jclass, jboolean on) {
     g_accurate_subpixel = on != JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetCoarseGlobalEnabled(
+        JNIEnv *, jclass, jboolean on) {
+    g_coarse_global = on != JNI_FALSE;
+}
+
+JNIEXPORT void JNICALL
+Java_com_particlesdevs_photoncamera_processing_cpu_HalideAlignment_nSetNoiseModel(
+        JNIEnv *, jclass, jlong handle, jfloat noiseS, jfloat noiseO) {
+    auto *ctx = reinterpret_cast<AlignCtx *>(handle);
+    if (ctx == nullptr) return;
+    if (!std::isfinite(noiseS) || !std::isfinite(noiseO) || noiseS < 0 || noiseO < 0) {
+        LOGE("Invalid alignment noise model; using original shift scoring");
+        ctx->noiseS = ctx->noiseO = 0.0f;
+        return;
+    }
+    ctx->noiseS = noiseS;
+    ctx->noiseO = noiseO;
 }
 
 JNIEXPORT void JNICALL
