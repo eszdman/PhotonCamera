@@ -167,11 +167,6 @@ public class Bayer2Float extends Node {
         glProg.setDefine("TP", testPatternIndex);
         glProg.setDefine("HLRECON", hlChromaResult != null);
         if (hlChromaResult != null) glProg.setDefine("HLCLIP", OpposedGL.CLIP_MAGIC * hlClip);
-        if (basePipeline.mParameters.isCropped
-                && basePipeline.mParameters.cropOrigin != null
-                && basePipeline.mParameters.fullRawSize != null) {
-            glProg.setDefine("HAS_GAIN_OFFSET", 1);
-        }
         glProg.useAssetProgram("Bayer2Float/tofloat");
         glProg.setTexture("InputBuffer", inTex);
         glProg.setVar("CfaPattern", basePipeline.mParameters.cfaPattern);
@@ -180,21 +175,7 @@ public class Bayer2Float extends Node {
         glProg.setVar("RawSize", basePipeline.mParameters.rawSize);
         glProg.setVar("RawInvSize", 1.0f / basePipeline.mParameters.rawSize.x, 1.0f / basePipeline.mParameters.rawSize.y);
         glProg.setTexture("GainMap", gainMapTex);
-        // The lens-shading map covers the full frame; when the buffer is cropped,
-        // sample the gain map at (cropOrigin + xy) / fullSize instead of over the
-        // whole map, so vignette correction stays aligned to the crop region.
-        if (basePipeline.mParameters.isCropped
-                && basePipeline.mParameters.cropOrigin != null
-                && basePipeline.mParameters.fullRawSize != null) {
-            glProg.setVar("GainOffset",
-                    basePipeline.mParameters.cropOrigin.x
-                            / (float) basePipeline.mParameters.fullRawSize.x,
-                    basePipeline.mParameters.cropOrigin.y
-                            / (float) basePipeline.mParameters.fullRawSize.y);
-            glProg.setVar("GainFullInvSize",
-                    1.0f / basePipeline.mParameters.fullRawSize.x,
-                    1.0f / basePipeline.mParameters.fullRawSize.y);
-        }
+        // Parameters already resampled this map to the captured RAW crop.
         if (testPattern && testPatternIndex == 0) {
             if (kod == null) {
                 try {

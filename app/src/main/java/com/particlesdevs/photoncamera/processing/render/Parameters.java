@@ -17,6 +17,7 @@ import com.particlesdevs.photoncamera.settings.annotations.Tunable;
 import com.particlesdevs.photoncamera.util.Log;
 import android.hardware.camera2.params.RggbChannelVector;
 import android.util.Rational;
+import android.util.Size;
 import android.util.SizeF;
 
 import androidx.annotation.NonNull;
@@ -58,6 +59,9 @@ public class Parameters {
     public Point fullRawSize;
     /** True when the raw buffer has been cropped by digital zoom. */
     public boolean isCropped;
+    /** Original sensor coordinates of the shading map, before software cropping/binning. */
+    private Rect lensShadingBounds;
+    private Size lensShadingPixelArraySize;
     public float[] proPhotoToSRGB = new float[9];
     public float[] sensorToProPhoto = new float[9];
     public float tonemapStrength = 1.4f;
@@ -153,6 +157,9 @@ public class Parameters {
         com.particlesdevs.photoncamera.settings.SensorConfigInjector.applyToSensor(String.valueOf(physicalID), this);
 
         rawSize = size;
+        cropOrigin = null;
+        fullRawSize = null;
+        isCropped = false;
         gyroCalibration = new com.particlesdevs.photoncamera.processing.GyroAlignment.Calibration(characteristics);
         alignmentSize = new Point((size.x / (tile)) + 1, (size.y / (tile)) + 1);
         tilesX = (rawSize.x / 800) + 1;
@@ -230,6 +237,9 @@ public class Parameters {
         if (sensorPix == null) {
             sensorPix = new Rect(0, 0, rawSize.x, rawSize.y);
         }
+        lensShadingBounds = characteristics.get(CameraCharacteristics.SENSOR_INFO_PRE_CORRECTION_ACTIVE_ARRAY_SIZE);
+        if (lensShadingBounds == null) lensShadingBounds = new Rect(sensorPix);
+        lensShadingPixelArraySize = characteristics.get(CameraCharacteristics.SENSOR_INFO_PIXEL_ARRAY_SIZE);
         var facing = characteristics.get(CameraCharacteristics.LENS_FACING);
         if (facing != null && facing == CameraCharacteristics.LENS_FACING_FRONT) {
             mirror = true;
@@ -244,7 +254,7 @@ public class Parameters {
      * Records where the (zoomed) raw buffer was cropped from the full frame so
      * sensor-relative metadata (active array / lens-shading area, principal
      * point, mm-per-pixel) can be corrected to reference the same region. When a
-     * crop is present it offsets {@link #sensorPix} to the crop footprint.
+     * crop is present {@link #sensorPix} describes the cropped output buffer.
      *
      * <p>Must be called after {@link #FillConstParameters(CameraCharacteristics, Point)}
      * (which loads the full-frame active array).</p>
@@ -254,15 +264,14 @@ public class Parameters {
      */
     public void setCropDetails(int originX, int originY) {
         cropOrigin = new Point(originX, originY);
-        isCropped = originX != 0 || originY != 0;
+        int bin = binned ? 2 : 1;
+        isCropped = originX != 0 || originY != 0
+                || (fullRawSize != null && (rawSize.x * bin < fullRawSize.x
+                || rawSize.y * bin < fullRawSize.y));
         if (!isCropped) return;
-        // The buffer now covers only the crop region, so the active array
-        // (lens-shading / initial.activeSize) becomes the crop footprint, and the
-        // intrinsic principal point re-centers on the crop region.
-        if (sensorPix != null) {
-            sensorPix = new Rect(originX, originY,
-                    originX + rawSize.x, originY + rawSize.y);
-        }
+        // The resampled shading map covers the cropped buffer. DNG opcode
+        // bounds must use buffer coordinates, not the original sensor offset.
+        sensorPix = new Rect(0, 0, rawSize.x, rawSize.y);
         cameraIntrinsic[2] = originX + rawSize.x / 2.0;
         cameraIntrinsic[5] = originY + rawSize.y / 2.0;
         cameraIntrinsicRev[2] = -(originX + rawSize.x / 2.0);
@@ -272,6 +281,32 @@ public class Parameters {
     /** Sets the full-frame raw size (used for crop-normalized gain-map sampling). */
     public void setFullRawSize(int fullWidth, int fullHeight) {
         fullRawSize = new Point(fullWidth, fullHeight);
+        // A crop anchored at (0,0) is only detectable from its dimensions.
+        if (cropOrigin != null) setCropDetails(cropOrigin.x, cropOrigin.y);
+    }
+
+    /** Called once after loading a fresh full-sensor gain map for this capture. */
+    void cropLensShadingMap() {
+        if (!isCropped || cropOrigin == null || fullRawSize == null
+                || fullRawSize.x <= 0 || fullRawSize.y <= 0) return;
+        int bin = binned ? 2 : 1;
+        // RAW streams can be smaller than the sensor pixel array. Convert the
+        // actual buffer crop to sensor coordinates before normalizing against
+        // the map's active array (which can exclude optical-black borders).
+        float scaleX = lensShadingPixelArraySize == null ? 1f
+                : lensShadingPixelArraySize.getWidth() / (float) fullRawSize.x;
+        float scaleY = lensShadingPixelArraySize == null ? 1f
+                : lensShadingPixelArraySize.getHeight() / (float) fullRawSize.y;
+        Rect bounds = lensShadingBounds;
+        float left = bounds == null ? 0 : bounds.left;
+        float top = bounds == null ? 0 : bounds.top;
+        float width = Math.max(1f, bounds == null ? fullRawSize.x - 1f : bounds.width() - 1f);
+        float height = Math.max(1f, bounds == null ? fullRawSize.y - 1f : bounds.height() - 1f);
+        gainMap = LensShadingMapResampler.resample(gainMap, mapSize.x, mapSize.y,
+                (cropOrigin.x * scaleX - left) / width,
+                (cropOrigin.y * scaleY - top) / height,
+                ((cropOrigin.x + rawSize.x * bin - 1f) * scaleX - left) / width,
+                ((cropOrigin.y + rawSize.y * bin - 1f) * scaleY - top) / height);
     }
 
     public void FillDynamicParameters(CaptureResult result, CaptureRequest request, int ISO) {
@@ -316,6 +351,7 @@ public class Parameters {
                 whiteLevel = (int) whiteLevelOverride;
             }
             try {
+                hasGainMap = false;
                 gainMap = new float[]{1.f, 1.f, 1.f, 1.f};
                 mapSize = new Point(1, 1);
                 LensShadingMap lensMap = result.get(CaptureResult.STATISTICS_LENS_SHADING_CORRECTION_MAP);
@@ -343,6 +379,7 @@ public class Parameters {
                         }
                     }
                 }
+                cropLensShadingMap();
             } catch (Exception e){
                 Log.d(TAG, "Error retrieving lens shading map, disabling gain map: " + Log.getStackTraceString(e));
             }

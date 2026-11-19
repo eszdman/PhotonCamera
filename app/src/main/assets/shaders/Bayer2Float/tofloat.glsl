@@ -6,9 +6,6 @@ uniform sampler2D GainMap;
 uniform sampler2D Kodak;
 uniform ivec2 RawSize;
 uniform vec2 RawInvSize;
-// Crop offset into the full-frame gain map, normalized [0,1] (0,0 when uncropped).
-uniform vec2 GainOffset;
-uniform vec2 GainFullInvSize;
 uniform vec4 blackLevel;
 uniform vec3 whitePoint;
 uniform int CfaPattern;
@@ -121,12 +118,8 @@ void main() {
     float balance;
     #if USEGAIN == 1
     vec4 gains;
-    #ifdef HAS_GAIN_OFFSET
-    // Sample the crop's sub-region of the full-frame lens-shading map.
-    gains = texture(GainMap, vec2(xy)*vec2(GainFullInvSize) + vec2(GainOffset));
-    #else
+    // GainMap has already been resampled to this RAW buffer's crop.
     gains = texture(GainMap, vec2(xy)*vec2(RawInvSize));
-    #endif
     gains.rgb = vec3(gains.r,(gains.g+gains.b)/2.0,gains.a);
     // Prevent division by zero
     gains.rgb /= max(dot(gains.rgb,vec3(1.0/3.0)), 1e-4);
