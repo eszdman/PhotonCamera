@@ -20,11 +20,11 @@ import androidx.core.content.FileProvider;
 import androidx.databinding.DataBindingUtil;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentTransaction;
-import com.davemorrissey.labs.subscaleview.SubsamplingScaleImageView;
 import com.particlesdevs.photoncamera.R;
 import com.particlesdevs.photoncamera.databinding.FragmentGalleryImageCompareBinding;
 import com.particlesdevs.photoncamera.gallery.compare.SSIVListener;
 import com.particlesdevs.photoncamera.gallery.compare.ScaleAndPan;
+import com.particlesdevs.photoncamera.gallery.views.CustomSSIV;
 import com.particlesdevs.photoncamera.ui.widget.FabPressSpring;
 
 import java.io.File;
@@ -32,7 +32,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.net.URLConnection;
 import java.nio.file.Files;
-import java.util.Observable;
 
 import static com.particlesdevs.photoncamera.gallery.helper.Constants.*;
 
@@ -103,6 +102,7 @@ public class ImageCompareFragment extends Fragment {
 
     private void onSyncClick(View view) {
         toSync = ((ToggleButton) view).isChecked();
+        if (toSync) ssivListener.syncNow();
     }
 
     private void onShareClick(View view) {
@@ -156,45 +156,125 @@ public class ImageCompareFragment extends Fragment {
         binding = null;
     }
 
+    /**
+     * Mirrors zoom and pan gestures from the pane touched last onto the other
+     * pane. Only the gesture's *change* is copied: the zoom factor and the
+     * normalized center shift since the last processed event, measured on the
+     * master and converted to the other pane's own fit scale and dimensions so
+     * images with different resolutions move by the same relative amount
+     * (see {@link ScaleAndPan}). Because changes — not absolute states — are
+     * copied, enabling sync never moves a pane: an alignment set up with sync
+     * off is remembered and preserved while both panes move in lockstep.
+     */
     private class SSIVListenerImpl extends SSIVListener {
-        private final ScaleAndPan scaleAndPan = new ScaleAndPan();
         private final Handler mainHandler = new Handler(Looper.getMainLooper());
+        private final Runnable syncRunnable = () -> {
+            if (toSync) syncDeltas();
+            fragment1.updateScaleText();
+            fragment2.updateScaleText();
+        };
+        /** Master state the current gesture's deltas are measured against. */
+        private final ScaleAndPan baseline = new ScaleAndPan();
+        private final ScaleAndPan current = new ScaleAndPan();
         private int idTouched = 0;
-
-        SSIVListenerImpl() {
-            scaleAndPan.addObserver(this::update);
-        }
+        private boolean firstIsMaster = true;
+        /** Pane (0/1) the baseline belongs to; -1 = re-baseline on next event without syncing. */
+        private int baselinePane = -1;
 
         @Override
         public void onScaleChanged(float newScale, int origin) {
-            scaleAndPan.setOrigin(origin);
-            scaleAndPan.setScale(newScale);
+            scheduleSync();
         }
 
         @Override
         public void onCenterChanged(PointF newCenter, int origin) {
-            scaleAndPan.setOrigin(origin);
-            scaleAndPan.setCenter(newCenter);
+            scheduleSync();
         }
 
         @Override
         public void onTouched(int id) {
             idTouched = id;
+            scheduleSync();
         }
 
-        public void update(Observable o, Object arg) {
-            mainHandler.post(() -> {
-                if (toSync) {
-                    copyZoomPan(fragment1.getCurrentSSIV(), fragment2.getCurrentSSIV(), (ScaleAndPan) o);
-                }
-                fragment1.updateScaleText();
-                fragment2.updateScaleText();
-            });
+        @Override
+        public void onImageReady() {
+            // Image swap can jump a pane's state discontinuously — restart deltas.
+            baselinePane = -1;
         }
 
-        private void copyZoomPan(SubsamplingScaleImageView v1, SubsamplingScaleImageView v2, ScaleAndPan scaleAndPan) {
-            if (v1.getId() == idTouched) v2.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
-            if (v2.getId() == idTouched) v1.setScaleAndCenter(scaleAndPan.getScale(), scaleAndPan.getCenter());
+        @Override
+        public void onPageSwitched() {
+            // Freshly bound page starts at fit — restart deltas.
+            baselinePane = -1;
+        }
+
+        /**
+         * Called when sync is enabled: adopts the current states as the
+         * baseline and moves nothing.
+         */
+        public void syncNow() {
+            baselinePane = -1;
+            fragment1.updateScaleText();
+            fragment2.updateScaleText();
+        }
+
+        private void scheduleSync() {
+            resolveMaster(idTouched);
+            mainHandler.removeCallbacks(syncRunnable);
+            mainHandler.post(syncRunnable);
+        }
+
+        private void syncDeltas() {
+            CustomSSIV master = masterView();
+            if (!capture(master, current)) return;
+            if (baselinePane == (firstIsMaster ? 0 : 1) && baseline.getZoomRatio() > 0f) {
+                float zoomFactor = current.getZoomRatio() / baseline.getZoomRatio();
+                float dcx = current.getCenter().x - baseline.getCenter().x;
+                float dcy = current.getCenter().y - baseline.getCenter().y;
+                applyDelta(slaveView(), zoomFactor, dcx, dcy);
+            }
+            baseline.set(current.getZoomRatio(), current.getCenter());
+            baselinePane = firstIsMaster ? 0 : 1;
+        }
+
+        private void applyDelta(CustomSSIV view, float zoomFactor, float dcx, float dcy) {
+            if (view == null || !view.isReady()) return;
+            int sWidth = view.getSWidth(), sHeight = view.getSHeight();
+            float minScale = view.getMinScale();
+            PointF center = view.getCenter();
+            if (sWidth <= 0 || sHeight <= 0 || minScale <= 0f || center == null) return;
+            float newRatio = (view.getScale() / minScale) * zoomFactor;
+            float newCx = center.x / sWidth + dcx;
+            float newCy = center.y / sHeight + dcy;
+            view.setScaleAndCenter(newRatio * minScale, new PointF(newCx * sWidth, newCy * sHeight));
+        }
+
+        private CustomSSIV masterView() {
+            return (firstIsMaster ? fragment1 : fragment2).getCurrentSSIV();
+        }
+
+        private CustomSSIV slaveView() {
+            return (firstIsMaster ? fragment2 : fragment1).getCurrentSSIV();
+        }
+
+        private void resolveMaster(int touchedId) {
+            CustomSSIV v1 = fragment1.getCurrentSSIV();
+            CustomSSIV v2 = fragment2.getCurrentSSIV();
+            // Touched ids go stale after pager swipes (views are re-bound with new ids),
+            // so an unmatched id keeps the previous master.
+            if (v1 != null && v1.getId() == touchedId) firstIsMaster = true;
+            else if (v2 != null && v2.getId() == touchedId) firstIsMaster = false;
+        }
+
+        private boolean capture(CustomSSIV view, ScaleAndPan out) {
+            if (view == null || !view.isReady()) return false;
+            int sWidth = view.getSWidth(), sHeight = view.getSHeight();
+            float minScale = view.getMinScale();
+            PointF center = view.getCenter();
+            if (sWidth <= 0 || sHeight <= 0 || minScale <= 0f || center == null) return false;
+            out.set(view.getScale() / minScale, new PointF(center.x / sWidth, center.y / sHeight));
+            return true;
         }
     }
 }

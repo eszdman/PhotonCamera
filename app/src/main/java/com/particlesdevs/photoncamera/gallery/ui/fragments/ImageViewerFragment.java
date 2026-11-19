@@ -242,6 +242,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             adapter.setImageEventListener(new SubsamplingScaleImageView.DefaultOnImageEventListener() {
                 @Override public void onReady() {
                     updateScaleText();
+                    if (isCompareMode() && ssivListener != null) ssivListener.onImageReady();
                     // The image just became ready: (re)anchor the backdrop tracking
                     // if it was set up before the SSIV could map coordinates.
                     scheduleExifBlurShow();
@@ -322,6 +323,7 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
             @Override public void onPageSelected(int position) {
                 seek_position = position;
                 updateScaleText();
+                if (isCompareMode() && ssivListener != null) ssivListener.onPageSwitched();
                 linearRecyclerView.smoothScrollToPosition(position);
                 onPageHdrSelected(position);
                 viewPager.setUserInputEnabled(true);
@@ -585,7 +587,12 @@ public class ImageViewerFragment extends Fragment implements ImageAdapter.HdrSta
     public void updateScaleText() {
         SubsamplingScaleImageView view = getCurrentSSIV();
         if (view != null && fragmentGalleryImageViewerBinding != null) {
-            fragmentGalleryImageViewerBinding.setScale(String.format(Locale.ROOT, "%.0f%%", (view.getScale() * 100)));
+            float minScale = view.getMinScale();
+            // Compare mode zoom is relative to the fit scale, so panes with different
+            // image resolutions show the same percentage at the same content magnification.
+            float zoom = isCompareMode() && view.isReady() && minScale > 0f
+                    ? view.getScale() / minScale : view.getScale();
+            fragmentGalleryImageViewerBinding.setScale(String.format(Locale.ROOT, "%.0f%%", (zoom * 100)));
         }
     }
 
