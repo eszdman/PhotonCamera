@@ -21,7 +21,7 @@ import java.nio.ByteBuffer;
  * The caller closes the Image right after {@link #encode} returns, recycling
  * the buffer into the ImageReader's circular pool.
  */
-public class McrawWriter implements Closeable {
+public class McrawWriter implements RawContainerWriter {
     private static final String TAG = "McrawWriter";
 
     static {

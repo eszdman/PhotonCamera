@@ -1,0 +1,8 @@
+cmake_minimum_required(VERSION 3.20)
+project(PhotonCrawTests LANGUAGES CXX)
+set(CRAW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(CRAW_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+add_subdirectory(../../../main/cpp/craw/vendor encoder)
+add_executable(craw_integration Integration.cpp)
+target_include_directories(craw_integration PRIVATE ../../../main/cpp/craw)
+target_link_libraries(craw_integration PRIVATE CRAW::Encoder)

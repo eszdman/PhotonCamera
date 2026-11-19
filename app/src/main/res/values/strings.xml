@@ -201,6 +201,8 @@
     <string name="rawvideo_container">Raw video container</string>
     <string name="rawvideo_container_dng" translatable="false">DNG (folder)</string>
     <string name="rawvideo_container_zip" translatable="false">ZIP</string>
+    <string name="rawvideo_container_craw_fast" translatable="false">.craw (fast)</string>
+    <string name="rawvideo_container_craw_live" translatable="false">.craw (live)</string>
     <string name="rawvideo_container_mcraw" translatable="false">MediaCinemaRaw (.mcraw)</string>
     <string name="pref_rawvideo_container_default" translatable="false">mcraw</string>
     <string name="rawvideo_crop_169">Crop to 16:9</string>

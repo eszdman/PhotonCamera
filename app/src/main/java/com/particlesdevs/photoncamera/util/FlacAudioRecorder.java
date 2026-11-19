@@ -217,6 +217,8 @@ public class FlacAudioRecorder {
             return;
         }
 
+        long framesRead = 0;
+        android.media.AudioTimestamp timestamp = new android.media.AudioTimestamp();
         while (recording) {
             int read = audioRecord.read(buffer, 0, buffer.length);
             if (read <= 0) break;
@@ -224,8 +226,16 @@ public class FlacAudioRecorder {
                 nativeWriteFrame(nativeCtx, buffer, read / actualChannels, actualChannels);
             } else if (pcmSink != null) {
                 long durationNs = (long) (read / actualChannels) * 1_000_000_000L / SAMPLE_RATE;
-                pcmSink.onPcm(System.nanoTime() - durationNs, java.util.Arrays.copyOf(buffer, read), actualChannels);
+                long firstSampleNs = System.nanoTime() - durationNs;
+                // Hardware timestamps avoid assigning scheduler/read latency to the audio samples.
+                if (audioRecord.getTimestamp(timestamp, android.media.AudioTimestamp.TIMEBASE_MONOTONIC)
+                        == AudioRecord.SUCCESS) {
+                    firstSampleNs = timestamp.nanoTime
+                            + (framesRead - timestamp.framePosition) * 1_000_000_000L / SAMPLE_RATE;
+                }
+                pcmSink.onPcm(firstSampleNs, java.util.Arrays.copyOf(buffer, read), actualChannels);
             }
+            framesRead += read / actualChannels;
         }
 
         Log.d(TAG, "Record loop ended");

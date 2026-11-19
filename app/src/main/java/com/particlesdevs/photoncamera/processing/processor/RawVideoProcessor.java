@@ -20,6 +20,10 @@ import com.particlesdevs.photoncamera.util.Allocator;
 import com.particlesdevs.photoncamera.util.FlacAudioRecorder;
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.util.McrawWriter;
+import com.particlesdevs.photoncamera.util.RawContainerWriter;
+import com.particlesdevs.photoncamera.util.CrawWriter;
+import com.particlesdevs.photoncamera.util.CrawMetadata;
+import com.particlesdevs.photoncamera.util.CrawImuRecorder;
 import com.particlesdevs.photoncamera.util.SimpleStorageHelper;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 
@@ -89,7 +93,7 @@ public class RawVideoProcessor extends ProcessorBase {
             new java.util.concurrent.ConcurrentLinkedQueue<>();
     private String containerMode = PreferenceKeys.CONTAINER_DNG;
     private String mcrawPath;
-    private McrawWriter mcrawWriter;                 // owned by the writer thread
+    private RawContainerWriter mcrawWriter;                 // owned by the writer thread
     private ExecutorService mcrawEncodeExecutor;
     private ByteBuffer[] mcrawSlots;                 // lazily allocated worst-case buffers
     private int mcrawSlotCapacity;
@@ -97,6 +101,14 @@ public class RawVideoProcessor extends ProcessorBase {
     private int mcrawWidth, mcrawHeight, mcrawCropTop, mcrawCropHeight, mcrawStride;
     private boolean mcrawRaw10, mcrawBin;
     private Parameters mcrawParameters;
+    private CrawMetadata crawMetadata;
+    private CrawImuRecorder crawImu;
+    private long crawSensorTimeOffsetNs;
+    private int crawCfa;
+    private volatile boolean crawFailed;
+
+    private boolean isCrawMode() { return PreferenceKeys.isCrawContainer(containerMode); }
+    private int crawCodec() { return PreferenceKeys.CONTAINER_CRAW_LIVE.equals(containerMode) ? 3 : 1; }
     // Per-frame capture results keyed by SENSOR_TIMESTAMP, matched at write
     // time to embed exposure/ISO/white balance metadata in each frame.
     private final java.util.TreeMap<Long, CaptureResult> mcrawResults = new java.util.TreeMap<>();
@@ -124,7 +136,7 @@ public class RawVideoProcessor extends ProcessorBase {
     private final AtomicInteger mcrawAudioEnqueued = new AtomicInteger();
     private final AtomicInteger mcrawAudioWritten = new AtomicInteger();
     private final AtomicInteger mcrawAudioDropped = new AtomicInteger();
-    private long mcrawTotalEncodedBytes;
+    private volatile long mcrawTotalEncodedBytes;
     // Written and read only on the single writer thread.
     private long mcrawLastTimestamp = Long.MIN_VALUE;
     private long mcrawEncodedFrames, mcrawEncodeNsTotal, mcrawWriteNsTotal;
@@ -148,7 +160,7 @@ public class RawVideoProcessor extends ProcessorBase {
     }
 
     @SuppressLint("DefaultLocale")
-    public void videoStart(Path outputFolder, ParseExif.ExifData exifData,
+    public synchronized void videoStart(Path outputFolder, ParseExif.ExifData exifData,
                            CameraCharacteristics characteristics,
                            CaptureResult captureResult,
                            CaptureRequest captureRequest,
@@ -167,12 +179,14 @@ public class RawVideoProcessor extends ProcessorBase {
         frameHeight = 0;
         availableBytesAtStart = 0;
         containerMode = PreferenceKeys.getRawVideoContainer();
+        crawFailed = false;
+        crawImu = null;
         try {
             StatFs statFs = new StatFs(outputFolder.getParent().toString());
             availableBytesAtStart = statFs.getAvailableBlocksLong() * statFs.getBlockSizeLong();
         } catch (Exception ignored) {}
         this.callback = callback;
-        if (!isMcrawMode()) {
+        if (!isContainerMode()) {
             // Create output folder if not exists
             try {
                 Files.createDirectories(outputFolder);
@@ -195,7 +209,7 @@ public class RawVideoProcessor extends ProcessorBase {
             }
         }
         writeExecutor = Executors.newSingleThreadExecutor();
-        if (isMcrawMode()) {
+        if (isContainerMode()) {
             // Single self-contained file: audio and gyro are embedded into
             // the container, so there is no recording folder or FLAC sidecar.
             mcrawAudioChunks.clear();
@@ -205,6 +219,7 @@ public class RawVideoProcessor extends ProcessorBase {
             mcrawAudioDropped.set(0);
             mcrawCameraTimeOffsetNs = Long.MIN_VALUE;
             mcrawFirstFrameCameraTs = Long.MIN_VALUE;
+            mcrawState.set(MCRAW_INITIALIZING);
             mcrawAudioActive = rawAudioRecorder.start(this::enqueueMcrawAudio);
             if (!mcrawAudioActive) {
                 Log.w(TAG, "mcraw: microphone unavailable, recording without embedded audio");
@@ -219,7 +234,13 @@ public class RawVideoProcessor extends ProcessorBase {
             th.start();
         }
         parameters = new Parameters();
-        PhotonCamera.getGyro().startVideoRecording(outputFolder, resolveFrameRate());
+        if (isCrawMode()) {
+            crawMetadata = new CrawMetadata();
+            crawImu = new CrawImuRecorder(PhotonCamera.getSettingsManagerStatic().getContext());
+            crawImu.start();
+        } else {
+            PhotonCamera.getGyro().startVideoRecording(outputFolder, resolveFrameRate());
+        }
     }
 
     private void initMcrawState(Path outputFolder) {
@@ -227,14 +248,15 @@ public class RawVideoProcessor extends ProcessorBase {
         // (.../VID_xxx -> .../VID_xxx.mcraw); a suffix disambiguates rapid
         // restarts within the same second, because SAF recreates existing
         // files, which would discard a previous recording.
+        String extension = isCrawMode() ? ".craw" : ".mcraw";
         Path destination = outputFolder;
         try {
-            for (int suffix = 1; Files.exists(destination); suffix++) {
+            for (int suffix = 1; Files.exists(java.nio.file.Paths.get(destination.toString() + extension)); suffix++) {
                 String name = outputFolder.getFileName().toString();
                 destination = outputFolder.resolveSibling(name + "_" + suffix);
             }
         } catch (Exception ignored) {}
-        mcrawPath = destination.toString() + ".mcraw";
+        mcrawPath = destination.toString() + extension;
         mcrawWriter = null;
         mcrawState.set(MCRAW_INITIALIZING);
         mcrawTotalEncodedBytes = 0;
@@ -267,6 +289,12 @@ public class RawVideoProcessor extends ProcessorBase {
         // camera handler thread and the ImageReader keeps circulating.
         writeExecutor.execute(() -> {
             try {
+                if (isCrawMode()) {
+                    crawCfa = CrawMetadata.cfa(characteristics);
+                    // CRAW META needs actual Image geometry. Open once on the first writer task.
+                    mcrawState.compareAndSet(MCRAW_INITIALIZING, MCRAW_OPENED);
+                    return;
+                }
                 // Everything the container metadata needs is available here;
                 // the pixel array size stands in for rawSize until the first
                 // frame resolves the exact capture geometry.
@@ -290,18 +318,19 @@ public class RawVideoProcessor extends ProcessorBase {
                 Log.e(TAG, "mcraw open failed: " + Log.getStackTraceString(t));
                 closeMcrawWriter();
                 mcrawState.compareAndSet(MCRAW_INITIALIZING, MCRAW_FAILED);
+                if (isCrawMode()) processingEventsListener.onProcessingError("CRAW initialization failed: " + t.getMessage());
             }
         });
     }
 
-    private boolean isMcrawMode() {
-        return PreferenceKeys.CONTAINER_MCRAW.equals(containerMode);
+    private boolean isContainerMode() {
+        return PreferenceKeys.CONTAINER_MCRAW.equals(containerMode) || isCrawMode();
     }
 
     int shift = 0;
     @SuppressLint("DefaultLocale")
-    public void videoCycle(Image image) {
-        if (isMcrawMode()) {
+    public synchronized void videoCycle(Image image) {
+        if (isContainerMode()) {
             videoCycleMcraw(image);
         } else {
             videoCycleDng(image);
@@ -459,12 +488,22 @@ public class RawVideoProcessor extends ProcessorBase {
             // the camera time domain.
             try {
                 computeMcrawGeometry(image);
-                PhotonCamera.getGyro().syncFirstFrame(image.getTimestamp());
-                mcrawCameraTimeOffsetNs = image.getTimestamp() - System.nanoTime();
+                if (isCrawMode()) crawMetadata.setGeometry(characteristics, mcrawWidth, mcrawHeight,
+                        mcrawCropTop, mcrawCropHeight);
+                if (!isCrawMode()) PhotonCamera.getGyro().syncFirstFrame(image.getTimestamp());
+                long monotonic = System.nanoTime();
+                long realtime = android.os.SystemClock.elapsedRealtimeNanos();
+                Integer source = characteristics.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
+                boolean sharedClock = source != null
+                        && source == CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME;
+                crawSensorTimeOffsetNs = sharedClock ? 0 : image.getTimestamp() - realtime;
+                mcrawCameraTimeOffsetNs = isCrawMode() && sharedClock
+                        ? realtime - monotonic : image.getTimestamp() - monotonic;
                 mcrawFirstFrameCameraTs = image.getTimestamp();
             } catch (Throwable t) {
                 Log.e(TAG, "mcraw geometry failed: " + Log.getStackTraceString(t));
                 mcrawState.set(MCRAW_FAILED);
+                if (isCrawMode()) processingEventsListener.onProcessingError("CRAW geometry failed: " + t.getMessage());
                 image.close();
                 return;
             }
@@ -510,8 +549,11 @@ public class RawVideoProcessor extends ProcessorBase {
                     mcrawSlots[slot] = buffer;
                 }
                 ByteBuffer plane = image.getPlanes()[0].getBuffer();
-                int length = McrawWriter.encode(plane, mcrawWidth, mcrawHeight, mcrawStride,
-                        mcrawRaw10, mcrawCropTop, mcrawCropHeight, mcrawBin, buffer);
+                int length = isCrawMode()
+                        ? CrawWriter.encode(plane, mcrawWidth, mcrawHeight, mcrawStride,
+                            mcrawRaw10, mcrawCropTop, mcrawCropHeight, mcrawBin, crawCfa, crawCodec(), buffer)
+                        : McrawWriter.encode(plane, mcrawWidth, mcrawHeight, mcrawStride,
+                            mcrawRaw10, mcrawCropTop, mcrawCropHeight, mcrawBin, buffer);
                 return new long[]{length, System.nanoTime() - encodeStart};
             } finally {
                 // Release the camera buffer right after encoding; disk IO
@@ -535,7 +577,21 @@ public class RawVideoProcessor extends ProcessorBase {
                         ts = mcrawLastTimestamp + 1; // container requires strictly increasing
                     }
                     mcrawLastTimestamp = ts;
-                    String frameMetadata = buildMcrawFrameMetadata(ts, receivedMs);
+                    if (isCrawMode() && crawFailed) return;
+                    if (isCrawMode() && mcrawWriter == null) {
+                        mcrawWriter = CrawWriter.open(mcrawPath, CrawMetadata.container(characteristics,
+                                captureResult, PhotonCamera.getSettings().mCameraID, frameWidth, frameHeight,
+                                mcrawWidth, mcrawHeight, mcrawCropTop, mcrawCropHeight, mcrawRaw10, mcrawBin,
+                                crawCodec(), cameraRotation, (int) resolveFrameRate(),
+                                mcrawAudioActive ? rawAudioRecorder.getChannels() : 0,
+                                rawAudioRecorder.getSampleRate(), mcrawFirstFrameCameraTs, crawSensorTimeOffsetNs),
+                                rawAudioRecorder.getChannels(), rawAudioRecorder.getSampleRate());
+                    }
+                    String frameMetadata = isCrawMode()
+                            ? crawMetadata.frame(takeExactResult(frameTs), frameTs, mcrawFirstFrameCameraTs,
+                                cameraRotation, (CrawWriter) mcrawWriter)
+                            : buildMcrawFrameMetadata(ts, receivedMs);
+                    drainCrawImu();
                     drainMcrawAudio();
                     long writeStart = System.nanoTime();
                     mcrawWriter.writeFrame(mcrawSlots[slot], length, ts, frameMetadata);
@@ -555,7 +611,12 @@ public class RawVideoProcessor extends ProcessorBase {
                     // recording: keep the session alive and try the next
                     // frame. Fatal conditions surface again on the following
                     // frames and in close().
-                    Log.e(TAG, "mcraw write failed: " + Log.getStackTraceString(t));
+                    Log.e(TAG, "RAW container write failed: " + Log.getStackTraceString(t));
+                    if (isCrawMode()) {
+                        crawFailed = true;
+                        mcrawState.set(MCRAW_FAILED); // never reopen/truncate a partially written take
+                        processingEventsListener.onProcessingError("CRAW recording failed: " + t.getMessage());
+                    }
                 } finally {
                     mcrawFreeSlots.add(slot);
                     pendingWrites.decrementAndGet();
@@ -574,6 +635,9 @@ public class RawVideoProcessor extends ProcessorBase {
      * even crop rows to preserve the Bayer phase, and width % 4 for RAW10.
      */
     private void computeMcrawGeometry(Image image) {
+        if (isCrawMode() && image.getFormat() != ImageFormat.RAW10
+                && image.getFormat() != ImageFormat.RAW_SENSOR)
+            throw new IllegalArgumentException("Unsupported CRAW camera pixel format");
         Image.Plane plane = image.getPlanes()[0];
         mcrawStride = plane.getRowStride();
         mcrawRaw10 = image.getFormat() == ImageFormat.RAW10;
@@ -599,9 +663,13 @@ public class RawVideoProcessor extends ProcessorBase {
         } else {
             width -= width % 2; // even width keeps the Bayer column phase
         }
+        if (isCrawMode()) {
+            width = Math.min(width, image.getWidth());
+            width -= width % (mcrawRaw10 ? 4 : 2);
+        }
         int cropHeight;
         int cropTop = 0;
-        if (mcrawRaw10) {
+        if (mcrawRaw10 && !isCrawMode()) {
             cropHeight = imageHeight;
         } else if (PreferenceKeys.isRawVideoCrop169()) {
             cropHeight = width * 9 / 16;
@@ -616,12 +684,13 @@ public class RawVideoProcessor extends ProcessorBase {
         if (mcrawBin && width % 4 != 0) {
             width -= width % 4;
         }
-        // Binned height is cropHeight / 2, so it needs cropHeight % 8 == 0.
-        cropHeight -= mcrawBin ? cropHeight % 8 : cropHeight % 4;
+        // CRAW needs even dimensions; MediaCinemaRAW also groups four output rows.
+        int alignment = isCrawMode() ? (mcrawBin ? 4 : 2) : (mcrawBin ? 8 : 4);
+        cropHeight -= cropHeight % alignment;
         if (cropHeight <= 0 || cropTop > imageHeight - cropHeight) {
             // Degenerate geometry - fall back to a full, un-binned frame.
             cropTop = 0;
-            cropHeight = imageHeight - imageHeight % 4;
+            cropHeight = imageHeight - imageHeight % (isCrawMode() ? 2 : 4);
             mcrawBin = false;
         }
         mcrawWidth = width;
@@ -684,7 +753,7 @@ public class RawVideoProcessor extends ProcessorBase {
 
     /** Per-frame metadata in the MediaCinemaRAW reader schema. */
     private String buildMcrawFrameMetadata(long timestampNs, long receivedTimestampMs) {
-        CaptureResult result = takeMcrawResult(timestampNs);
+        CaptureResult result = takeMcrawResult(timestampNs + mcrawFirstFrameCameraTs);
         JSONObject meta = new JSONObject();
         try {
             meta.put("width", frameWidth);
@@ -729,9 +798,31 @@ public class RawVideoProcessor extends ProcessorBase {
         if (timestamp == null) return;
         synchronized (mcrawResults) {
             mcrawResults.put(timestamp, result);
+            mcrawResults.notifyAll();
             while (mcrawResults.size() > 128) {
                 mcrawResults.pollFirstEntry();
             }
+        }
+    }
+
+    private CaptureResult takeExactResult(long timestampNs) {
+        synchronized (mcrawResults) {
+            // Image/result callbacks can arrive in either order. Image is already released here.
+            long deadline = System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(100);
+            while (!mcrawResults.containsKey(timestampNs)) {
+                long remaining = deadline - System.nanoTime();
+                if (remaining <= 0) break;
+                try { TimeUnit.NANOSECONDS.timedWait(mcrawResults, remaining); }
+                catch (InterruptedException e) { Thread.currentThread().interrupt(); break; }
+            }
+            return mcrawResults.remove(timestampNs);
+        }
+    }
+
+    private void drainCrawImu() throws IOException {
+        if (crawImu != null && mcrawWriter instanceof CrawWriter
+                && mcrawFirstFrameCameraTs != Long.MIN_VALUE) {
+            crawImu.drain((CrawWriter) mcrawWriter, mcrawFirstFrameCameraTs, crawSensorTimeOffsetNs);
         }
     }
 
@@ -755,20 +846,28 @@ public class RawVideoProcessor extends ProcessorBase {
     }
 
     /** Writer thread only. Appends queued audio chunks to the container. */
-    private void drainMcrawAudio() {
+    private void drainMcrawAudio() throws IOException {
         McrawAudioChunk chunk;
         while (mcrawWriter != null && (chunk = mcrawAudioChunks.poll()) != null) {
             mcrawAudioBacklog.decrementAndGet();
             long cameraTs = toMcrawCameraTime(chunk.timestampNs) - mcrawFirstFrameCameraTs;
+            short[] audio = chunk.samples;
             if (cameraTs < 0) {
-                mcrawAudioDropped.incrementAndGet(); // pre-roll without video
-                continue;
+                if (isCrawMode()) {
+                    int channels = rawAudioRecorder.getChannels();
+                    long skipFrames = (-cameraTs * rawAudioRecorder.getSampleRate() + 999_999_999L) / 1_000_000_000L;
+                    if (skipFrames < audio.length / channels) {
+                        audio = java.util.Arrays.copyOfRange(audio, (int) skipFrames * channels, audio.length);
+                        cameraTs += skipFrames * 1_000_000_000L / rawAudioRecorder.getSampleRate();
+                    } else { mcrawAudioDropped.incrementAndGet(); continue; }
+                } else { mcrawAudioDropped.incrementAndGet(); continue; }
             }
             try {
-                mcrawWriter.writeAudio(chunk.samples, cameraTs);
+                mcrawWriter.writeAudio(audio, cameraTs);
                 mcrawAudioWritten.incrementAndGet();
             } catch (Throwable t) {
                 Log.e(TAG, "mcraw audio write failed: " + Log.getStackTraceString(t));
+                if (isCrawMode()) throw new IOException("CRAW audio write failed", t);
             }
         }
     }
@@ -784,6 +883,7 @@ public class RawVideoProcessor extends ProcessorBase {
                 mcrawWriter.close();
             } catch (IOException e) {
                 Log.e(TAG, "mcraw finalize failed: " + Log.getStackTraceString(e));
+                if (isCrawMode()) processingEventsListener.onProcessingError("CRAW finalize failed: " + e.getMessage());
             }
             mcrawWriter = null;
         }
@@ -792,7 +892,7 @@ public class RawVideoProcessor extends ProcessorBase {
     private RawVideoStats buildStats() {
         long elapsedMs = System.currentTimeMillis() - recordingStartMs;
         long bytesPerFrame = (long) frameWidth * frameHeight * BITS_PER_SAMPLE / 8;
-        long estimatedBytes = bytesPerFrame * videoCounter;
+        long estimatedBytes = isContainerMode() ? mcrawTotalEncodedBytes : bytesPerFrame * videoCounter;
         return new RawVideoStats(pendingWrites.get(), elapsedMs, estimatedBytes, availableBytesAtStart);
     }
 
@@ -809,11 +909,13 @@ public class RawVideoProcessor extends ProcessorBase {
 
     }
 
-    public void videoEnd() {
+    public synchronized void videoEnd() {
         isRecording = false;
 
         // Stop the sensors and microphone first so no samples arrive later.
-        if (isMcrawMode()) {
+        if (isCrawMode()) {
+            if (crawImu != null) crawImu.stop();
+        } else if (isContainerMode()) {
             try {
                 // Gyro embedding is disabled: common readers (e.g. Unmcrawesome)
                 // abort the whole demux on gyro items, breaking audio playback
@@ -837,13 +939,14 @@ public class RawVideoProcessor extends ProcessorBase {
         ExecutorService executor = writeExecutor;
         writeExecutor = null;
         if (executor != null) {
-            if (isMcrawMode()) {
+            if (isContainerMode()) {
                 try {
                     // All container writes stay on the writer thread: drain
                     // the remaining audio and finalize.
                     executor.execute(() -> {
                         try {
                             drainMcrawAudio();
+                            drainCrawImu();
                         } catch (Throwable t) {
                             Log.e(TAG, "mcraw final stream write failed: " + Log.getStackTraceString(t));
                         } finally {
@@ -856,11 +959,13 @@ public class RawVideoProcessor extends ProcessorBase {
             }
             // Drain pending frames before finalizing the archive/container.
             executor.shutdown();
-            try {
-                executor.awaitTermination(120, TimeUnit.SECONDS);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
+            // Never release slots or close the native writer while queued work still uses them.
+            boolean interrupted = false;
+            for (;;) {
+                try { if (executor.awaitTermination(1, TimeUnit.SECONDS)) break; }
+                catch (InterruptedException e) { interrupted = true; }
             }
+            if (interrupted) Thread.currentThread().interrupt();
         }
         if (dngCreator != null) {
             dngCreator.closeArchive();
@@ -881,5 +986,9 @@ public class RawVideoProcessor extends ProcessorBase {
         }
         mcrawSlots = null;
         mcrawFreeSlots.clear();
+        mcrawAudioChunks.clear();
+        mcrawAudioBacklog.set(0);
+        crawImu = null;
+        crawMetadata = null;
     }
 }

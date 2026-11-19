@@ -1,0 +1,51 @@
+cmake_minimum_required(VERSION 3.20)
+project(CinematicRAWStudioEncoder VERSION 0.1.0 LANGUAGES CXX)
+
+set(CRAW_SPEC_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../CinematicRAWStudio-Spec"
+    CACHE PATH "Path to CinematicRAWStudio-Spec (golden vectors)")
+option(CRAW_BUILD_TOOLS "Build craw_enc / craw_bench" ON)
+option(CRAW_BUILD_TESTS "Build conformance tests" ON)
+
+if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
+    set(CMAKE_BUILD_TYPE Release)
+endif()
+
+add_library(CrawEncoder src/Encoder.cpp src/Writer.cpp)
+add_library(CRAW::Encoder ALIAS CrawEncoder)
+target_compile_features(CrawEncoder PUBLIC cxx_std_20)
+target_include_directories(CrawEncoder PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include> $<INSTALL_INTERFACE:include>)
+set_target_properties(CrawEncoder PROPERTIES POSITION_INDEPENDENT_CODE ON)
+if(MSVC)
+    target_compile_options(CrawEncoder PRIVATE /W4 /permissive-)
+else()
+    target_compile_options(CrawEncoder PRIVATE -Wall -Wextra -Wpedantic)
+endif()
+find_package(Threads REQUIRED)
+target_link_libraries(CrawEncoder PUBLIC Threads::Threads)
+if(ANDROID AND CMAKE_SYSTEM_PROCESSOR MATCHES "aarch64")
+    target_compile_options(CrawEncoder PRIVATE -march=armv8-a+crc)
+endif()
+
+if(CRAW_BUILD_TOOLS)
+    add_executable(craw_enc tools/craw_enc.cpp)
+    target_link_libraries(craw_enc PRIVATE CRAW::Encoder)
+    install(TARGETS craw_enc RUNTIME DESTINATION bin)
+    add_executable(craw_bench tools/craw_bench.cpp)
+    target_link_libraries(craw_bench PRIVATE CRAW::Encoder)
+    install(TARGETS craw_bench RUNTIME DESTINATION bin)
+endif()
+
+if(CRAW_BUILD_TESTS)
+    enable_testing()
+    add_executable(craw_enc_conformance tests/ConformanceTests.cpp)
+    target_link_libraries(craw_enc_conformance PRIVATE CRAW::Encoder)
+    target_compile_definitions(craw_enc_conformance PRIVATE
+        CRAW_VECTORS_DIR="${CRAW_SPEC_DIR}/vectors")
+    add_test(NAME conformance COMMAND craw_enc_conformance)
+endif()
+
+include(GNUInstallDirs)
+install(TARGETS CrawEncoder EXPORT CrawEncoderTargets)
+install(DIRECTORY include/ DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
+install(EXPORT CrawEncoderTargets NAMESPACE CRAW:: DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/CrawEncoder)

@@ -164,11 +164,15 @@
         <item>@string/rawvideo_container_dng</item>
         <item>@string/rawvideo_container_zip</item>
         <item>@string/rawvideo_container_mcraw</item>
+        <item>@string/rawvideo_container_craw_fast</item>
+        <item>@string/rawvideo_container_craw_live</item>
     </string-array>
     <string-array name="rawvideo_container_entryvalues">
         <item>dng</item>
         <item>zip</item>
         <item>mcraw</item>
+        <item>craw_fast</item>
+        <item>craw_live</item>
     </string-array>
     <string-array name="video_hdr_transfer_entries">
         <item>HLG</item>

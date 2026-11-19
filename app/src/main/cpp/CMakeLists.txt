@@ -226,6 +226,16 @@ target_compile_options(mcraw PRIVATE -O3)
 target_link_libraries(mcraw PRIVATE
         log
 )
+# Pinned, vendored CinematicRAWStudio encoder (no network fetch at build time).
+set(CRAW_BUILD_TOOLS OFF CACHE BOOL "" FORCE)
+set(CRAW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+add_subdirectory(craw/vendor)
+target_compile_options(CrawEncoder PRIVATE -O3)
+add_library(craw SHARED craw/craw_jni.cpp)
+target_compile_features(craw PRIVATE cxx_std_20)
+target_compile_options(craw PRIVATE -O3)
+target_link_libraries(craw PRIVATE CRAW::Encoder)
+
 add_library(
         camera2native SHARED ${SRC_DIR}/native-engine.cpp
 )

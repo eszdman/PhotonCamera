@@ -737,10 +737,16 @@ public class PreferenceKeys {
     public static final String CONTAINER_DNG = "dng";
     public static final String CONTAINER_ZIP = "zip";
     public static final String CONTAINER_MCRAW = "mcraw";
+    public static final String CONTAINER_CRAW_FAST = "craw_fast";
+    public static final String CONTAINER_CRAW_LIVE = "craw_live";
+
+    public static boolean isCrawContainer(String value) {
+        return CONTAINER_CRAW_FAST.equals(value) || CONTAINER_CRAW_LIVE.equals(value);
+    }
 
     public static String getRawVideoContainer() {
         String value = preferenceKeys.settingsManager.getString(SCOPE_GLOBAL, Key.KEY_RAWVIDEO_CONTAINER, CONTAINER_ZIP);
-        if (CONTAINER_MCRAW.equals(value) || CONTAINER_ZIP.equals(value) || CONTAINER_DNG.equals(value)) {
+        if (isCrawContainer(value) || CONTAINER_MCRAW.equals(value) || CONTAINER_ZIP.equals(value) || CONTAINER_DNG.equals(value)) {
             return value;
         }
         return CONTAINER_ZIP;
