@@ -20,6 +20,8 @@ public class ImageFrame {
      * normalized fp16 copy created by Allocator.createF16 (ESD4D does this
      * on demand); the buffer is same-size half floats either way. */
     public boolean fp16;
+    /** True when this buffer was reduced by the four-tap Bayer sum at capture time. */
+    public boolean binned;
     /**
      * Effective bit depth of {@link #buffer} when the frame is packed
      * (LSB-first bitstream, see {@link Allocator#packBits}); 0 means the
@@ -48,8 +50,14 @@ public class ImageFrame {
     }
 
     public ImageFrame(ByteBuffer in, int format, int width, int row_stride, int shift, int capacity, int cfa) {
+        this(in, format, width, row_stride, shift, capacity, cfa, Allocator.binning);
+    }
+
+    public ImageFrame(ByteBuffer in, int format, int width, int row_stride, int shift, int capacity,
+                      int cfa, boolean binned) {
+        this.binned = binned;
         ByteBuffer direct;
-        if (Allocator.binning) {
+        if (binned) {
             int height = capacity / row_stride;
             if (format == 0x25) {
                 direct = Allocator.allocateAndCopyConvertBinning(capacity, in, width, row_stride, shift, cfa);
@@ -122,7 +130,7 @@ public class ImageFrame {
         int cropW = Math.max(0, right - left);
         int cropH = Math.max(0, bottom - top);
         if (cropW <= 0 || cropH <= 0) {
-            return new ImageFrame(in, format, srcWidth, rowStride, 0, in.capacity(), cfa);
+            return new ImageFrame(in, format, srcWidth, rowStride, 0, in.capacity(), cfa, binning);
         }
         left = cropW % 2 == 0 ? left : Math.max(0, left + 1);
         top = cropH % 2 == 0 ? top : Math.max(0, top + 1);
@@ -165,6 +173,7 @@ public class ImageFrame {
 
         ImageFrame frame = new ImageFrame();
         frame.buffer = direct;
+        frame.binned = binning;
         frame.cropOriginX = left;
         frame.cropOriginY = top;
         if (binning) {
@@ -253,6 +262,8 @@ public class ImageFrame {
     public static void packBurstAtArrival(ImageFrame frame, int whiteLevel, boolean verify) {
         if (frame == null || frame.buffer == null || frame.packedBits > 0) return;
         if (frame.buffer.capacity() != frame.width * frame.height * 2) return;
+        // Callers pass the sensor white level, before the four-tap sum.
+        if (frame.binned) whiteLevel = (int) Math.min(whiteLevel * 4L, 65535L);
         int packBits = whiteLevel > 0 ? 32 - Integer.numberOfLeadingZeros(whiteLevel) : 0;
         if (packBits <= 0 || packBits >= 16) return;
         ByteBuffer packed = Allocator.packBits(frame.buffer, frame.width * frame.height,

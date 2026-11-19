@@ -11,8 +11,18 @@ public class NoiseModeler {
     public Pair<Double,Double>[] computeModel;
     public int AnalogueISO;
     public int SensivityISO;
+    private final double inputVarianceScale;
     double adaptiveMpy = 1.0;
     public NoiseModeler(Pair<Double,Double>[] inModel, Integer analogISO, Integer ISO, int bayer, SpecificSettingSensor specificSettingSensor) {
+        this(inModel, analogISO, ISO, bayer, specificSettingSensor, false);
+    }
+
+    public NoiseModeler(Pair<Double,Double>[] inModel, Integer analogISO, Integer ISO, int bayer,
+                        SpecificSettingSensor specificSettingSensor, boolean binned) {
+        // The native binning sums four taps and the black/white levels grow
+        // by four. In normalized units this averages four independent pixels:
+        // both variance coefficients fall by four (sigma falls by two).
+        inputVarianceScale = binned ? 0.25 : 1.0;
         AnalogueISO = analogISO;
         SensivityISO = ISO;
         baseModel = new Pair[3];
@@ -70,6 +80,12 @@ public class NoiseModeler {
             }
         }
 
+        if (binned) {
+            for (int c = 0; c < baseModel.length; c++) {
+                baseModel[c] = new Pair<>(baseModel[c].first * inputVarianceScale,
+                        baseModel[c].second * inputVarianceScale);
+            }
+        }
         Log.d(TAG, "NoiseModel0->" + baseModel[0]);
         Log.d(TAG, "NoiseModel1->" + baseModel[1]);
         Log.d(TAG, "NoiseModel2->" + baseModel[2]);
@@ -102,12 +118,14 @@ public class NoiseModeler {
     }
 
     public double SPlace(double Sensitivity) {
-        return 4.2917797046733595e-07 * Sensitivity + 6.293375122210356e-06;
+        return (4.2917797046733595e-07 * Sensitivity + 6.293375122210356e-06)
+                * inputVarianceScale;
     }
 
     public double OPlace(double Sensitivity) {
         double dGain = Math.max(Sensitivity/AnalogueISO,1.0);
-        return (2.18746307756334e-13 * Sensitivity*Sensitivity) + (2.1731291715765075e-07*dGain*dGain);
+        return ((2.18746307756334e-13 * Sensitivity*Sensitivity)
+                + (2.1731291715765075e-07*dGain*dGain)) * inputVarianceScale;
     }
 
     private double computeNoiseModelO(double Sensitivity,Pair<Double,Double> oGenerator) {

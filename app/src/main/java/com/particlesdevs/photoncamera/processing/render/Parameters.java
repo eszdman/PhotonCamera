@@ -26,7 +26,6 @@ import com.particlesdevs.photoncamera.processing.parameters.ExposureIndex;
 import com.particlesdevs.photoncamera.processing.parameters.FrameNumberSelector;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.capture.CaptureController;
-import com.particlesdevs.photoncamera.util.Allocator;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -41,6 +40,8 @@ public class Parameters {
     public double exposureTime = 1.0/30.0; // Default to 1/30s if not available
     public byte cfaPattern;
     public Point rawSize;
+    /** Buffer's capture-time software-binning mode; independent of the current setting. */
+    public boolean binned;
     public boolean usedDynamic = false;
     public float[] blackLevel = new float[4];
     public float[] whitePoint = new float[3];
@@ -280,7 +281,8 @@ public class Parameters {
             }
         }
         iso = sensivity;
-        noiseModeler = new NoiseModeler(result.get(CaptureResult.SENSOR_NOISE_PROFILE), analogIso, sensivity, cfaPattern, sensorSpecifics);
+        noiseModeler = new NoiseModeler(result.get(CaptureResult.SENSOR_NOISE_PROFILE), analogIso,
+                sensivity, cfaPattern, sensorSpecifics, binned);
         Long exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
         if (exposure == null) {
             exposure = request.get(CaptureRequest.SENSOR_EXPOSURE_TIME);
@@ -392,7 +394,7 @@ public class Parameters {
         }
         this.focalLength = focalLength;
 
-        if (Allocator.binning) {
+        if (binned) {
             for (int i = 0; i < blackLevel.length; i++) {
                 blackLevel[i] = Math.min(blackLevel[i] * 4f, 65535f);
             }
@@ -664,6 +666,7 @@ public class Parameters {
     protected Parameters Build() {
         Parameters params = new Parameters();
         params.cfaPattern = cfaPattern;
+        params.binned = binned;
         params.usedDynamic = usedDynamic;
         params.blackLevel = blackLevel.clone();
         params.whitePoint = whitePoint.clone();

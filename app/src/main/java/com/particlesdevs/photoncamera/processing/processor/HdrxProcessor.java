@@ -126,6 +126,7 @@ public class HdrxProcessor extends ProcessorBase {
         // Reflect any digital-zoom crop origin so sensor-relative metadata
         // (active array, principal point) matches the cropped buffer.
         ImageFrame first = mImageFramesToProcess.get(0);
+        processingParameters.binned = first.binned;
         processingParameters.setCropDetails(first.cropOriginX, first.cropOriginY);
         if (first.fullWidth > 0 && first.fullHeight > 0) {
             processingParameters.setFullRawSize(first.fullWidth, first.fullHeight);
@@ -138,8 +139,13 @@ public class HdrxProcessor extends ProcessorBase {
         // on demand (ImageFrame.upload()); the merged output and the
         // single-frame path stay 16-bit. Only tightly packed buffers are
         // repacked; padded layouts keep their current form.
-        int packBits = processingParameters.whiteLevel > 0
-                ? 32 - Integer.numberOfLeadingZeros(processingParameters.whiteLevel) : 0;
+        // Dynamic parameters scale the binned levels later; packing already
+        // sees the four-tap sums and must reserve their extra two bits now.
+        int packingWhiteLevel = first.binned
+                ? (int) Math.min(processingParameters.whiteLevel * 4L, 65535L)
+                : processingParameters.whiteLevel;
+        int packBits = packingWhiteLevel > 0
+                ? 32 - Integer.numberOfLeadingZeros(packingWhiteLevel) : 0;
         if (mImageFramesToProcess.size() > 1 && packBits > 0 && packBits < 16) {
             int packedCount = 0;
             for (ImageFrame frame : mImageFramesToProcess) {
