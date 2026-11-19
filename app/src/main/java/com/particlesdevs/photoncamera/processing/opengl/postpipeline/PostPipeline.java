@@ -183,8 +183,17 @@ public class PostPipeline extends GLBasePipeline {
     String tonePipeline = "curve";
 
     @Tunable(
+        title = "Sharpening type",
+        description = "Capture deconvolution restores linear detail; Unsharp mask uses the two post-tone sharpening stages; Off skips sharpening",
+        category = "Sharpening",
+        entries = {"Capture deconvolution", "Unsharp mask", "Off"},
+        entryValues = {"deconvolution", "unsharp", "off"}
+    )
+    String sharpeningType = "deconvolution";
+
+    @Tunable(
         title = "Upscale sharpen scale",
-        description = "Scales Sharpen2 and CaptureSharpening strength for cropped (upscaled) captures; unsharp masks tuned for native detail overshoot on interpolated pixels, while the kernelnet reconstruction provides structure-aware acutance",
+        description = "Scales sharpening strength for cropped captures",
         category = "Upscale",
         min = 0.0f,
         max = 1.0f,
@@ -204,21 +213,8 @@ public class PostPipeline extends GLBasePipeline {
     )
     boolean debugTiledCompare = false;
 
-    @Tunable(
-        title = "Tiled Tail Production",
-        description = "T4: render the proven tail segment (CaptureSharpening, Sharpen2, RotateWatermark) in bands with tile-sized scratch, streaming straight to the sink instead of full-frame mains. Default on (device-proven at all rotations); falls back to legacy on any failure.",
-        category = "Debug",
-        min = 0,
-        max = 1,
-        defaultValue = 1,
-        step = 1
-    )
-    boolean tiledTailProduce = true;
-
-    // T4 engage flag, computed once per shot below: true only when the proven
-    // segment will actually render (capture active, correcting passthrough).
-    // Assigned every shot (never stale); nodes read it, only the fallback
-    // writes it (to disable). tailTiled implies the user flag was on.
+    // Legacy tail drivers remain available for their comparison harness, but
+    // the default chain uses the deconvolution node's own banded solver.
     boolean tailTiled = false;
 
     // T3a A/B ferry: exact tail-entry snapshot for the tiled tail proof.
@@ -1507,6 +1503,10 @@ public class PostPipeline extends GLBasePipeline {
             }
         }
         add(new ABLC());
+        boolean unsharp = "unsharp".equals(sharpeningType);
+        if (!unsharp && !"off".equals(sharpeningType)) {
+            add(new DeconvolutionSharpening());
+        }
         if ("off".equals(tonePipeline)) {
             // No tone/color stage: the linear camera RGB passes through
             // untouched. LinearExposure draws nothing but keeps the Ultra HDR
@@ -1528,35 +1528,21 @@ public class PostPipeline extends GLBasePipeline {
                 add(new Initial());
             }
         }
-        // Crops expand to the full-frame output size BEFORE the local-contrast
-        // and sharpening passes, so those run at output resolution like any
-        // other shot - otherwise their crop-resolution halos get magnified by
-        // the zoom factor and read as pixelation along edges.
+        // Deconvolution operates on native linear detail. Unsharp masks operate
+        // after tone mapping, crop expansion and local contrast.
         add(new UpscaleCrop());
         add(new LocalLaplacian2());
-        add(new CaptureSharpening());
+        if (unsharp) {
+            add(new CaptureSharpening());
+        }
         add(new CorrectingFlow());
-        add(new Sharpen2());
+        if (unsharp) {
+            add(new Sharpen2());
+        }
         int tailRotation = getRotation();
         add(new RotateWatermark(tailRotation));
-        // T4 engage: the tail segment is fixed above, so engagement is a pure
-        // function of shot params (no chain scan needed). CorrectingFlow must
-        // stay passthrough: tiling through its unproven warp is out of scope.
-        // T4b fused sink works at every rotation (0/180 tile input rows,
-        // 90/270 tile full-height input columns) but still needs no mirror
-        // (mirror branches key off full input dimensions) and no watermark
-        // (its overlay coords normalize by input size); the noise fetch is
-        // dead code (read, never applied), so it needs no gate.
-        tailTiled = tiledTailProduce && mParameters.sensorSpecifics != null
-                && !CorrectingFlow.willCorrect(mParameters)
-                && !mParameters.mirror
-                && !PreferenceKeys.isShowWatermarkOn();
-        Log.d("TiledHarness",
-                "tail tiling " + (tailTiled ? "engaged" : "legacy")
-                + " produce=" + tiledTailProduce
-                + " specifics=" + (mParameters.sensorSpecifics != null)
-                + " correcting=" + CorrectingFlow.willCorrect(mParameters)
-                + " rotation=" + tailRotation + " mirror=" + mParameters.mirror
-                + " watermark=" + PreferenceKeys.isShowWatermarkOn());
+        // Keep tail execution consistent across sharpening selections.
+        // Deconvolution manages its own bounded scratch bands.
+        tailTiled = false;
     }
 }

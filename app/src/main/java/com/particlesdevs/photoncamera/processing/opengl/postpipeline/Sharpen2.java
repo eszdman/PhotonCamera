@@ -27,25 +27,25 @@ public class Sharpen2 extends Node {
     
     @Tunable(
             title = "Sharp Size", description = "Size parameter for sharpening",
-            category = "Sharpening", min = 0.0f, max = 2.0f, defaultValue = 0.8f, step = 0.01f
+            category = "Unsharp mask", min = 0.0f, max = 2.0f, defaultValue = 0.8f, step = 0.01f
     )
     float sharpSize;
     
     @Tunable(
             title = "Sharp Min", description = "Minimum sharpening threshold",
-            category = "Sharpening", min = 0.0f, max = 2.0f, defaultValue = 0.25f, step = 0.01f
+            category = "Unsharp mask", min = 0.0f, max = 2.0f, defaultValue = 0.25f, step = 0.01f
     )
     float sharpMin;
     
     @Tunable(
             title = "Sharp Max", description = "Maximum sharpening threshold",
-            category = "Sharpening", min = 0.0f, max = 2.0f, defaultValue = 1.0f, step = 0.01f
+            category = "Unsharp mask", min = 0.0f, max = 2.0f, defaultValue = 1.0f, step = 0.01f
     )
     float sharpMax;
     
     @Tunable(
             title = "Denoise Activity", description = "Denoise intensity parameter",
-            category = "Sharpening", min = 0.0f, max = 1.0f, defaultValue = 0.0f)
+            category = "Unsharp mask", min = 0.0f, max = 1.0f, defaultValue = 0.0f)
     float denoiseActivity;
 
     // Applied strength captured for the harness oracle (recomputed nowhere).
