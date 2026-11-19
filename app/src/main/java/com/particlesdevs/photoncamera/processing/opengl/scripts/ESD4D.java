@@ -13,6 +13,7 @@ import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageFrame;
+import com.particlesdevs.photoncamera.processing.GyroAlignment;
 import com.particlesdevs.photoncamera.processing.opengl.GLCoreBlockProcessing;
 import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
@@ -331,6 +332,12 @@ public class ESD4D extends GLOneScript {
             defaultValue = 0
     )
     String alignerSelect = "halide";
+
+    @Tunable(title = "Gyroscope prealignment", category = "Alignment", description = "Prewarp Halide input using timestamped gyro motion and available OIS telemetry; off restores the original local alignment path", min = 0, max = 1, step = 1, defaultValue = 1)
+    boolean gyroPrealignment = true;
+
+    @Tunable(title = "Gyroscope only", category = "Alignment", description = "Test mergeAlign with gyro/OIS warping and no local matcher. Overrides Aligner and enables gyro prealignment; missing gyro data uses identity", min = 0, max = 1, step = 1, defaultValue = 0)
+    boolean gyroOnly;
 
     @Tunable(title = "Aligner debug compare", category = "Alignment", description = "1 = when the Halide aligner runs, also run the GL block pyramid and log per-frame vector differences (diagnoses constant biases/shift conventions)", min = 0, max = 1, step = 1, defaultValue = 0)
     int alignDebugCompare;
@@ -862,8 +869,25 @@ public class ESD4D extends GLOneScript {
         // FlowNet consumes it, so create it up-front and share it (plus the
         // already-uploaded inputBase) instead of letting FlowNet allocate and
         // re-upload duplicates. -48 MB VRAM, -8 uploads; bit-exact (same
-        // texture object sampled identically).
+        // texture object sampled identically). Halide's gyro prewarp also
+        // borrows this upload texture; its GPU scratch is released after matching.
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
+        if (gyroOnly) alignerSelect = "off";
+        if (Objects.equals(alignerSelect, "halide") && !HalideAlignment.isAvailable()) {
+            Log.w("ESD4D", "Halide unavailable; using GL alignment");
+            alignerSelect = "gl";
+        }
+        float[][] gyroHomographies = new float[images.size()][];
+        int gyroFrames = 0;
+        if (gyroOnly || (gyroPrealignment && Objects.equals(alignerSelect, "halide"))) {
+            for (int f = 1; f < images.size(); f++) {
+                gyroHomographies[f] = GyroAlignment.between(images.get(0), images.get(f), parameters);
+                if (gyroHomographies[f] != null) gyroFrames++;
+                else if (gyroOnly) gyroHomographies[f] = new float[]{1,0,0,0,1,0,0,0,1};
+            }
+            Log.d("ESD4D", "Gyro prealignment: " + gyroFrames + "/" + (images.size()-1)
+                    + " frames; local alignment=" + !gyroOnly);
+        }
         // Merge tile size: parameters.tile (16 raw px) normally, doubled
         // when the Halide aligner runs without flow refinement - its plain
         // level-1 field carries one vector per 32 raw px, the alignment
@@ -917,17 +941,23 @@ public class ESD4D extends GLOneScript {
                         parameters.alignmentSize.y * ((images.size() - 1) / parameters.tilesX + 1));
                 mergeTile = parameters.tile * 2;
             }
-            HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images);
+            HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images, glProg, inputAlter);
             halideAlignment.parameters = parameters;
             halideAlignment.refineFlow = halideRefine;
+            halideAlignment.gyroHomographies = gyroHomographies;
             long startTime = System.currentTimeMillis();
-            halideAlignment.Run();
+            try {
+                halideAlignment.Run();
+            } finally {
+                halideAlignment.close();
+            }
             Log.d("ESD4D", "Halide alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
             alignmentTex = halideAlignment.Result;
-            if (alignDebugCompare == 1) {
+            if (alignDebugCompare == 1 && gyroFrames == 0) {
                 logAlignerCompare(alignmentOutputSize, images);
+            } else if (alignDebugCompare == 1) {
+                Log.d("ESD4D", "Aligner comparison skipped: Halide vectors are gyro-space residuals");
             }
-            halideAlignment.close();
         } else if (Objects.equals(alignerSelect, "gl")) {
             PyramidAlignment pyramidAlignment = new PyramidAlignment(alignmentOutputSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
@@ -946,12 +976,13 @@ public class ESD4D extends GLOneScript {
             alignmentTex = new GLTexture(alignmentOutputSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                     BufferUtils.getFrom(new float[alignmentOutputSize.x * alignmentOutputSize.y * 4]),
                     GL_NEAREST, GL_CLAMP_TO_EDGE);
-            Log.d("ESD4D", "Alignment disabled, using identity alignment");
+            Log.d("ESD4D", gyroOnly ? "Gyro-only merge: zero local residuals"
+                    : "Alignment disabled, using identity alignment");
         }
 
         //Point aSize = new Point(parameters.rawSize.x/(2*parameters.tile) + 1, parameters.rawSize.y/(2*parameters.tile) + 1);
         Point border = new Point(16,16);
-        // NOTE: inputAlter is created above the alignment block (shared with FlowNet).
+        // NOTE: inputAlter is created above alignment (shared with FlowNet / gyro prewarp).
         //alignmentTex = new GLTexture(aSize, new GLFormat(GLFormat.DataType.FLOAT_32, 2), alignment, GL_NEAREST, GL_MIRRORED_REPEAT);
 
         //counter.put(1.0f,1.0f);
@@ -1014,9 +1045,15 @@ public class ESD4D extends GLOneScript {
             correctHotPixelsInAlter(hotPixelBuffer, hotPixelCount);
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
             glProg.setDefine("TILE_AL", mergeTile);
+            boolean gyroWarp = gyroHomographies[ind] != null;
+            glProg.setDefine("GYRO_WARP", gyroWarp ? 1 : 0);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
             glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
+            if (gyroWarp) {
+                // GLES requires transpose=false; the native prewarp uses row-major H.
+                glProg.setVar("gyroHomography", false, GyroAlignment.columnMajor(gyroHomographies[ind]));
+            }
             glProg.setVar("rawHalf", rawHalf);
             glProg.setVar("whitePoint", parameters.whitePoint);
             // Red-site origin shift for mergeAlign's noise-model repack

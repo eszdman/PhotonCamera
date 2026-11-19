@@ -29,6 +29,35 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define CONCAT 1
 #define M_PI 3.1415926535897932384626433832795
 #define TILE_AL 16
+#define GYRO_WARP 0
+
+#if GYRO_WARP
+uniform mat3 gyroHomography;
+
+// Match the GPU Bayer-plane prewarp, but sample the original only once.
+// Residuals are in the prewarped raw/2 grid: source = H(2*(p+d)+site).
+float warpedChannel(vec2 p, ivec2 site, int channel) {
+    vec2 raw = 2.0*p - vec2(cfaShift) + vec2(site);
+    vec3 projected = gyroHomography * vec3(raw, 1.0);
+    vec2 packedCoord = (projected.xy/projected.z + vec2(cfaShift-site))*0.5;
+    ivec2 low = (cfaShift-site+ivec2(1))/2;
+    ivec2 high = (rawHalf*2-ivec2(1)+cfaShift-site)/2;
+    packedCoord = clamp(packedCoord, vec2(low), vec2(high));
+    ivec2 a = ivec2(floor(packedCoord));
+    ivec2 b = min(a+ivec2(1), high);
+    vec2 f = fract(packedCoord);
+    float upper = mix(imageLoad(alterTexture,a)[channel],
+                      imageLoad(alterTexture,ivec2(b.x,a.y))[channel],f.x);
+    float lower = mix(imageLoad(alterTexture,ivec2(a.x,b.y))[channel],
+                      imageLoad(alterTexture,b)[channel],f.x);
+    return mix(upper,lower,f.y);
+}
+
+vec4 warpedBayer(vec2 p) {
+    return vec4(warpedChannel(p,ivec2(0,0),0), warpedChannel(p,ivec2(1,0),1),
+                warpedChannel(p,ivec2(0,1),2), warpedChannel(p,ivec2(1,1),3));
+}
+#endif
 
 float getBayer(ivec2 coords, highp sampler2D tex){
     return texelFetch(tex,coords,0).r;
@@ -65,7 +94,7 @@ vec4 windowxy4(ivec2 xy){
 vec2 vec4ToAlignment(vec4 alignment) {
     // Round the integer part: rgba16f precision reconstructs floor(v)/rawHalf
     // as e.g. 1.9998 and truncation would bias offsets by -1px. The fract
-    // part (subpixel residual) is preserved for the caller to floor().
+    // part is retained for gyro composition; the legacy path floors it below.
     return floor(alignment.xy * vec2(rawHalf) + vec2(0.5)) + alignment.zw;
 }
 vec2 hash22(vec2 p)
@@ -77,6 +106,7 @@ vec2 hash22(vec2 p)
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outSize = imageSize(outTexture);
+    if (any(greaterThanEqual(xy, outSize))) return;
     vec2 uvScale = vec2(outSize-border);
     vec2 uv = vec2(xy)/uvScale + vec2(0.5)/uvScale;
     vec4 bayerBase = imageLoad(baseTexture,xy);
@@ -90,16 +120,30 @@ void main() {
     w[1] = windowxy4((TILE*xy)%TILE_AL + ivec2(0,TILE_AL));
     w[0] = windowxy4((TILE*xy)%TILE_AL + ivec2(TILE_AL));
     vec4 alignedSum = vec4(0.0);
+#if GYRO_WARP
+    vec4 bayerNone = warpedBayer(vec2(xy));
+#else
     vec4 bayerNone = imageLoad(alterTexture, xy);
+#endif
     for (int i = 0; i < 4; i++) {
         ivec2 xyT = clamp(ivec2((TILE*xy)/TILE_AL + ivec2(i % 2, i / 2)),ivec2(0),alignmentSize-1);
         vec4 alignLoad = texelFetch(alignmentTexture, xyT + shift, 0);
+#if GYRO_WARP
+        vec2 residual = vec4ToAlignment(alignLoad);
+        vec4 bayerAlter = warpedBayer(vec2(xy)+residual);
+#else
         ivec2 align = ivec2(floor(vec4ToAlignment(alignLoad)));
         ivec2 aligned = clamp(xy + align, ivec2(0), outSize - ivec2(1));
         vec4 bayerAlter = imageLoad(alterTexture, aligned);
+#endif
         vec4 w1 = (abs(bayerAlter*vec4(exposure) - bayerBase));
         vec4 w2 = (abs(bayerNone*vec4(exposure) - bayerBase));
+#if GYRO_WARP
+        // Zero residuals (gyro-only) can make both errors zero; avoid 0/0.
+        bayerAlter = mix(bayerNone, bayerAlter, smoothstep(vec4(0.48),vec4(0.51),w2/max(w1+w2,vec4(1e-8))));
+#else
         bayerAlter = mix(bayerNone, bayerAlter, smoothstep(w2/(w1+w2),vec4(0.48),vec4(0.51)));
+#endif
         alignedSum += bayerAlter * w[i];
     }
 

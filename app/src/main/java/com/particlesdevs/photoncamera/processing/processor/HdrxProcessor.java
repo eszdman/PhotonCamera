@@ -180,9 +180,16 @@ public class HdrxProcessor extends ProcessorBase {
         if(BurstShakiness.size() < mImageFramesToProcess.size()){
             Log.d(TAG,"Warning: Gyro data size:"+BurstShakiness.size()+" is less than image size:"+mImageFramesToProcess.size());
         }
+        java.util.HashMap<Long, GyroBurst> gyroByTimestamp = new java.util.HashMap<>();
+        for (GyroBurst gyro : BurstShakiness) gyroByTimestamp.put(gyro.frameTimestamp, gyro);
         for (int i = 0; i < mImageFramesToProcess.size(); i++) {
             ImageFrame frame = mImageFramesToProcess.get(i);
-            frame.frameGyro = BurstShakiness.get(i%BurstShakiness.size()); // cyclic for safety
+            frame.frameGyro = gyroByTimestamp.get(frame.timestamp);
+            if (frame.frameGyro == null) {
+                frame.frameGyro = new GyroBurst(0);
+                frame.frameGyro.frameTimestamp = frame.timestamp;
+                Log.w(TAG, "No gyro record for image timestamp " + frame.timestamp);
+            }
             //frame.image = mImageFramesToProcess.get(i);
             //Log.d(TAG,"Timestamp:"+frame.image.getTimestamp());
             //frame.pair = IsoExpoSelector.pairs.get(i % IsoExpoSelector.patternSize);
@@ -219,6 +226,18 @@ public class HdrxProcessor extends ProcessorBase {
         processingParameters.cameraRotation = cameraRotation;
 
         ParseExif.syncWithParameters(exifData, processingParameters);
+        // Missing gyro coverage must not rank a frame as perfectly still.
+        float measuredShake = 0;
+        int measuredFrames = 0;
+        for (ImageFrame image : images) if (image.frameGyro.orientationValid) {
+            measuredShake += image.frameGyro.shakiness;
+            measuredFrames++;
+        }
+        if (measuredFrames > 0) {
+            float unknownShake = measuredShake / measuredFrames;
+            for (ImageFrame image : images) if (!image.frameGyro.orientationValid)
+                image.frameGyro.shakiness = unknownShake;
+        }
         ImageFrameDeblur imageFrameDeblur = new ImageFrameDeblur(processingParameters);
         imageFrameDeblur.firstFrameGyro = images.get(0).frameGyro.clone();
         for (int i = 0; i < images.size(); i++)

@@ -18,6 +18,14 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.LinkedHashMap;
+import android.hardware.camera2.CameraCharacteristics;
+import android.hardware.camera2.CaptureResult;
+import android.hardware.camera2.CaptureRequest;
+import android.hardware.camera2.params.OisSample;
+import android.os.Build;
+import android.os.Handler;
+import android.os.HandlerThread;
 import java.util.Queue;
 
 import com.particlesdevs.photoncamera.util.SimpleStorageHelper;
@@ -85,13 +93,9 @@ public class Gyro {
         }
         @Override public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
-    public float[] mAngles;
-    private boolean gyroburst = false;
-    private float burstout = 0.f;
-    private long timeCount = 0;
-    private GyroBurst gyroBurst;
-    private int filter = -1;
-    public int tripodShakiness = 1000;
+    public volatile float[] mAngles;
+    private volatile int filter = -1;
+    public volatile int tripodShakiness = 1000;
     private static int delayPreview = 500;
     public static int delayUs = delayPreview;
     int tripodDetectCount = 600;
@@ -102,10 +106,10 @@ public class Gyro {
     long temp = 0;
     public static final float NS2S = 1.0f / 1000000000.0f;
     private long prevStamp = 0;
-    private int counter = 0;
-    boolean lock = false;
-    private double averageStamp = 0;
-    private int stampIterations = 0;
+    private volatile boolean registered;
+    // Gyro is application-owned. Reuse one idle thread across camera resumes.
+    private HandlerThread gyroThread;
+    private Handler gyroHandler;
 
     // ---- Rotation vector-based orientation with moving average ----
     private static final int MOVING_AVERAGE_SIZE = 10;
@@ -132,44 +136,17 @@ public class Gyro {
     private final SensorEventListener mGravityTracker = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent sensorEvent) {
-            mAngles = sensorEvent.values;
-            float anglex = 0.0f,angley = 0.0f,anglez = 0.0f;
-            if(prevStamp != 0) {
-                anglex = mAngles[0]*(sensorEvent.timestamp-prevStamp)*NS2S;
-                angley = mAngles[1]*(sensorEvent.timestamp-prevStamp)*NS2S;
-                anglez = mAngles[2]*(sensorEvent.timestamp-prevStamp)*NS2S;
-                double stampWeight = Math.min(1.0, 1.0 / (Math.min(stampIterations, 5000) + 1));
-                averageStamp = averageStamp * (1.0 - stampWeight) + (sensorEvent.timestamp - prevStamp) * NS2S * stampWeight;
-                stampIterations++;
-            }
-            //Log.d(TAG, "Gyro stampDiff:"+averageStamp);
-            if(integrate){
-                x+=anglex;
-                y+=angley;
-                z+=anglez;
-            }
-            if (gyroburst && !lock) {
-                burstout +=Math.abs(anglex);
-                burstout +=Math.abs(angley);
-                burstout +=Math.abs(anglez);
-                if(counter < gyroBurst.movementss[0].length) {
-                    gyroBurst.movementss[0][counter] = anglex;
-                    gyroBurst.movementss[1][counter] = angley;
-                    gyroBurst.movementss[2][counter] = anglez;
-                    counter++;
-                }
-
-
-            } else {
-                circleCount%=gyroCircle;
-                circleBurst.movementss[0][circleCount] = anglex;
-                circleBurst.movementss[1][circleCount] = angley;
-                circleBurst.movementss[2][circleCount] = anglez;
-                circleBurst.timestampss[circleCount] = sensorEvent.timestamp;
-                getShakiness();//For filtering
-                if(gyroburst) CompleteGyroBurst();
-                circleCount++;
-            }
+            if (!registered) return;
+            // SensorEvent.values is reused by Android; never retain its backing array.
+            mAngles = sensorEvent.values.clone();
+            history.add(sensorEvent.timestamp, mAngles[0], mAngles[1], mAngles[2]);
+            float dt = prevStamp == 0 ? 0 : (sensorEvent.timestamp-prevStamp)*NS2S;
+            circleCount %= gyroCircle;
+            for (int axis = 0; axis < 3; axis++)
+                circleBurst.movementss[axis][circleCount] = mAngles[axis]*dt;
+            circleBurst.timestampss[circleCount] = sensorEvent.timestamp;
+            circleCount++;
+            getShakiness();
             prevStamp = sensorEvent.timestamp;
         }
 
@@ -179,14 +156,28 @@ public class Gyro {
     };
 
     public Gyro(SensorManager sensorManager) {
+        this(sensorManager, new GyroHistory(65536));
+    }
+
+    Gyro(SensorManager sensorManager, GyroHistory history) {
+        this.history = history;
         mSensorManager = sensorManager;
         mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         mRotationVectorSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR);
     }
 
-    public void register() {
-        stampIterations = 0;
-        mSensorManager.registerListener(mGravityTracker, mGyroSensor, delayUs);
+    public synchronized void register() {
+        if (registered) return;
+        if (gyroThread == null) {
+            gyroThread = new HandlerThread("PhotonGyroscope");
+            gyroThread.start();
+            gyroHandler = new Handler(gyroThread.getLooper());
+        }
+        prevStamp = 0;
+        history.breakSequence();
+        registered = true;
+        // UI work during a burst must not delay gyro delivery past frame finalization.
+        mSensorManager.registerListener(mGravityTracker, mGyroSensor, delayUs, gyroHandler);
         if (mRotationVectorSensor != null) {
             mSensorManager.registerListener(mRotationVectorListener, mRotationVectorSensor, SensorManager.SENSOR_DELAY_FASTEST);
         }
@@ -198,170 +189,158 @@ public class Gyro {
         mRollSum = 0f;
     }
 
-    public void unregister() {
+    public synchronized void unregister() {
+        if (!registered) return;
+        registered = false;
+        history.breakSequence();
         if (mAngles != null)
             mAngles = mAngles.clone();
         mSensorManager.unregisterListener(mGravityTracker, mGyroSensor);
         mSensorManager.unregisterListener(mRotationVectorListener, mRotationVectorSensor);
     }
 
-    long[] capturingTimes;
-    public int capturingNumber = 0;
-    boolean integrate = false;
-    float x,y,z;
+    private final GyroHistory history;
+    public volatile int capturingNumber;
     private ArrayList<GyroBurst> BurstShakiness;
-    public void PrepareGyroBurst(long[] capturingTimes,ArrayList<GyroBurst> burstShakiness) {
-        lock = true;
+    private final LinkedHashMap<Long, FrameTiming> burstFrames = new LinkedHashMap<>();
+    private final LinkedHashMap<Long, FrameTiming> recentFrames = new LinkedHashMap<>();
+
+    private static class FrameTiming {
+        final long timestamp, exposure, skew;
+        final boolean sharedTimebase;
+        boolean oisValid;
+        float oisX, oisY;
+        FrameTiming(long timestamp, long exposure, long skew, boolean sharedTimebase) {
+            this.timestamp = timestamp;
+            this.exposure = exposure;
+            this.skew = skew;
+            this.sharedTimebase = sharedTimebase;
+        }
+    }
+
+    public synchronized void PrepareGyroBurst(ArrayList<GyroBurst> result) {
         capturingNumber = 0;
-        x = 0.f;
-        y = 0.f;
-        z = 0.f;
-        this.capturingTimes = new long[capturingTimes.length];
-        long maxTime = Long.MIN_VALUE;
-        for(long time : capturingTimes){
-            if(time > maxTime) maxTime = time;
-        }
-        int requiredSamples = 65535;
-        //delayUs = (int) (maxTime/requiredSamples)/1000;
-        delayUs = 0;
-        Log.d(TAG,"Gyro DelayUs:"+delayUs);
-        gyroBurst = new GyroBurst(requiredSamples);
-        System.arraycopy(capturingTimes, 0, this.capturingTimes, 0, capturingTimes.length);
-        BurstShakiness = burstShakiness;
-        unregister();
-        register();
-        lock = false;
+        burstFrames.clear();
+        result.clear();
+        BurstShakiness = result;
+        // Keep the sensor registered: restarting here loses motion before the first exposure.
     }
 
+    public synchronized void CaptureGyroBurst(long timestamp, long requestedExposure) {
+        if (!burstFrames.containsKey(timestamp)) {
+            burstFrames.put(timestamp, new FrameTiming(timestamp, requestedExposure, 0, false));
+            capturingNumber++;
+        }
+    }
 
-    public void CaptureGyroBurst() {
-        //Save previous
-        if(gyroburst){
-            CompleteGyroBurst();
-        }
-        counter = 0;
-        integrate = true;
-        timeCount = capturingTimes[capturingNumber%capturingTimes.length]+System.nanoTime();
-        //gyroBurst.timestamps.add(System.nanoTime());
-        burstout = 0;
-        gyroburst = true;
-        capturingNumber++;
-    }
-    public void CompleteGyroBurst() {
-        if(gyroburst) {
-            gyroburst = false;
-            gyroBurst.shakiness = Math.min(burstout * burstout, Float.MAX_VALUE);
-            gyroBurst.samples = counter;
-            gyroBurst.integrated[0] = -x;
-            gyroBurst.integrated[1] = y;
-            gyroBurst.integrated[2] = z;
-            BurstShakiness.add(gyroBurst.clone());
-            //Log.d(TAG, "GyroBurst counter:" + BurstShakiness.size()+" sampleCount:"+counter+" shakiness:"+gyroBurst.shakiness);
-        }
-    }
-    /**
-     * Fills BurstShakiness for ZSL captures by extracting per-frame gyro motion from the
-     * continuous circle buffer, matching each frame's sensor timestamp window.
-     *
-     * @param frameTimestamps sensor timestamps (nanoseconds) for each pre-captured ZSL frame
-     * @param exposureTimeNs  exposure duration (nanoseconds) to define each frame's time window
-     * @param result          list to receive one GyroBurst entry per frame
-     */
-    public void buildZslBurstShakiness(long[] frameTimestamps, long exposureTimeNs, ArrayList<GyroBurst> result) {
-        this.BurstShakiness = result;
-        for (long frameTs : frameTimestamps) {
-            long windowStart = frameTs - Math.max(exposureTimeNs, 1);
-            long windowEnd = frameTs;
-            GyroBurst burst = new GyroBurst(gyroCircle);
-            int sampleCount = 0;
-            for (int i = 0; i < gyroCircle; i++) {
-                long ts = circleBurst.timestampss[i];
-                if (ts >= windowStart && ts <= windowEnd && sampleCount < gyroCircle) {
-                    burst.movementss[0][sampleCount] = circleBurst.movementss[0][i];
-                    burst.movementss[1][sampleCount] = circleBurst.movementss[1][i];
-                    burst.movementss[2][sampleCount] = circleBurst.movementss[2][i];
-                    sampleCount++;
+    /** Capture results may arrive late; only their sensor times determine the window. */
+    public synchronized void recordCaptureResult(CaptureResult result,
+                                                  CameraCharacteristics characteristics) {
+        Long timestamp = result.get(CaptureResult.SENSOR_TIMESTAMP);
+        Long exposure = result.get(CaptureResult.SENSOR_EXPOSURE_TIME);
+        Long skew = result.get(CaptureResult.SENSOR_ROLLING_SHUTTER_SKEW);
+        if (timestamp == null || exposure == null) return;
+        Integer source = characteristics.get(CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE);
+        boolean realtime = source != null
+                && source == CameraCharacteristics.SENSOR_INFO_TIMESTAMP_SOURCE_REALTIME;
+        FrameTiming timing = new FrameTiming(timestamp, exposure, skew == null ? 0 : skew, realtime);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            OisSample[] samples = result.get(CaptureResult.STATISTICS_OIS_SAMPLES);
+            long midpoint = timestamp+(exposure+timing.skew)/2;
+            if (samples != null) {
+                OisSample before = null, after = null;
+                for (OisSample sample : samples) {
+                    if (sample.getTimestamp() <= midpoint && (before == null
+                            || sample.getTimestamp() > before.getTimestamp())) before = sample;
+                    if (sample.getTimestamp() >= midpoint && (after == null
+                            || sample.getTimestamp() < after.getTimestamp())) after = sample;
+                }
+                if (before != null && after != null) {
+                    double weight = after.getTimestamp() == before.getTimestamp() ? 0
+                            : (double)(midpoint-before.getTimestamp())/(after.getTimestamp()-before.getTimestamp());
+                    timing.oisX = (float)(before.getXshift()+(after.getXshift()-before.getXshift())*weight);
+                    timing.oisY = (float)(before.getYshift()+(after.getYshift()-before.getYshift())*weight);
+                    timing.oisValid = true;
                 }
             }
-            burst.samples = sampleCount;
-            result.add(burst);
+        }
+        recentFrames.put(timestamp, timing);
+        while (recentFrames.size() > 256)
+            recentFrames.remove(recentFrames.keySet().iterator().next());
+        if (burstFrames.containsKey(timestamp)) burstFrames.put(timestamp, timing);
+    }
+
+    public synchronized void buildZslBurstShakiness(long[] timestamps, ArrayList<GyroBurst> result) {
+        PrepareGyroBurst(result);
+        for (long timestamp : timestamps) {
+            FrameTiming timing = recentFrames.get(timestamp);
+            burstFrames.put(timestamp, timing != null ? timing
+                    : new FrameTiming(timestamp, 0, 0, false));
+        }
+        capturingNumber = burstFrames.size();
+    }
+
+    public synchronized void CompleteSequence() {
+        if (BurstShakiness == null || burstFrames.isEmpty()) return;
+        long lastEnd = 0;
+        for (FrameTiming timing : burstFrames.values()) {
+            if (timing.sharedTimebase)
+                lastEnd = Math.max(lastEnd, timing.timestamp+timing.exposure+timing.skew);
+        }
+        // Sensor callbacks may trail the last result. Bound the wait; an uncovered
+        // window stays invalid instead of extrapolating stale angular velocities.
+        if (lastEnd > 0 && mGyroSensor != null) history.awaitTimestamp(lastEnd, 100);
+        BurstShakiness.clear();
+        for (FrameTiming timing : burstFrames.values()) {
+            GyroBurst record = history.snapshot(timing.timestamp, timing.exposure,
+                    timing.skew, timing.sharedTimebase);
+            record.oisValid = timing.oisValid;
+            record.oisX = timing.oisX;
+            record.oisY = timing.oisY;
+            BurstShakiness.add(record);
+            Log.d(TAG, "Gyro frame ts="+record.frameTimestamp+" samples="+record.samples
+                    +" valid="+record.orientationValid+" shake="+record.shakiness);
+        }
+        burstFrames.clear();
+    }
+
+    /** Request telemetry only on cameras which advertise it; does not change OIS mode. */
+    public static void enableOisReporting(CaptureRequest.Builder request, CameraCharacteristics camera) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) return;
+        int[] modes = camera.get(CameraCharacteristics.STATISTICS_INFO_AVAILABLE_OIS_DATA_MODES);
+        if (modes == null) return;
+        for (int mode : modes) if (mode == CaptureRequest.STATISTICS_OIS_DATA_MODE_ON) {
+            request.set(CaptureRequest.STATISTICS_OIS_DATA_MODE, mode);
+            return;
         }
     }
 
-    public void CompleteSequence() {
-        integrate = false;
-        gyroburst = false;
-        delayUs = delayPreview;
-        unregister();
-        register();
-        int avgSize = 0;
-        for (GyroBurst burst : BurstShakiness) {
-            avgSize += burst.samples;
-        }
-        if (!BurstShakiness.isEmpty()) {
-            avgSize/=BurstShakiness.size();
-        }
-        for(int i =0; i<BurstShakiness.size();i++) {
-            int shakeInteg = BurstShakiness.get(i).samples;
-            if(BurstShakiness.get(i).samples > avgSize*2){
-                shakeInteg = Math.min(avgSize,shakeInteg);
-            }
-            float shakiness = 0;
-            for (int j = 0; j < shakeInteg; j++) {
-                shakiness += Math.abs(BurstShakiness.get(i).movementss[0][j]);
-                shakiness += Math.abs(BurstShakiness.get(i).movementss[1][j]);
-                shakiness += Math.abs(BurstShakiness.get(i).movementss[2][j]);
-            }
-            BurstShakiness.get(i).shakiness = shakiness;
-            BurstShakiness.get(i).samples = shakeInteg;
-        }
-        for(int i =0; i<BurstShakiness.size();i++){
-            float shakinessP = 0.f;
-            float shakinessA = 0.f;
-            int sizeP = 0;
-            int sizeA = 0;
-            if(i > 0) {
-                shakinessP = BurstShakiness.get(i - 1).shakiness;
-                sizeP = BurstShakiness.get(i - 1).samples;
-            }
-            if(i < BurstShakiness.size()-1) {
-                shakinessA = BurstShakiness.get(i + 1).shakiness;
-                sizeA = BurstShakiness.get(i + 1).samples;
-            }
-            float shakiness = BurstShakiness.get(i).shakiness;
-            int size = BurstShakiness.get(i).samples;
-            if(size < (sizeP+sizeA)/3){
-                size = Math.max(size,1);
-                sizeP = Math.max(sizeP,1);
-                sizeA = Math.max(sizeA,1);
-                BurstShakiness.get(i).shakiness = (shakinessP*sizeP + shakinessA*sizeA + shakiness*size)/(sizeP+size+sizeA);
-            }
-            Log.d(TAG, "GyroBurst Shakiness["+i+"]:" + BurstShakiness.get(i).shakiness+" sampleCount:"+ BurstShakiness.get(i).samples);
-        }
-    }
+    private final Object shakinessLock = new Object();
 
     public int getShakiness() {
-        if (mAngles == null) {
-            return 0;
-        }
-        int output = 0;
-        for (float f : mAngles) {
-            output += Math.abs((int) (f * 1000));
-        }
-        if (filter == -1) {
+        synchronized (shakinessLock) {
+            if (mAngles == null) {
+                return 0;
+            }
+            int output = 0;
+            for (float f : mAngles) {
+                output += Math.abs((int) (f * 1000));
+            }
+            if (filter == -1) {
+                filter = output;
+            }
+            output = (int) (output * (1.0f - fk) + filter * (fk));
             filter = output;
+            tripodCounter++;
+            tripodCounter%=tripodDetectCount;
+            if(tripodCounter == tripodDetectCount-1){
+                tripodShakiness = (int) (temp);
+                temp = 0;
+            } else {
+                temp = Math.max(output,temp);
+            }
+            return output;
         }
-        output = (int) (output * (1.0f - fk) + filter * (fk));
-        filter = output;
-        tripodCounter++;
-        tripodCounter%=tripodDetectCount;
-        if(tripodCounter == tripodDetectCount-1){
-            tripodShakiness = (int) (temp);
-            temp = 0;
-        } else {
-            temp = Math.max(output,temp);
-        }
-        return output;
     }
     public int getFilteredShakiness() {
         return filter;

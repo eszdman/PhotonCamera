@@ -682,6 +682,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             Integer state = result.get(CaptureResult.FLASH_STATE);
             mFlashed = state != null && state == CaptureResult.FLASH_STATE_PARTIAL || state == CaptureResult.FLASH_STATE_FIRED;
             mPreviewCaptureResult = result;
+            if (isZslMode()) PhotonCamera.getGyro().recordCaptureResult(result, mCameraCharacteristics);
             mPreviewCaptureRequest = request;
 
             RggbChannelVector halGains = result.get(CaptureResult.COLOR_CORRECTION_GAINS);
@@ -3576,6 +3577,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mPreviewRequestBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_PREVIEW);
         }
 
+        if (isZslMode()) com.particlesdevs.photoncamera.control.Gyro.enableOisReporting(
+                mPreviewRequestBuilder, mCameraCharacteristics);
         mPreviewRequestBuilder.addTarget(surface);
         synchronized (mZslBufferLock) {
             while (!mZslRingBuffer.isEmpty()) {
@@ -3976,7 +3979,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
         for (int i = 0; i < actualCount; i++) {
             frameTimestamps[i] = selected.get(i).timestamp;
         }
-        PhotonCamera.getGyro().buildZslBurstShakiness(frameTimestamps, exposureTimeNs, BurstShakiness);
+        PhotonCamera.getGyro().buildZslBurstShakiness(frameTimestamps, BurstShakiness);
 
         // Populate fullpairs the same way setExpo() does for a normal burst
         IsoExpoSelector.fullpairs.clear();
@@ -4025,6 +4028,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             } else {
                 captureBuilder = mCameraDevice.createCaptureRequest(CameraDevice.TEMPLATE_STILL_CAPTURE);
             }
+            com.particlesdevs.photoncamera.control.Gyro.enableOisReporting(captureBuilder, mCameraCharacteristics);
             float focus = mFocus;
             double frametime = ExposureIndex.time2sec(IsoExpoSelector.GenerateExpoPair(-1, this).exposure);
             //this.mCaptureSession.stopRepeating();
@@ -4168,14 +4172,12 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     captures.add(captureBuilder.build());
                 }
             } else {
-                long[] times = new long[frameCount];
                 for (int i = 0; i < frameCount; i++) {
                     IsoExpoSelector.setExpo(captureBuilder, i, this);
-                    times[i] = IsoExpoSelector.lastSelectedExposure;
                     captures.add(captureBuilder.build());
                     mCaptureRequest = captureBuilder.build();
                 }
-                PhotonCamera.getGyro().PrepareGyroBurst(times, BurstShakiness);
+                PhotonCamera.getGyro().PrepareGyroBurst(BurstShakiness);
             }
 
             //img
@@ -4188,7 +4190,7 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             }*/
             Log.d(TAG, "CaptureStarted!");
 
-            final long[] baseFrameNumber = {0};
+            final long[] baseFrameNumber = {-1};
             final int[] maxFrameCount = {frameCount};
 
             cameraEventsListener.onCaptureStillPictureStarted("CaptureStarted!");
@@ -4203,15 +4205,17 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                                              long timestamp,
                                              long frameNumber) {
 
-                    if (baseFrameNumber[0] == 0) {
+                    if (baseFrameNumber[0] < 0) {
                         baseFrameNumber[0] = frameNumber;
-                        if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CaptureGyroBurst();
                         Log.v("BurstCounter", "CaptureStarted with FirstFrameNumber:" + frameNumber);
                     } else {
                         Log.v("BurstCounter", "CaptureStarted:" + frameNumber);
                     }
                     cameraEventsListener.onFrameCaptureStarted(null);
-                    //if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CaptureGyroBurst();
+                    if (maxFrameCount[0] != -1) {
+                        Long exposure = request.get(CaptureRequest.SENSOR_EXPOSURE_TIME);
+                        PhotonCamera.getGyro().CaptureGyroBurst(timestamp, exposure == null ? 0 : exposure);
+                    }
                 }
 
                 @Override
@@ -4266,7 +4270,8 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
                     if (onUnlimited) mImageSaver.videoCaptureResult(result);
                     //if(frameCount == 0)
                         mCaptureResult = result;
-                    if (maxFrameCount[0] != -1) PhotonCamera.getGyro().CaptureGyroBurst();
+                    if (maxFrameCount[0] != -1)
+                        PhotonCamera.getGyro().recordCaptureResult(result, mCameraCharacteristics);
                 }
 
                 @Override

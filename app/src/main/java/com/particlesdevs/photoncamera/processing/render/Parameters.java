@@ -66,6 +66,8 @@ public class Parameters {
     public float focalLength;
     public float aperture;
     public int cameraRotation;
+    /** Capture-camera calibration, kept separate from display rotation and legacy mm intrinsics. */
+    public com.particlesdevs.photoncamera.processing.GyroAlignment.Calibration gyroCalibration;
     public NoiseModeler noiseModeler;
     public ColorCorrectionTransform CCT;
     public SizeF sensorSize;
@@ -151,6 +153,7 @@ public class Parameters {
         com.particlesdevs.photoncamera.settings.SensorConfigInjector.applyToSensor(String.valueOf(physicalID), this);
 
         rawSize = size;
+        gyroCalibration = new com.particlesdevs.photoncamera.processing.GyroAlignment.Calibration(characteristics);
         alignmentSize = new Point((size.x / (tile)) + 1, (size.y / (tile)) + 1);
         tilesX = (rawSize.x / 800) + 1;
         Integer analogue = characteristics.get(CameraCharacteristics.SENSOR_MAX_ANALOG_SENSITIVITY);
@@ -683,6 +686,7 @@ public class Parameters {
         params.hotPixels = hotPixels.clone();
         params.focalLength = focalLength;
         params.cameraRotation = cameraRotation;
+        params.gyroCalibration = gyroCalibration;
         params.CCT = CCT;
         return params;
     }

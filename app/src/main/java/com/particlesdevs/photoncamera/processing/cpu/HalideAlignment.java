@@ -2,9 +2,12 @@ package com.particlesdevs.photoncamera.processing.cpu;
 
 import android.annotation.SuppressLint;
 import android.graphics.Point;
+import android.os.SystemClock;
 
 import com.particlesdevs.photoncamera.processing.ImageFrame;
 import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLProg;
+import com.particlesdevs.photoncamera.processing.opengl.GpuGyroPrewarp;
 import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
 import com.particlesdevs.photoncamera.processing.opengl.scripts.PyramidAlignment;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
@@ -19,8 +22,9 @@ import static android.opengl.GLES20.GL_NEAREST;
 
 /**
  * CPU (Halide / NEON) burst alignment - drop-in replacement for
- * {@link PyramidAlignment}, producing an identical Result atlas so the merge
- * stage is untouched.
+ * {@link PyramidAlignment}, using the same Result atlas encoding. With gyro
+ * prealignment the atlas contains residuals in prewarped coordinates; the
+ * merge stage must compose them with the same reference-to-source homography.
  *
  * Structure mirrors PyramidAlignment (and the halide-align reference
  * implementation this wraps): the base frame's padded u8 pyramid is built
@@ -87,10 +91,15 @@ public class HalideAlignment implements AutoCloseable {
      * ESD4D "Halide flow refinement" tunable.
      */
     public boolean refineFlow = true;
+    /** Per-frame reference-to-source raw homographies. Returned vectors are residuals. */
+    public float[][] gyroHomographies;
 
     private final ArrayList<ImageFrame> images;
     private final Point size;
     private long ctx;
+    private final GLProg gyroProgram;
+    private final GLTexture gyroInput;
+    private GpuGyroPrewarp gyroPrewarp;
 
     // Baked generator params (must match the prebuilt kernels):
     // tile 16, stride 8 (50% overlap), radius 4, levels [1..4], sqrt
@@ -116,8 +125,15 @@ public class HalideAlignment implements AutoCloseable {
     private static native void nSetRefineEnabled(boolean on);
 
     public HalideAlignment(Point size, ArrayList<ImageFrame> images) {
+        this(size, images, null, null);
+    }
+
+    /** Shares ESD4D's upload texture and program for GPU prealignment. */
+    public HalideAlignment(Point size, ArrayList<ImageFrame> images, GLProg program, GLTexture input) {
         this.size = size;
         this.images = images;
+        gyroProgram = program;
+        gyroInput = input;
     }
 
     public static boolean isAvailable() {
@@ -192,6 +208,8 @@ public class HalideAlignment implements AutoCloseable {
         // Zero-initialized atlas = identity alignment for uncovered cells.
         float[] atlas = new float[size.x * size.y * 4];
 
+        long prewarpNs = 0, matchingNs = 0;
+        int warpedFrames = 0;
         for (int f = 1; f < images.size(); f++) {
             ImageFrame frame = images.get(f);
             // Alt normalized values are layerMpy times larger than base's;
@@ -199,7 +217,28 @@ public class HalideAlignment implements AutoCloseable {
             // base's range, same as the GLSL exposure clamp).
             float whiteEff = frame.pair.layerMpy > 0.f ? frame.pair.layerMpy : 1.f;
             t0 = System.currentTimeMillis();
-            float[] vecs = nAlignFrame(ctx, frame.buffer, whiteEff);
+            float[] homography = gyroHomographies == null ? null : gyroHomographies[f];
+            float[] vecs;
+            long stageStart = SystemClock.elapsedRealtimeNanos();
+            if (homography != null) {
+                if (gyroPrewarp == null) {
+                    if (gyroProgram == null || gyroInput == null) {
+                        throw new IllegalStateException("Gyro prealignment requires a GPU program and raw texture");
+                    }
+                    gyroPrewarp = new GpuGyroPrewarp(gyroProgram, gyroInput);
+                }
+                try (GpuGyroPrewarp.WarpedFrame warped = gyroPrewarp.warp(frame.buffer, homography)) {
+                    prewarpNs += SystemClock.elapsedRealtimeNanos() - stageStart;
+                    stageStart = SystemClock.elapsedRealtimeNanos();
+                    // Both hierarchical matching and flow refinement see the GPU-warped raw.
+                    vecs = nAlignFrame(ctx, warped.pixels, whiteEff);
+                    matchingNs += SystemClock.elapsedRealtimeNanos() - stageStart;
+                }
+                warpedFrames++;
+            } else {
+                vecs = nAlignFrame(ctx, frame.buffer, whiteEff);
+                matchingNs += SystemClock.elapsedRealtimeNanos() - stageStart;
+            }
             if (vecs == null) {
                 throw new IllegalStateException("alignburst_f16 failed for frame " + f);
             }
@@ -247,15 +286,25 @@ public class HalideAlignment implements AutoCloseable {
                     + "): " + tAlign + "ms");
         }
 
+        Log.d(TAG, "GPU prewarp: " + warpedFrames + " frames, upload+warp+readback="
+                + prewarpNs / 1_000_000.0 + "ms; native matching=" + matchingNs / 1_000_000.0 + "ms");
+
         Result = new GLTexture(size, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                 BufferUtils.getFrom(atlas), GL_NEAREST, GL_CLAMP_TO_EDGE);
     }
 
     @Override
     public void close() {
-        if (ctx != 0) {
-            nRelease(ctx);
-            ctx = 0;
+        try {
+            if (gyroPrewarp != null) {
+                gyroPrewarp.close();
+                gyroPrewarp = null;
+            }
+        } finally {
+            if (ctx != 0) {
+                nRelease(ctx);
+                ctx = 0;
+            }
         }
     }
 }
