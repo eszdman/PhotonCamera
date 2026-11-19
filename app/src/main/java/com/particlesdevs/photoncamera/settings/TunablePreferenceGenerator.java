@@ -9,16 +9,21 @@ import androidx.preference.PreferenceScreen;
 
 import com.particlesdevs.photoncamera.util.Log;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
+import com.particlesdevs.photoncamera.settings.annotations.TunableAction;
+import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableActionPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableCheckBoxPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableListPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunablePngPreference;
 import com.particlesdevs.photoncamera.ui.settings.custompreferences.TunableSeekBarPreference;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Locale;
 
 /**
  * Automatically generates preference UI from @Tunable annotations.
@@ -99,6 +104,26 @@ public class TunablePreferenceGenerator {
                 }
             }
             
+            // Actions can also create categories that contain no tunable fields.
+            for (Class<?> clazz : TUNABLE_CLASSES) {
+                for (Method method : clazz.getDeclaredMethods()) {
+                    TunableAction action = method.getAnnotation(TunableAction.class);
+                    if (action == null) continue;
+                    if (!Modifier.isPublic(method.getModifiers()) || !Modifier.isStatic(method.getModifiers())
+                            || method.getParameterCount() != 0 || method.getReturnType() != void.class) {
+                        Log.w(TAG, "Tunable action must be public static void with no arguments: " + method);
+                        continue;
+                    }
+                    String key = "pref_tunable_action_" + clazz.getSimpleName().toLowerCase(Locale.ROOT)
+                            + "_" + method.getName().toLowerCase(Locale.ROOT);
+                    if (tunableSubmenu.findPreference(key) != null) continue;
+                    PreferenceCategory category = findOrCreateCategory(context, tunableSubmenu, action.category());
+                    TunableActionPreference preference = new TunableActionPreference(context, method, action);
+                    preference.setKey(key);
+                    category.addPreference(preference);
+                }
+            }
+
             Log.d(TAG, "=== generatePreferences COMPLETE - Generated preferences for " + TUNABLE_CLASSES.size() + " classes ===");
         } catch (Exception e) {
             Log.e(TAG, "ERROR in generatePreferences: " + e.getMessage(), e);

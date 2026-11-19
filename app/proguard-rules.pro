@@ -23,6 +23,9 @@
 # ===== Tunable Annotation System Rules =====
 # Keep the @Tunable annotation
 -keep @interface com.particlesdevs.photoncamera.settings.annotations.Tunable
+-keepclasseswithmembers class * {
+    @com.particlesdevs.photoncamera.settings.annotations.TunableAction <methods>;
+}
 -keepattributes *Annotation*
 -keepattributes RuntimeVisibleAnnotations
 -keepattributes RuntimeInvisibleAnnotations

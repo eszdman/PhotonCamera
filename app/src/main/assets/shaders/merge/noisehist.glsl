@@ -5,11 +5,8 @@ uniform sampler2D inTexture;
 uniform vec4 exposure;
 uniform float input1;
 uniform float input2;
-// Row-major 3x3 kernel for the f-matched difference operator (only when
-// SPATIAL_KERNEL is defined). ESD4D passes the same progressive Gaussian
-// weights the temporal blend used, so the operator's nulls align with the
-// temporal kernel's passband: detail the blend did not blur is exactly
-// where the operator is blind.
+// Row-major full 3x3 Gaussian for the spatial difference operator (only
+// when SPATIAL_KERNEL is defined), independent of temporal frame count.
 uniform float spatialKernel[9];
 #define COL_R 1
 #define COL_G 1
@@ -74,26 +71,32 @@ for (uint i = 0u; i < HISTSTEPS; i++) {
     }
 barrier();
 
-if (storePos.x < imgsize.x && storePos.y < imgsize.y) {
+bool validSample = storePos.x < imgsize.x && storePos.y < imgsize.y;
+#if SPATIAL_KERNEL
+// Clamped image borders change the filter's noise response and create
+// artificial structure. Keep the calibrated interior only.
+validSample = validSample && all(greaterThanEqual(storePos, ivec2(2)))
+        && all(lessThan(storePos, imgsize - ivec2(2)));
+#endif
+if (validSample) {
 vec4 texColor = texture(inTexture,(vec2(storePos) + 0.5)/vec2(imgsize));
 uvec4 texColorUint = clamp(uvec4(exposure * texColor), uvec4(0), uvec4(HISTSIZE - 1));
         #if COL_CUSTOM == 1
         #if SPATIAL_KERNEL
         // ------------------------------------------------------------
-        // Luma f-matched difference operator (ESD4D adaptive noise): the
+        // Luma spatial difference operator (ESD4D adaptive noise): the
         // quad luma (mean of the 4 packed Bayer channels) against its
-        // kernel mean, with the same progressive weights the temporal
-        // blend used (largest symmetric prefix). Working on the luma:
+        // fixed full 3x3 Gaussian mean. Working on the luma:
         //   - chroma structure cancels exactly (opposite-signed channel
         //     deviations cancel in the mean),
-        //   - the luma noise variance equals S*b + O in quad-mean
-        //     brightness for ANY white point (channel weights cancel
-        //     identically),
+        //   - independent channels have luma noise variance (S*b+O)/4
+        //     under the shared per-channel sensor model,
         //   - the symmetric kernel annihilates planes, so gradients
         //     contribute exactly zero.
-        // Robustness comes from the histogram's per-brightness-row cutoff
-        // over ~1e5 samples; the noise response is calibrated end-to-end
-        // by NOISE_BLEND_VAR_STAT (see tools/.../luma_mc.py).
+        // The CPU fits half-normal row distributions using the linear
+        // filter's STD response, then rejects texture using neighboring
+        // brightness rows. Native binning correlations are included in
+        // NoiseHistogramCalibration.
         // ------------------------------------------------------------
         float lcenter = dot(texColor, vec4(0.25));
         float kmean = 0.0;

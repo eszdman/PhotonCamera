@@ -8,6 +8,7 @@ import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
 import com.particlesdevs.photoncamera.processing.opengl.GLBuffer;
 import com.particlesdevs.photoncamera.settings.annotations.Tunable;
+import com.particlesdevs.photoncamera.settings.annotations.TunableAction;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -23,6 +24,8 @@ import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
 import com.particlesdevs.photoncamera.processing.render.Parameters;
 import com.particlesdevs.photoncamera.settings.DynamicNoiseStore;
 import com.particlesdevs.photoncamera.util.Allocator;
+import com.particlesdevs.photoncamera.util.AdaptiveNoiseModel;
+import com.particlesdevs.photoncamera.util.NoiseHistogramCalibration;
 import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.Math2;
 
@@ -41,6 +44,8 @@ import static android.opengl.GLES20.GL_NEAREST;
 
 public class ESD4D extends GLOneScript {
     public Parameters parameters;
+    /** Raw spatial estimate before sensor-prior limits or persistent storage. */
+    public AdaptiveNoiseModel.Model measuredNoiseModel;
     ArrayList<ImageFrame> images;
     //ByteBuffer alignment;
     GLProg glProg;
@@ -336,23 +341,35 @@ public class ESD4D extends GLOneScript {
     @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
     boolean enableNoiseStore;
 
+    @TunableAction(title = "Reset adaptive noise model", category = "Merge",
+            description = "Clear learned noise estimates for all cameras, including binned captures",
+            confirmation = "Clear learned noise models for all cameras and resolutions? New photos will rebuild the calibration.",
+            successMessage = "Adaptive noise models reset",
+            failureMessage = "Could not reset adaptive noise models")
+    public static void resetAdaptiveNoiseModel() throws java.io.IOException {
+        DynamicNoiseStore.dynamicNoiseStore.resetAll();
+    }
+
+    @Tunable(title = "Low ISO noise variance limit", category = "Merge", description = "Maximum fitted variance relative to the sensor model at low ISO until a higher-ISO calibration is available; 2 limits sigma to sqrt(2) of the sensor model", min = 1.0f, max = 8.0f, step = 0.25f, defaultValue = 2.0f)
+    float lowIsoNoiseVarianceLimit;
+
     @Tunable(title = "Network merge noise multiplier", category = "Merge", description = "Scales the noise model fed to the kernel network", min = 0.1f, max = 20.0f, step = 0.05f, defaultValue = 1.0f)
     float noiseMpy;
 
     @Tunable(title = "Noise blend max frames", category = "Merge", description = "Frames combined into the deliberately misaligned progressive Gaussian blend used for noise estimation (blurs scene detail while noise only drops by a known factor)", min = 1, max = 9, step = 1, defaultValue = 9)
     int noiseBlendMaxFrames;
 
-    @Tunable(title = "Noise blend calibration", category = "Merge", description = "Trim multiplier on the Monte-Carlo noise blend calibration table (1.0 = table value)", min = 0.5f, max = 2.0f, step = 0.05f, defaultValue = 1.0f)
+    @Tunable(title = "Noise blend calibration", category = "Merge", description = "Trim multiplier on the physical spatial and temporal residual response (1.0 = analytical response)", min = 0.5f, max = 2.0f, step = 0.05f, defaultValue = 1.0f)
     float noiseBlendCalMpy;
 
-    @Tunable(title = "Noise scan subsample", category = "Merge", description = "Stride between texels evaluated by the noise histogram; the cheap difference operator supports a dense stride (was fixed 3 in the median-chain era)", min = 1, max = 8, step = 1, defaultValue = 3)
+    @Tunable(title = "Noise histogram range", category = "Merge", description = "Residual histogram range in expected noise sigmas; lower values resolve low ISO more finely", min = 2.0f, max = 8.0f, step = 0.5f, defaultValue = 4.0f)
+    float noiseHistogramRange;
+
+    @Tunable(title = "Noise brightness texture gate", category = "Merge", description = "Variance allowance above the noise curve supported by neighboring brightness rows", min = 1.25f, max = 4.0f, step = 0.05f, defaultValue = 1.8f)
+    float noiseBrightnessTextureGate;
+
+    @Tunable(title = "Noise scan subsample", category = "Merge", description = "Maximum stride between texels evaluated by the noise histogram; small inputs use denser scanning to retain enough samples", min = 1, max = 8, step = 1, defaultValue = 3)
     int noiseScanSubsample;
-
-    @Tunable(title = "Noise fit variance bins", category = "Merge", description = "Per-brightness-row cutoff on occupied variance bins kept by the noise fit pass 1 (lower rejects texture harder but undershoots on texture-free scenes; was fixed 45)", min = 8, max = 45, step = 1, defaultValue = 45)
-    int noiseFitVarBins;
-
-    @Tunable(title = "Noise fit gate", category = "Merge", description = "Adaptive per-brightness gate: pass 2 keeps only histogram bins whose implied variance is within this multiple of the pass-1 fitted noise (the per-brightness lower part; rejects texture and saturated bins). 0 disables", min = 0.0f, max = 5.0f, step = 0.25f, defaultValue = 2.0f)
-    float noiseFitGateMpy;
 
     @Tunable(title = "Read noise floor multiplier", category = "Merge", description = "Multiplier on the analytic OPlace read-noise floor applied to fitted O; the legacy 3.0 compensated texture leakage that the noise blend now removes", min = 0.5f, max = 4.0f, step = 0.25f, defaultValue = 1.0f)
     float noiseOFloorMpy;
@@ -375,23 +392,6 @@ public class ESD4D extends GLOneScript {
      * frames (9 -> full 3x3 Gaussian, 5 -> plus, 2 -> two-tap, 1 -> identity). */
     private static final int[][] BLEND_GRID = {
             {0, 0}, {1, 0}, {-1, 0}, {0, 1}, {0, -1}, {1, 1}, {1, -1}, {-1, 1}, {-1, -1}};
-    /** End-to-end calibration for the luma difference operator
-     * |quad luma - kernel mean| (fixed full 3x3 Gaussian, sigma_g = 1) on
-     * the progressive temporal blend, folded for the two-pass fit with the
-     * default gate (noiseFitGateMpy = 2.0): E[noisehist "var"] =
-     * VAR_STAT[f-1] * sigma for white per-frame noise through the blend,
-     * the luma operator, the histogram binning and the gated weighted fit
-     * (frame count f = 1..9). Measured by
-     * tools/noise-blend-calibration/fixed_mc.py; trim with the
-     * noiseBlendCalMpy tunable if device measurements disagree. */
-    private static final float[] NOISE_BLEND_VAR_STAT = {
-            0.23862f, 0.17435f, 0.14193f, 0.12277f, 0.10907f, 0.10082f, 0.09468f, 0.08916f, 0.08433f};
-    /** Variance-axis anchor: bin 63 maps to sigma = SIGMA_REF for every frame
-     * count (varScale = 63 / (VAR_STAT[f-1] * SIGMA_REF)), keeping bin
-     * resolution in sigma terms constant and 2.4x-31x finer than the old
-     * fixed 384 scale. */
-    private static final float NOISE_BLEND_SIGMA_REF = 0.12f;
-
     /**
      * Builds the noise-estimation input: up to {@code noiseBlendMaxFrames}
      * frames (spaced across the burst) each sampled at its own slot of the
@@ -404,19 +404,19 @@ public class ESD4D extends GLOneScript {
      * operator |quad luma - kernel mean| with a FIXED full 3x3 Gaussian
      * (sigma_g = 1, filled into spatialKernel, independent of frame count -
      * the temporal kernel is the only f-adaptive part): chroma structure
-     * cancels exactly in the luma mean, the luma noise variance equals
-     * S*b + O in quad-mean brightness for any white point, and the
-     * symmetric kernel annihilates planes (gradients) precisely. Exposure
-     * differences are
-     * harmless: the conversion is linear, so every frame's variance obeys
-     * the same variance = S*brightness + O in normalized units. Reuses
+     * is reduced in the luma mean, and independent Bayer-channel noise has
+     * luma variance (S*b + O)/4 under the shared per-channel model. The
+     * symmetric kernel annihilates planes (gradients) precisely. Only frames
+     * matching the reference exposure and ISO participate: HDR layers have
+     * different brightness and noise weights and invalidate this calibration.
+     * The fitting domain remains sensor RAW, independent of ETTR metering. Reuses
      * {@code alter} as the per-frame conversion target and ping-pongs
      * between {@code baseAlter} and one new texture (both unused until the
      * merge loop) - returns the accumulator, which may be either of the
      * two; close it only if it is not baseAlter.
      */
-    private GLTexture buildNoiseBlendFrame(int tile, float[] spatialKernel) {
-        int frameCnt = Math.min(Math.min(noiseBlendMaxFrames, BLEND_GRID.length), images.size());
+    private GLTexture buildNoiseBlendFrame(int tile, float[] spatialKernel, int[] frameIndices) {
+        int frameCnt = frameIndices.length;
         double[] weights = new double[frameCnt];
         double wSum = 0;
         for (int k = 0; k < frameCnt; k++) {
@@ -453,8 +453,7 @@ public class ESD4D extends GLOneScript {
         GLTexture blendCurrent = baseAlter;
         GLTexture blendNext = blendAcc;
         for (int k = 0; k < frameCnt; k++) {
-            int idx = frameCnt == 1 ? 0
-                    : (int) Math.round((double) k * (images.size() - 1) / (frameCnt - 1));
+            int idx = frameIndices[k];
             GLTexture rawSrc = (idx == 0) ? inputBase : tempRaw;
             if (idx > 0) tempRaw.loadRawHalf(images.get(idx).buffer);
 
@@ -503,6 +502,7 @@ public class ESD4D extends GLOneScript {
 
     @Override
     public void Run() {
+        measuredNoiseModel = null;
         com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
         if (profileGpuSync)
             Log.d("ESD4D", "GPU sync profiling ON: Stage[merge:*] times now include GPU execution");
@@ -665,205 +665,145 @@ public class ESD4D extends GLOneScript {
         //glUtils.Result(base.mSize, "noiseInput", buff.byteBuffer);
 
         double adaptiveNMpy = 1.0;
+        final double baselineNoiseS = noiseS;
+        final double baselineNoiseO = noiseO;
         if (enableAdaptiveNoise) {
-            // 2D histogram: (brightness_bin * NUM_VARIANCE_BINS + variance_bin) -> count
-            // Model: variance = NoiseS * brightness + NoiseO  =>  sigma = sqrt(NoiseS*b + NoiseO)
-            final int numBrightnessBins = 64;
-            final int numVarianceBins = 64;
-            final int noiseScanBins = numBrightnessBins * numVarianceBins; // 4096
-            // Estimation input: progressive misaligned Gaussian blend of the
-            // burst (see buildNoiseBlendFrame). The blend blurs scene detail
-            // - the root cause of the old overestimation - while noise only
-            // drops by the calibrated factor varStat below.
-            int blendFrames = Math.min(Math.min(noiseBlendMaxFrames, BLEND_GRID.length), images.size());
-            final float varStat = NOISE_BLEND_VAR_STAT[blendFrames - 1] * noiseBlendCalMpy;
-            // Variance axis anchored so bin 63 = SIGMA_REF for every frame
-            // count (the old fixed 64*6 scale wasted most of the range at
-            // typical noise levels, quantizing low-ISO fits into 1-3 bins).
-            final float varianceScale = (numVarianceBins - 1) / (varStat * NOISE_BLEND_SIGMA_REF);
-            final float brightnessScale = 64.0f * (float)Math.sqrt(3.0f);
-            float[] spatialKernel = new float[9];
-            long blendT = System.currentTimeMillis();
-            GLTexture noiseInput = buildNoiseBlendFrame(8, spatialKernel);
-            Log.d("ESD4D", "Stage[noiseblend] elapsed:" + (System.currentTimeMillis() - blendT) + " ms");
-            GLHistogram noiseHist = new GLHistogram(glProg, noiseScanBins);
-            noiseHist.Custom = true;
-            noiseHist.Rc = true;
-            noiseHist.Gc = false;
-            noiseHist.Bc = false;
-            noiseHist.Ac = false;
-            noiseHist.exposure[0] = 1.0f;
-            noiseHist.exposure[1] = 1.0f;
-            noiseHist.exposure[2] = 1.0f;
-            noiseHist.exposure[3] = 1.0f;
-            noiseHist.CustomShader = "merge/noisehist";
-            noiseHist.input1 = brightnessScale;
-            noiseHist.input2 = varianceScale;
-            noiseHist.resize = noiseScanSubsample;
-            noiseHist.customKernel = spatialKernel;
-            long histT = System.currentTimeMillis();
-            int[][] noiseRes = noiseHist.Compute(noiseInput);
-            // The accumulator may be the borrowed baseDiff (odd frame counts):
-            // it must survive for the merge loop, which fully overwrites it.
-            if (noiseInput != baseAlter && noiseInput != baseDiff) noiseInput.close();
-            noiseHist.close();
-            Log.d("ESD4D", "Stage[noise-histogram] elapsed:" + (System.currentTimeMillis() - histT) + " ms");
-            int[] hist = noiseRes[0];
-            long fitT = System.currentTimeMillis();
-            // Weighted linear regression: variance = NoiseS * brightness + NoiseO,
-            // run in two passes. Pass 1 fits all bins kept by the per-row
-            // filter; pass 2 (adaptive gate, noiseFitGateMpy) keeps only bins
-            // whose implied variance is consistent with the pass-1 noise
-            // model - the per-brightness "lower part" that rejects texture
-            // and saturation-capped bins without a per-threshold
-            // calibration (see tools/noise-blend-calibration pct/gate runs).
-            double sumW = 0, sumWb = 0, sumWv = 0, sumWb2 = 0, sumWbv = 0;
-            int points = 0;
-            int varCnt = 0;
-            for (int i = 0; i < noiseScanBins; i++) {
-                int count = hist[i];
-                var bin = i / numVarianceBins;
-                var vin = i % numVarianceBins;
-                if(vin == 0) {
-                    varCnt = 0;
+            // Load independently of this capture's fit: a scene with too
+            // little brightness variation must still use learned calibration.
+            DynamicNoiseStore.NoiseEstimate storedNoise = enableNoiseStore
+                    ? DynamicNoiseStore.dynamicNoiseStore.getEstimate(parameters.physicalID,
+                            parameters.iso, modeler.AnalogueISO, parameters.binned) : null;
+            if (storedNoise != null) {
+                AdaptiveNoiseModel.Model prior = new AdaptiveNoiseModel.Model(storedNoise.s, storedNoise.o, 0);
+                if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
+                        && !storedNoise.higherIsoReference) {
+                    prior = AdaptiveNoiseModel.limitToBaseline(prior, baselineNoiseS,
+                            baselineNoiseO, lowIsoNoiseVarianceLimit);
                 }
-                if (count <= 0 || bin == numBrightnessBins-1 || (varCnt >= 30 && vin == 63) || varCnt > noiseFitVarBins) continue;
-                varCnt++;
-                // Fit in the absolute quad-mean brightness domain the
-                // consumers use. (The old (b-minBr)/(1-minBr) rescale fit in
-                // scene-relative brightness and inflated S by 1/(1-minBr) on
-                // any scene without near-black content - snow, sky, low-key.)
-                double brightness = ((double)(bin) + 0.5) / ((double)brightnessScale);
-                brightness = Math.pow(brightness, 2.0);
-                double variance = (vin + 0.5) / varianceScale;
-                // The shader's "var" statistic (|center - kernel mean| after
-                // the temporal blend) is calibrated end-to-end - see
-                // NOISE_BLEND_VAR_STAT and tools/noise-blend-calibration -
-                // to varStat * sigma, so squaring and dividing by varStat^2
-                // recovers the per-frame variance.
-                variance = variance * variance / ((double) varStat * varStat);
-                double w = count * 1.0f;
-                sumW += w;
-                sumWb += w * brightness;
-                sumWv += w * variance;
-                sumWb2 += w * brightness * brightness;
-                sumWbv += w * brightness * variance;
-                points++;
+                noiseS = (float) prior.s;
+                noiseO = (float) Math.max(prior.o, 0.05 * baselineNoiseO);
             }
-            //points = 9;
-            if (points >= 1) {
-                double denom = sumW * sumWb2 - sumWb * sumWb;
-                if (denom > 1e-20) {
-                    double passS = (sumW * sumWbv - sumWb * sumWv) / denom;
-                    double passO = (sumWv - passS * sumWb) / sumW;
-                    double fitS = passS;
-                    double fitO = passO;
-                    if (noiseFitGateMpy > 0.0f) {
-                        // Pass 2: keep only bins whose implied variance is
-                        // within the gate multiple of the pass-1 model.
-                        double gW = 0, gWb = 0, gWv = 0, gWb2 = 0, gWbv = 0;
-                        int gPoints = 0;
-                        varCnt = 0;
-                        for (int i = 0; i < noiseScanBins; i++) {
-                            int count = hist[i];
-                            var bin = i / numVarianceBins;
-                            var vin = i % numVarianceBins;
-                            if(vin == 0) {
-                                varCnt = 0;
-                            }
-                            if (count <= 0 || bin == numBrightnessBins-1 || (varCnt >= 30 && vin == 63) || varCnt > noiseFitVarBins) continue;
-                            varCnt++;
-                            double brightness = ((double)(bin) + 0.5) / ((double)brightnessScale);
-                            brightness = Math.pow(brightness, 2.0);
-                            double variance = (vin + 0.5) / varianceScale;
-                            variance = variance * variance / ((double) varStat * varStat);
-                            double gateVar = noiseFitGateMpy
-                                    * (Math.max(passS, 1e-12) * brightness + Math.max(passO, 0.0));
-                            if (variance > gateVar) continue;
-                            double w = count * 1.0f;
-                            gW += w;
-                            gWb += w * brightness;
-                            gWv += w * variance;
-                            gWb2 += w * brightness * brightness;
-                            gWbv += w * brightness * variance;
-                            gPoints++;
-                        }
-                        double gDenom = gW * gWb2 - gWb * gWb;
-                        if (gPoints >= 1 && gDenom > 1e-20) {
-                            fitS = (gW * gWbv - gWb * gWv) / gDenom;
-                            fitO = (gWv - fitS * gWb) / gW;
-                            Log.d("DynamicNoise", "Gate pass: " + gPoints + " bins kept of " + points);
-                        }
+            float[] exposureLayers = new float[images.size()];
+            int[] frameIsos = new int[images.size()];
+            for (int i = 0; i < images.size(); i++) {
+                exposureLayers[i] = images.get(i).pair.layerMpy;
+                frameIsos[i] = images.get(i).pair.iso;
+            }
+            int[] noiseFrames = AdaptiveNoiseModel.selectFrames(exposureLayers, frameIsos,
+                    parameters.iso, Math.min(noiseBlendMaxFrames, BLEND_GRID.length));
+            if (noiseFrames.length > 0) {
+                // 2D histogram: (brightness_bin * NUM_VARIANCE_BINS + variance_bin) -> count
+                // Model: variance = NoiseS * brightness + NoiseO  =>  sigma = sqrt(NoiseS*b + NoiseO)
+                final int numBrightnessBins = 64;
+                final int numVarianceBins = 64;
+                final int noiseScanBins = numBrightnessBins * numVarianceBins; // 4096
+                // Estimation input: progressive misaligned Gaussian blend of the
+                // burst (see buildNoiseBlendFrame). The blend blurs scene detail
+                // - the root cause of the old overestimation - while noise only
+                // drops by the analytical residual response below.
+                int blendFrames = noiseFrames.length;
+                final double residualResponse = NoiseHistogramCalibration.residualStdResponse(
+                        blendFrames, parameters.binned, parameters.cfaPattern) * noiseBlendCalMpy;
+                float maxBlack = Math.max(Math.max(parameters.blackLevel[0], parameters.blackLevel[1]),
+                        Math.max(parameters.blackLevel[2], parameters.blackLevel[3]));
+                final double rawStep = 1.0 / Math.max(1.0, parameters.whiteLevel - maxBlack);
+                // The old fixed 0.12-sigma axis left low-ISO noise in 1-3 bins.
+                // The prior sets measurement resolution only; it does not set
+                // the row estimates or their fitted coefficients.
+                final float varianceScale = (float) NoiseHistogramCalibration.varianceScale(
+                        numVarianceBins, residualResponse, noiseS, noiseO, rawStep, noiseHistogramRange);
+                // Concentrate bins on the lower RAW signal range. Mobile RAWs
+                // remain dark with the exposure metering used here; the sqrt(3)
+                // factor intentionally excludes the upper range from calibration.
+                final float brightnessScale = numBrightnessBins * (float) Math.sqrt(3.0);
+                float[] spatialKernel = new float[9];
+                long blendT = System.currentTimeMillis();
+                GLTexture noiseInput = buildNoiseBlendFrame(8, spatialKernel, noiseFrames);
+                Log.d("ESD4D", "Stage[noiseblend] elapsed:" + (System.currentTimeMillis() - blendT) + " ms");
+                GLHistogram noiseHist = new GLHistogram(glProg, noiseScanBins);
+                noiseHist.Custom = true;
+                noiseHist.Rc = true;
+                noiseHist.Gc = false;
+                noiseHist.Bc = false;
+                noiseHist.Ac = false;
+                noiseHist.exposure[0] = 1.0f;
+                noiseHist.exposure[1] = 1.0f;
+                noiseHist.exposure[2] = 1.0f;
+                noiseHist.exposure[3] = 1.0f;
+                noiseHist.CustomShader = "merge/noisehist";
+                noiseHist.input1 = brightnessScale;
+                noiseHist.input2 = varianceScale;
+                int scanStride = Math.max(1, noiseScanSubsample);
+                // Small or strongly reduced inputs otherwise leave too few
+                // observations in each lower-RAW row for a reliable median.
+                while (scanStride > 1 && (long) packedSize.x * packedSize.y
+                        / (scanStride * scanStride) < 16384) scanStride--;
+                noiseHist.resize = scanStride;
+                noiseHist.customKernel = spatialKernel;
+                long histT = System.currentTimeMillis();
+                int[][] noiseRes = noiseHist.Compute(noiseInput);
+                // The accumulator may be the borrowed baseDiff (odd frame counts):
+                // it must survive for the merge loop, which fully overwrites it.
+                if (noiseInput != baseAlter && noiseInput != baseDiff) noiseInput.close();
+                noiseHist.close();
+                Log.d("ESD4D", "Stage[noise-histogram] elapsed:" + (System.currentTimeMillis() - histT) + " ms");
+                int[] hist = noiseRes[0];
+                long fitT = System.currentTimeMillis();
+                AdaptiveNoiseModel.Model fitted = AdaptiveNoiseModel.fitSpatialHistogram(hist,
+                        numBrightnessBins, numVarianceBins, brightnessScale, varianceScale,
+                        residualResponse, noiseBrightnessTextureGate);
+                measuredNoiseModel = fitted;
+                if (fitted != null) {
+                    Log.d("DynamicNoise", "Noise histogram fit: S=" + fitted.s + " O=" + fitted.o
+                            + " rows=" + fitted.rows + " textureRows=" + fitted.textureRows);
+                    // Scene texture is a positive variance bias, especially when
+                    // daylight sensor noise is below the histogram resolution.
+                    // Use the sensor prior until the persistent store can project
+                    // a reliable model down from higher-ISO measurements.
+                    if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
+                            && (storedNoise == null || !storedNoise.higherIsoReference)) {
+                        fitted = AdaptiveNoiseModel.limitToBaseline(fitted, baselineNoiseS,
+                                baselineNoiseO, lowIsoNoiseVarianceLimit);
                     }
-                    fitS = Math.max(fitS, 1e-10);
-                    Log.d("DynamicNoise",  "Fit S:" + fitS + " O:" + fitO);
-                    // Keep at least 5% of original read noise so we don't collapse to zero on noisy sensors
-                    double minO = 0.05 * noiseO;
-                    fitO = Math.max(fitO, minO);
-                    // Read-noise floor: O=S/7 overstates read noise now that the variance
-                    // estimator is unbiased (previously S carried a ~2.2x bias that made
-                    // S/7 a sane proxy). S/20 keeps a guard against O collapsing while no
-                    // longer dominating realistic sensors (O/S is typically < 0.05).
-                    //fitO = Math.max(fitO, fitS/20);
-                    //fitS = Math.max(fitS, parameters.noiseModeler.SPlace(parameters.iso));
-                    //fitO = Math.max(fitO, parameters.noiseModeler.OPlace(parameters.iso) * noiseOFloorMpy);
-                    // Commit the fitted S/O to the multisample noise map, then read
-                    // back the blended (moving-average) value. Committing before
-                    // reading makes the current estimation participate in the
-                    // average, while the store's measurement-list guard skips
-                    // duplicate scenes (same exposure/iso) to avoid bias. Using the
-                    // blended output smooths per-capture estimator fluctuations.
-                    double commitS = fitS;
-                    double commitO = fitO;
-                    DynamicNoiseStore.NoiseEstimate blended = null;
+                    double fitS = Math.max(fitted.s, 1e-10);
+                    double fitO = Math.max(fitted.o, 0.05 * baselineNoiseO);
                     if (enableNoiseStore) {
-                        blended = DynamicNoiseStore.dynamicNoiseStore.commitAndGet(
-                                parameters.physicalID, parameters.iso,
-                                parameters.noiseModeler.AnalogueISO,
-                                commitS, commitO, parameters.exposureTime);
+                        DynamicNoiseStore.NoiseEstimate blended =
+                                DynamicNoiseStore.dynamicNoiseStore.commitAndGet(
+                                        parameters.physicalID, parameters.iso, modeler.AnalogueISO,
+                                        fitS, fitO, parameters.exposureTime, parameters.binned);
+                        if (blended != null) {
+                            AdaptiveNoiseModel.Model resolved = new AdaptiveNoiseModel.Model(blended.s, blended.o, 0);
+                            if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
+                                    && !blended.higherIsoReference) {
+                                resolved = AdaptiveNoiseModel.limitToBaseline(resolved, baselineNoiseS,
+                                        baselineNoiseO, lowIsoNoiseVarianceLimit);
+                            }
+                            fitS = resolved.s;
+                            fitO = Math.max(resolved.o, 0.05 * baselineNoiseO);
+                        }
                     }
-                    if (blended != null) {
-                        fitS = blended.s;
-                        fitO = blended.o;
-                        // Re-apply floors defensively on the blended result.
-                        //fitS = Math.max(fitS, parameters.noiseModeler.SPlace(parameters.iso));
-                        //fitO = Math.max(fitO, parameters.noiseModeler.OPlace(parameters.iso));
-                        Log.d("DynamicNoise", "Blended noise model from store: S=" + fitS
-                                + " O=" + fitO + " for iso=" + parameters.iso);
-                    }
-                    // Legacy correction that compensated the old under-rescaled
-                    // fit; off by default now that the blend is calibrated.
-                    if (enableFitOCorrection) fitO += fitS*fitS * 3.0/8.0;
+                    if (enableFitOCorrection) fitO += fitS * fitS * 3.0 / 8.0;
                     noiseS = (float) fitS;
                     noiseO = (float) fitO;
-                    Log.d("DynamicNoise",  "Fitted noise model: NoiseS=" + noiseS + " NoiseO=" + noiseO + " Half=" + Math.sqrt(noiseS * 0.5 + noiseO) + " (points=" + points + ")");
-                    parameters.noiseModeler.baseModel = new Pair[] {
-                            new Pair<>((double) noiseS, (double) noiseO),
-                            new Pair<>((double) noiseS, (double) noiseO),
-                            new Pair<>((double) noiseS, (double) noiseO)};
+                    Log.d("DynamicNoise", "Fitted noise model: NoiseS=" + noiseS
+                            + " NoiseO=" + noiseO + " Half=" + Math.sqrt(noiseS * 0.5 + noiseO)
+                            + " (points=" + fitted.points + ")");
+                } else {
+                    // A flat/narrow scene or clipped histogram cannot identify
+                    // S and O. Keep the stored/sensor model; averaging residuals
+                    // here previously promoted scene texture to extra denoising.
+                    Log.d("DynamicNoise", "Insufficient noise fit coverage; retaining "
+                            + (storedNoise == null ? "sensor" : "stored") + " noise model");
                 }
-                adaptiveNMpy = 1.0;
+                Log.d("ESD4D", "Stage[noise-fit] elapsed:" + (System.currentTimeMillis() - fitT) + " ms");
             } else {
-                // Fallback: scale original model to match observed at mid-gray (same as before)
-                double modelSigmaMid = Math.sqrt(noiseS * 0.5 + noiseO);
-                if (modelSigmaMid > 1e-10) {
-                    double sumWeightedSigma = 0, sumWeightedCount = 0;
-                    for (int i = 0; i < noiseScanBins; i++) {
-                        int count = hist[i];
-                        if (count <= 0) continue;
-                        double sigma = ((i % numVarianceBins + 0.5) / varianceScale) / varStat;
-                        sumWeightedSigma += sigma * count;
-                        sumWeightedCount += count;
-                    }
-                    if (sumWeightedCount > 0) {
-                        double observedSigma = sumWeightedSigma / sumWeightedCount;
-                        adaptiveNMpy = observedSigma / modelSigmaMid;
-                        adaptiveNMpy = Math2.clamp(adaptiveNMpy, adaptiveFallbackMin, adaptiveFallbackMax);
-                    }
-                }
-                Log.d("DynamicNoise", "Adaptive Mpy (fallback): " + adaptiveNMpy + " (insufficient points=" + points + ")");
+                Log.d("DynamicNoise", "No matching sensor-domain calibration frames; retaining prior");
             }
-            Log.d("ESD4D", "Stage[noise-fit] elapsed:" + (System.currentTimeMillis() - fitT) + " ms");
+            parameters.noiseModeler.baseModel = new Pair[] {
+                    new Pair<>((double) noiseS, (double) noiseO),
+                    new Pair<>((double) noiseS, (double) noiseO),
+                    new Pair<>((double) noiseS, (double) noiseO)};
         }
         parameters.noiseModeler.setAdaptiveMpy(adaptiveNMpy);
         double noisempy = Math.pow(2.0, PhotonCamera.getSettings().mergeStrength);
