@@ -2,6 +2,7 @@ package com.particlesdevs.photoncamera.ui.settings.custompreferences;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.widget.ListView;
@@ -17,6 +18,7 @@ import androidx.preference.PreferenceViewHolder;
 import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.util.BlurSupport;
+import com.particlesdevs.photoncamera.util.CubeLut;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.io.File;
@@ -29,12 +31,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 
 /**
  * Preference for selecting a square PNG file from private app storage.
  * Supports importing new PNGs, selecting from available files, and removing files.
  * Validates imported PNG dimensions against allowed sizes.
+ * Adobe .cube 3D LUT files are also accepted: they are converted once at
+ * import time into the tiled CLUT PNG layout the pipeline samples, so the
+ * stored/selected file is always a validated PNG.
  */
 public class TunablePngPreference extends Preference {
     private static final String TAG = "TunablePngPref";
@@ -115,9 +121,11 @@ public class TunablePngPreference extends Preference {
             dialog.dismiss();
         });
 
-        builder.setNeutralButton("Import new PNG", (dialog, which) -> {
+        builder.setNeutralButton("Import LUT (PNG/CUBE)", (dialog, which) -> {
             if (sImportLauncher != null) {
-                sImportLauncher.launch(new String[]{"image/png"});
+                // No dedicated mime type exists for .cube, so accept anything
+                // and dispatch by extension/content in handleImportResult.
+                sImportLauncher.launch(new String[]{"*/*"});
             } else {
                 Log.w(TAG, "No import launcher set");
                 PhotonCamera.showToast("Cannot open file picker");
@@ -134,7 +142,7 @@ public class TunablePngPreference extends Preference {
                     if (position == 0) return true; // Cannot remove "None"
                     final String pngName = items.get(position);
                     BlurSupport.show(new MaterialAlertDialogBuilder(context)
-                            .setTitle("Remove PNG")
+                            .setTitle("Remove LUT")
                             .setMessage("Remove " + pngName + "?")
                             .setPositiveButton("Remove", (d2, w2) -> {
                                 removePng(context, pngName);
@@ -178,7 +186,7 @@ public class TunablePngPreference extends Preference {
             Log.w(TAG, "No active preference for import result");
             return "No active preference";
         }
-        return pref.importPng(context, uri);
+        return pref.importLut(context, uri);
     }
 
     /**
@@ -192,19 +200,104 @@ public class TunablePngPreference extends Preference {
         }
     }
 
-    private String importPng(Context context, Uri uri) {
+    private String importLut(Context context, Uri uri) {
         if (uri == null) {
             return "No file selected";
         }
 
         String fileName = getFileName(context, uri);
         if (fileName == null || fileName.isEmpty()) {
-            fileName = "image.png";
+            fileName = "lut.png";
         }
-        if (!fileName.toLowerCase().endsWith(".png")) {
+        String lower = fileName.toLowerCase(Locale.ROOT);
+        if (lower.endsWith(".cube") || lower.endsWith(".cub")) {
+            return importCubeLut(context, uri, fileName);
+        }
+        if (!lower.endsWith(".png") && looksLikeCube(context, uri)) {
+            return importCubeLut(context, uri, fileName);
+        }
+        if (!lower.endsWith(".png")) {
             fileName += ".png";
         }
+        return importPngFile(context, uri, fileName);
+    }
 
+    /**
+     * Content sniff for .cube files picked under unknown mime types or without
+     * a recognizable display name: every valid cube table declares LUT_3D_SIZE.
+     */
+    private boolean looksLikeCube(Context context, Uri uri) {
+        byte[] head = new byte[4096];
+        int len = 0;
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+            if (is == null) return false;
+            len = is.read(head);
+        } catch (IOException e) {
+            return false;
+        }
+        if (len <= 0) return false;
+        // PNG magic first: a real PNG must never be treated as text.
+        if (len >= 4 && (head[0] & 0xFF) == 0x89 && head[1] == 0x50 && head[2] == 0x4E && head[3] == 0x47) {
+            return false;
+        }
+        String text = new String(head, 0, len, java.nio.charset.StandardCharsets.ISO_8859_1);
+        return text.contains("LUT_3D_SIZE");
+    }
+
+    /**
+     * Parse an Adobe .cube 3D LUT and store it as a tiled CLUT PNG so the
+     * existing pipeline (injection, GL upload, postlookup shader) works
+     * unchanged.
+     */
+    private String importCubeLut(Context context, Uri uri, String fileName) {
+        String outName = fileName;
+        int dot = outName.lastIndexOf('.');
+        if (dot > 0) outName = outName.substring(0, dot);
+        outName += ".png";
+
+        try (InputStream is = context.getContentResolver().openInputStream(uri)) {
+            if (is == null) {
+                return "Failed to open input stream";
+            }
+            CubeLut lut = CubeLut.parse(is);
+            int edge = CubeLut.targetEdgeFor(lut.size);
+            int side = CubeLut.imageSideForEdge(edge);
+            int[] pixels = lut.toClutPixels(edge);
+            Bitmap bmp = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888);
+            bmp.setPixels(pixels, 0, side, 0, 0, side, side);
+
+            File pngsDir = getPngsDir(context);
+            if (!pngsDir.exists()) {
+                pngsDir.mkdirs();
+            }
+            File destFile = new File(pngsDir, outName);
+            try (FileOutputStream fos = new FileOutputStream(destFile)) {
+                bmp.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            } finally {
+                bmp.recycle();
+            }
+
+            // Auto-select the imported LUT
+            persistString(outName);
+            updateSummary();
+
+            Log.d(TAG, "Imported CUBE LUT " + fileName + " (3D size " + lut.size
+                    + (lut.title != null ? ", \"" + lut.title + "\"" : "")
+                    + ") as " + edge + "^3 CLUT PNG: " + outName);
+            return null; // Success
+        } catch (CubeLut.FormatException e) {
+            Log.e(TAG, "Invalid CUBE LUT", e);
+            return "Invalid CUBE LUT: " + e.getMessage();
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to import CUBE LUT", e);
+            return "Failed to read CUBE: " + e.getMessage();
+        } catch (OutOfMemoryError e) {
+            Log.e(TAG, "CUBE LUT too large", e);
+            return "CUBE LUT too large";
+        }
+    }
+
+    private String importPngFile(Context context, Uri uri, String fileName) {
         // Validate dimensions
         BitmapFactory.Options options = new BitmapFactory.Options();
         options.inJustDecodeBounds = true;

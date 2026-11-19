@@ -212,7 +212,7 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
             Objects.requireNonNull(getPreferenceScreen().getSharedPreferences())
                     .registerOnSharedPreferenceChangeListener(this);
 
-            // Register PNG import launcher for TunablePngPreference
+            // Register LUT import launcher for TunablePngPreference
             // Uses OpenDocument to show the system file picker instead of gallery
             lutImportLauncher = registerForActivityResult(
                     new ActivityResultContracts.OpenDocument(),
@@ -220,9 +220,9 @@ public class SettingsActivity extends BaseActivity implements PreferenceFragment
                         if (uri != null) {
                             String error = TunablePngPreference.handleImportResult(mContext, uri);
                             if (error != null) {
-                                PhotonCamera.showToast("PNG import failed: " + error);
+                                PhotonCamera.showToast("LUT import failed: " + error);
                             } else {
-                                PhotonCamera.showToast("PNG imported successfully");
+                                PhotonCamera.showToast("LUT imported successfully");
                             }
                             TunablePngPreference.refreshActivePreference();
                         }
