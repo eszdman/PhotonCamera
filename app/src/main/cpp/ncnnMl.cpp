@@ -1,11 +1,11 @@
 //
 // Created by eszdman on 16.08.2026.
 //
-// Single JNI wrapper around ncnn (Vulkan backend) for the two ML models
+// Single JNI wrapper around ncnn for the two ML models
 // used by PhotonCamera:
 //
 //   * FlowNet-v2 dense optical flow (flownet_flat.ncnn.param/.bin)
-//   * KernelNet anisotropic parameter model (kernelnet_aniso_v2_2_params.ncnn.param/.bin)
+//   * KernelNet anisotropic parameter model (kernelnet_v3_params.ncnn.param/.bin)
 //
 // Both networks share one ncnn runtime linked statically into this library
 // (see ncnn/<ABI>/lib/libncnn.a). The FlowNet model requires three custom
@@ -36,9 +36,7 @@
 #include "net.h"
 #include "mat.h"
 #include "halfConvert.h"
-#if NCNN_VULKAN
-#include "gpu.h"
-#endif
+#include "esd4d/KernelTile.hpp"
 
 // FlowNet custom layer registration (picks Vulkan or CPU creators based on NCNN_VULKAN)
 #include "flownet_register.h"
@@ -57,7 +55,6 @@ static void pinOpenMPThreads(int num_threads) {
 #ifdef _OPENMP
     omp_set_dynamic(0);
     omp_set_num_threads(num_threads);
-    LOGI("openmp: linked statically, pinned to %d threads", omp_get_max_threads());
 #else
     (void)num_threads;
 #endif
@@ -252,23 +249,11 @@ Java_com_particlesdevs_photoncamera_processing_ml_FlowNetNcnnProcessor_nativeDes
 // ===========================================================================
 // KernelNet (dynamic input size; output at half res)
 //
-// The net is tiny (~9.6k params: one stride-2 conv + four 3x3 convs + 1x1
-// head, receptive field radius = 19 input px), but feeding it full capture
-// resolutions on Vulkan makes ncnn's blob/workspace allocators grow
-// monotonically: every new WxH shape allocates new VkDeviceMemory blocks that
-// stay cached for reuse, and camera dimensions differ between captures.
-//
-// Fix: run the net on FIXED-SIZE tiles. Every inference is exactly
-// TILE x TILE (core + border margin per side), so after the first tile the
-// Vulkan allocators only ever reuse the same device-memory blocks - footprint
-// is flat no matter how many captures are processed. Tiles overlap by
-// tileBorder (>= receptive-field radius) and only the interior core of each
-// tile is written to the output. Because every tile origin is even, the
-// stride-2 conv phase matches a full-res pass, so the stitched result equals
-// a single full-res inference up to fp rounding.
+// KernelNet runs on the CPU. Overlapping tiles bound activation memory and
+// preserve the stride-2 output grid across tile boundaries.
 //
 // Env knobs (debug/experimentation):
-//   KN_GPU=1     enable the Vulkan backend (CPU is the default — see below)
+//   KN_THREADS=N  override the KernelNet CPU thread count for benchmarking
 //   KN_TILE=N    tile core size in px, rounded up to /16 (default 1024)
 //   KN_BORDER=N  tile overlap in px, rounded up to even (default 32)
 //   KN_NOTILE=1  fall back to the old single full-res pass
@@ -279,10 +264,11 @@ struct KernelNetCtx {
     int tileCore = 1024;   // valid interior advance between tiles (even, /16)
                             // ~1024 gives the small 4x4-ish tile grid at 12MP
                             // (4x3 at 4000x3000): fill/copy stay cache-local
-    int tileBorder = 32;   // overlap margin per side (even, >= 19 for RF)
+    int tileBorder = 32;   // overlap margin per side (even, covers the v3 receptive field)
+    bool forceTiling = false;
     bool stageTiming = false;
     // Fixed-size tile Mats, allocated on first run and reused for every tile
-    // of every capture (identical shapes -> stable GPU memory).
+    // of every capture.
     ncnn::Mat grayTile;
     ncnn::Mat sigmaTile;
 };
@@ -308,25 +294,22 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeC
     auto* ctx = new (std::nothrow) KernelNetCtx();
     if (ctx == nullptr) return 0;
 
-    // CPU is the default backend for KernelNet: the net is tiny (16-ch convs,
-    // bandwidth-bound) and 4 CPU threads beat the Adreno Vulkan path at small
-    // tile counts. Vulkan also shows a per-extraction stall under investigation
-    // (suspected shader hang); KN_GPU=1 re-enables it for testing.
-    ctx->net.opt.use_vulkan_compute = getenv("KN_GPU") && getenv("KN_GPU")[0] == '1';
+    ctx->net.opt.use_vulkan_compute = false;
     ctx->net.opt.use_fp16_packed = true;
     ctx->net.opt.use_fp16_storage = true;
     ctx->net.opt.use_fp16_arithmetic = true;
     ctx->net.opt.use_bf16_storage = false;
     ctx->net.opt.use_subgroup_ops = false;
-    ctx->net.opt.num_threads = 4;
-    ctx->net.opt.lightmode = false;
+    ctx->net.opt.num_threads = photon::esd4d::kernelInferenceThreads;
+    if (const char* value = getenv("KN_THREADS")) {
+        const int threads = atoi(value);
+        if (threads >= 1 && threads <= 8) ctx->net.opt.num_threads = threads;
+    }
+    // A 4-output Winograd block stays aligned across the 16-pixel tile steps.
+    ctx->net.opt.use_winograd63_convolution = false;
+    ctx->net.opt.lightmode = true;
     pinOpenMPThreads(ctx->net.opt.num_threads);
 
-    // Allow forcing CPU via env (debug/benchmark only), like FLOWNET_CPU.
-    if (getenv("KN_CPU") && getenv("KN_CPU")[0] == '1') {
-        ctx->net.opt.use_vulkan_compute = false;
-        LOGI("kernelnet: Vulkan disabled by KN_CPU=1, using CPU");
-    }
     if (getenv("KN_FP32") && getenv("KN_FP32")[0] == '1') {
         ctx->net.opt.use_fp16_packed = false;
         ctx->net.opt.use_fp16_storage = false;
@@ -349,7 +332,10 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeC
 
     if (const char* t = getenv("KN_TILE")) {
         int v = atoi(t);
-        if (v >= 64) ctx->tileCore = (v + 15) / 16 * 16;
+        if (v >= 64) {
+            ctx->tileCore = (v + 15) / 16 * 16;
+            ctx->forceTiling = true;
+        }
     }
     if (const char* b = getenv("KN_BORDER")) {
         int v = atoi(b);
@@ -359,55 +345,8 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeC
         ctx->stageTiming = strcmp(st, "0") != 0;
     }
 
-#if NCNN_VULKAN
-    // Persistent, device-pooled Vulkan allocators. Without these, EVERY
-    // Extractor (= every tile) builds its own VkUnrollBlobAllocator +
-    // VkStagingBufferAllocator and tears them down afterwards, so each blob of
-    // each tile pays vkAllocateMemory / vkUnmapMemory / vkFreeMemory in the
-    // driver. On Adreno that costs ~ms per buffer and serializes the GPU
-    // between tiles — the mysterious "vulkan slower than CPU" stall.
-    // acquire_*() hands out refcounted device-wide pools that recycle blocks
-    // across extractions instead.
-    if (ctx->net.opt.use_vulkan_compute &&
-        !(getenv("KN_NOALLOC") && getenv("KN_NOALLOC")[0] == '1')) {
-        const ncnn::VulkanDevice* vkdev = ctx->net.vulkan_device();
-        if (vkdev != nullptr) {
-            ncnn::VkAllocator* blobPool = vkdev->acquire_blob_allocator();
-            ctx->net.opt.blob_vkallocator = blobPool;
-            ctx->net.opt.workspace_vkallocator = blobPool;
-            ctx->net.opt.staging_vkallocator = vkdev->acquire_staging_allocator();
-            LOGI("kernelnet: persistent vk allocators attached (pooled)");
-        } else {
-            LOGE("kernelnet: vulkan_device null, cannot attach pooled allocators");
-        }
-    }
-#endif
-
-    LOGI("kernelnet model loaded (tile core=%d border=%d)", ctx->tileCore, ctx->tileBorder);
-
-#if NCNN_VULKAN
-    if (ctx->net.opt.use_vulkan_compute) {
-        int gpuCount = ncnn::get_gpu_count();
-        LOGI("kernelnet backend: vulkan (gpu_count=%d)", gpuCount);
-        if (gpuCount > 0) {
-            const ncnn::GpuInfo& info = ncnn::get_gpu_info();
-            LOGI("kernelnet gpu: [%s] type=%d score=%u api=%u.%u.%u driver=%s",
-                 info.device_name() ? info.device_name() : "?", info.type(),
-                 info.rough_score(), VK_VERSION_MAJOR(info.api_version()),
-                 VK_VERSION_MINOR(info.api_version()), VK_VERSION_PATCH(info.api_version()),
-                 info.driver_name() ? info.driver_name() : "?");
-        }
-        // Non-null VulkanDevice => ncnn created its VkInstance/VkDevice and the
-        // layers will dispatch through forward_vk; null would mean silent CPU.
-        LOGI("kernelnet vulkan_device=%s",
-             ctx->net.vulkan_device() ? "created (GPU ops in use)" : "NULL (running on CPU!)");
-    } else {
-        LOGI("kernelnet backend: cpu (%d threads)", ctx->net.opt.num_threads);
-    }
-#else
-    LOGI("kernelnet backend: cpu, ncnn built without vulkan (%d threads)",
-         ctx->net.opt.num_threads);
-#endif
+    LOGI("kernelnet backend: cpu (%d threads, tile core=%d border=%d)",
+         ctx->net.opt.num_threads, ctx->tileCore, ctx->tileBorder);
     return (jlong)ctx;
 }
 
@@ -431,28 +370,28 @@ Java_com_particlesdevs_photoncamera_processing_ml_KernelNetNcnnProcessor_nativeR
         return JNI_FALSE;
     }
 
-    if (getenv("KN_NOTILE") && getenv("KN_NOTILE")[0] == '1')
+    if ((!ctx->forceTiling && photon::esd4d::KernelTile::fitsSinglePass(width, height)) ||
+        (getenv("KN_NOTILE") && getenv("KN_NOTILE")[0] == '1'))
         return kernelnetRunFull(ctx, grayPtr, width, height, sigma, outPtr);
     return kernelnetRunTiled(ctx, grayPtr, width, height, sigma, outPtr);
 }
 
-// Old behavior: one full-res pass. Kept for A/B comparison via KN_NOTILE=1.
+// One full-frame inference for moderate inputs, with the same half-resolution output.
 static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
                                  int width, int height, float sigma, uint16_t* outPtr) {
     const int plane = width * height;
 
     ncnn::Mat gray(width, height, 1);
-    memcpy((float*)gray.data, grayPtr, (size_t)plane * sizeof(float));
-
     ncnn::Mat sigmaMat(width, height, 1);
+    if (gray.empty() || sigmaMat.empty()) return JNI_FALSE;
+    memcpy(gray.data, grayPtr, (size_t)plane * sizeof(float));
     float* sp = (float*)sigmaMat.data;
     std::fill(sp, sp + plane, sigma);
 
     int64_t tStart = nowMs();
 
     ncnn::Extractor ex = ctx->net.create_extractor();
-    ex.input("in0", gray);
-    ex.input("in1", sigmaMat);
+    if (ex.input("in0", gray) || ex.input("in1", sigmaMat)) return JNI_FALSE;
 
     ncnn::Mat out;
     if (ex.extract("out0", out) != 0) {
@@ -464,7 +403,7 @@ static jboolean kernelnetRunFull(KernelNetCtx* ctx, const float* grayPtr,
          (long long)(nowMs() - tStart));
 
     // Output [3, outH, outW] channel-major -> RGBA-interleaved (s1, s2, rho, 1).
-    if (out.c != 3) {
+    if (out.c != 3 || out.w != (width + 1) / 2 || out.h != (height + 1) / 2) {
         LOGE("unexpected kernelnet output dims=%d w=%d h=%d c=%d",
              out.dims, out.w, out.h, out.c);
         return JNI_FALSE;
