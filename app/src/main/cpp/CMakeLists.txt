@@ -67,7 +67,7 @@ set(NCNN_LIB_DIR "${NCNN_ABI_DIR}/lib")
 
 if(EXISTS "${NCNN_LIB_DIR}/libncnn.a")
     # --- generate shader headers from .comp files (configure-time) ---
-    set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flownet/layer/vulkan/shader")
+    set(SHADER_DIR "${CMAKE_CURRENT_SOURCE_DIR}/shaders/flownet")
     set(GEN_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/flownet/gen_shader_header.py")
     set(GEN_OUT_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
     file(MAKE_DIRECTORY "${GEN_OUT_DIR}")
@@ -94,6 +94,8 @@ if(EXISTS "${NCNN_LIB_DIR}/libncnn.a")
         )
         # Generate shader headers (only needed for Vulkan path)
         foreach(shader flownetcorrfused flownetcorrlookup flownetupsample)
+            set_property(DIRECTORY APPEND PROPERTY CMAKE_CONFIGURE_DEPENDS
+                "${SHADER_DIR}/${shader}.comp" "${GEN_SCRIPT}")
             set(out "${GEN_OUT_DIR}/${shader}_comp.h")
             execute_process(
                 COMMAND "${PYTHON3_EXECUTABLE}" "${GEN_SCRIPT}"
@@ -123,43 +125,21 @@ if(EXISTS "${NCNN_LIB_DIR}/libncnn.a")
         "${CMAKE_CURRENT_SOURCE_DIR}/flownet/layer/vulkan"
     )
 
-    # OpenMP: compile with -fopenmp so the default CPU impls of the custom
-    # FlowNet layers (which use `#pragma omp parallel for num_threads(opt.num_threads)`)
-    # actually parallelize. Statically link NDK's libomp.a so there is no
-    # runtime libomp.so dependency and no runtime CPU/topology probing picks the
-    # thread count — ncnnMl sets opt.num_threads explicitly.
-    target_compile_options(ncnnMl PRIVATE
-        -fno-rtti -fno-exceptions
-        -fopenmp
-    )
-
-    execute_process(
-        COMMAND "${CMAKE_CXX_COMPILER}" -print-resource-dir
-        OUTPUT_VARIABLE NCNN_CLANG_RESOURCE_DIR
-        OUTPUT_STRIP_TRAILING_WHITESPACE
-    )
-    if(ANDROID_ABI STREQUAL "arm64-v8a")
-        set(NCNN_OMP_ARCH "aarch64")
-    elseif(ANDROID_ABI STREQUAL "armeabi-v7a")
-        set(NCNN_OMP_ARCH "arm")
-    else()
-        set(NCNN_OMP_ARCH "")
-    endif()
-
-    if(NCNN_OMP_ARCH AND EXISTS "${NCNN_CLANG_RESOURCE_DIR}/lib/linux/${NCNN_OMP_ARCH}/libomp.a")
-        set(NCNN_OMP_LIB "${NCNN_CLANG_RESOURCE_DIR}/lib/linux/${NCNN_OMP_ARCH}/libomp.a")
-    else()
-        set(NCNN_OMP_LIB "")
-        message(WARNING "OpenMP static library (libomp.a) not found for ${ANDROID_ABI}")
-    endif()
+    # The arm64 runtime leaves CPU placement to the Android scheduler.
+    target_compile_options(ncnnMl PRIVATE -fno-rtti -fno-exceptions -fopenmp)
 
     target_link_libraries(ncnnMl PRIVATE
         "${NCNN_LIB_DIR}/libncnn.a"
         ${VULKAN_LIBS}
-        ${NCNN_OMP_LIB}
         android
         log
     )
+
+    if(ANDROID_ABI STREQUAL "arm64-v8a")
+        target_link_libraries(ncnnMl PRIVATE "${NCNN_LIB_DIR}/libomp.a")
+    else()
+        target_link_options(ncnnMl PRIVATE -fopenmp -static-openmp)
+    endif()
 
     set_target_properties(ncnnMl PROPERTIES
         CXX_STANDARD 17
@@ -323,4 +303,11 @@ if (${ANDROID_ABI} STREQUAL "arm64-v8a"
             halide_runtime_android
             log
             dl)
+endif()
+
+option(PHOTON_BUILD_ESD4D "Build the experimental Kompute burst merge library" OFF)
+if(PHOTON_BUILD_ESD4D)
+    add_subdirectory(esd4d)
+    add_library(esd4d_startup SHARED framework/android/esd4dStartup.cpp framework/android/esd4dCapture.cpp)
+    target_link_libraries(esd4d_startup PRIVATE photon_esd4d)
 endif()

@@ -4,41 +4,18 @@
 // per-site flags say so.
 uniform sampler2D u_gd;      // rgbgreen, dgrb0, dgrb2h, dgrb2v
 uniform sampler2D u_cd2;
-uniform sampler2D u_nyq2;
+uniform sampler2D u_nyq2; // @post-r32f
 uniform sampler2D u_grad;    // cfa rides in .a (written by gradcd)
 
-const int HALO = 3;
-const int TW = LW + 2 * HALO;
-const int TH = LH + 2 * HALO;
-const int TN = TW * TH;
-
-ivec2 T0() { return ivec2(gl_WorkGroupID.xy * uvec2(LW, LH)) - HALO; }
-int SIDX(ivec2 q) { ivec2 l = q - T0(); return l.y * TW + l.x; }
-int SIDX_H(ivec2 q) { ivec2 l = ivec2(q.x & ~1, q.y) - T0(); return l.y * TW + l.x; }
-
-shared vec4 s_gd[TN];
-shared vec4 s_cd2[TN];
-shared float s_nyq2[TN];
-shared float s_cfa[TN];
-float V(ivec2 p) { return s_cd2[SIDX(p)].r; }
-float H(ivec2 p) { return s_cd2[SIDX(p)].g; }
-float d2h(ivec2 q) { return s_gd[SIDX_H(q)].b; }
-float d2v(ivec2 q) { return s_gd[SIDX_H(q)].a; }
-float n2(ivec2 q) { return s_nyq2[SIDX_H(q)]; }
-float Cf(ivec2 q) { return s_cfa[SIDX(q)]; }
-
-void load_tile() {
-    ivec2 t0 = T0();
-    for (int i = int(gl_LocalInvocationIndex); i < TN; i += LW * LH) {
-        ivec2 q = clamp(t0 + ivec2(i % TW, i / TW), ivec2(0), u_size - 1);
-        s_gd[i] = texelFetch(u_gd, q, 0);
-        s_cd2[i] = texelFetch(u_cd2, q, 0);
-        s_nyq2[i] = texelFetch(u_nyq2, q, 0).r;
-        s_cfa[i] = texelFetch(u_grad, q, 0).a;
-    }
-    memoryBarrierShared();
-    barrier();
-}
+ivec2 rbSlot(ivec2 p) { return ivec2(p.x & ~1, p.y); }
+// Refinement can sample across a window edge. Clamp after mapping to the half grid.
+ivec2 curvatureSlot(ivec2 p) { return clamp(rbSlot(p), ivec2(0), u_size - 1); }
+float V(ivec2 p)   { return texelFetch(u_cd2, p, 0).r; }
+float H(ivec2 p)   { return texelFetch(u_cd2, p, 0).g; }
+float d2h(ivec2 p) { return texelFetch(u_gd, curvatureSlot(p), 0).b; }
+float d2v(ivec2 p) { return texelFetch(u_gd, curvatureSlot(p), 0).a; }
+float n2(ivec2 p)  { return texelFetch(u_nyq2, rbSlot(p), 0).r; }
+float Cf(ivec2 p)  { return texelFetch(u_grad, p, 0).a; }
 
 layout(binding = 0, rgba16f) writeonly uniform highp image2D img_out;
 void emit(ivec2 p, vec4 v) { imageStore(img_out, p, v); }
@@ -54,10 +31,9 @@ float d0ref(ivec2 s) {   // refined colour difference at a nyquist R/B site
     return (H(s) * gvarv + V(s) * gvarh) / (gvarv + gvarh);
 }
 void main() {
-    load_tile();
     ivec2 p = ivec2(gl_GlobalInvocationID.xy);
     if (p.x >= u_size.x || p.y >= u_size.y) return;
-    vec4 base = s_gd[SIDX(p)];
+    vec4 base = texelFetch(u_gd, p, 0);
     vec4 o = vec4(base.r, base.g, 0.0, 0.0);
     if (!isG(p.y, p.x) && n2(p) > 0.5) {
         o.r = Cf(p) + d0ref(p);            // per-pixel green

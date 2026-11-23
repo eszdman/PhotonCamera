@@ -1,8 +1,8 @@
 #import amaze
 // AMaZE pass 8: populate G at R/B sites + hvwt firming (C++ lines 971-988)
-uniform sampler2D u_hvwt;    // pre-firming hvwt (with area updates)
+uniform sampler2D u_hvwt; // @post-r32f — pre-firming hvwt (with area updates)
 uniform sampler2D u_cd2;     // vcd', hcd'
-uniform sampler2D u_nyq2;
+uniform sampler2D u_nyq2; // @post-r32f
 uniform sampler2D u_grad;    // cfa rides in .a (written by gradcd)
 
 const int HALO = 2;

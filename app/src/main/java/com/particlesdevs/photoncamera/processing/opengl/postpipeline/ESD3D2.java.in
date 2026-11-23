@@ -1,0 +1,128 @@
+//
+// Created by eszdman on 23.10.2021.
+//
+
+package com.particlesdevs.photoncamera.processing.opengl.postpipeline;
+
+import com.particlesdevs.photoncamera.util.Log;
+
+import com.particlesdevs.photoncamera.R;
+import com.particlesdevs.photoncamera.processing.opengl.GLDrawParams;
+import com.particlesdevs.photoncamera.processing.opengl.GLFormat;
+import com.particlesdevs.photoncamera.processing.opengl.GLTexture;
+import com.particlesdevs.photoncamera.processing.opengl.nodes.Node;
+import com.particlesdevs.photoncamera.processing.render.NoiseModeler;
+import com.particlesdevs.photoncamera.settings.annotations.Tunable;
+import com.particlesdevs.photoncamera.util.Math2;
+
+import org.w3c.dom.Text;
+
+public class ESD3D2 extends Node {
+    boolean needClose = false;
+    public ESD3D2(boolean closing) {
+        super("", "ES3D");
+        needClose = closing;
+    }
+
+    @Override
+    public void Compile() {
+    }
+@FIELDS@
+
+    private String esd3dProgram() {
+        if ("steered_prod".equals(version)) return "denoise/esd3d2_steered_prod";
+        return "denoise/esd3d2_steered";
+    }
+
+    void ESD3DRun(GLTexture inputTexture, GLTexture outputTexture, GLTexture gradBuffer, float moire, float scale) {
+        {
+            float NoiseS = basePipeline.noiseS;
+            float NoiseO = basePipeline.noiseO;
+            NoiseS /= scale;
+            NoiseO /= scale;
+            Log.d(Name, "NoiseS:" + NoiseS + ", NoiseO:" + NoiseO);
+            glProg.setDefine("NOISES", NoiseS);
+            glProg.setDefine("NOISEO", NoiseO);
+            glProg.setDefine("MOIRE", moire);
+            glProg.setDefine("LUMA", luma);
+            glProg.setDefine("TONEAWARE", toneAwareBoost);
+            glProg.setDefine("TONESTRENGTH", toneAwareStrength);
+
+            glProg.setDefine("INSIZE", basePipeline.mParameters.rawSize);
+            //float ks = 1.0f + Math.min((basePipeline.noiseS+basePipeline.noiseO) * 3.0f * noiseToKernelSize, 34.f);
+            //int msize = 7 + (int)ks - (int)ks%2;
+            double noiseMpy = Math.max((NoiseS+NoiseO)/noiseTarget, 0.0000001);
+            double kernelSize = 1.0f + Math.sqrt(noiseMpy) * noiseToKernelSize;
+            int msize = Math.min(minSize + (int)kernelSize - (int)kernelSize%2, maxSize);
+            Log.d("ESD3D", "KernelSize: "+kernelSize+" MSIZE: "+msize);
+            glProg.setDefine("KERNELSIZE", (float)(kernelSize));
+            glProg.useAssetProgram(esd3dProgram());
+            glProg.setVar("kernelRadius", (msize - 1) / 2);
+            glProg.setTexture("InputBuffer", inputTexture);
+            glProg.setTexture("GradBuffer", gradBuffer);
+            glProg.drawBlocks(outputTexture);
+        }
+    }
+    public void guidedUpsample(GLTexture lowresInput, GLTexture guide, GLTexture guideHigh, GLTexture output, int scaling) {
+        //glProg.setDefine("USE_GUIDE_BRIGHTNESS", useGuideBrightness);
+        glProg.setDefine("SCALE", scaling);
+        glProg.useAssetProgram("denoise/guidedupsample", false);
+        glProg.setTexture("LowresInput", lowresInput);
+        glProg.setTexture("Guide", guide);
+        glProg.setTexture("GuideHigh", guideHigh);
+        glProg.setVar("noiseS", basePipeline.noiseS);
+        glProg.setVar("noiseO", basePipeline.noiseO);
+        glProg.drawBlocks(output, output.mSize);
+        glProg.closed = true;
+    }
+
+    @Override
+    public int halo() {
+        // Steered kernel up to ~10px + grad + pyramid slop; overestimated on
+        // purpose (safe direction) — harness-proven, lower if seams allow.
+        return 16;
+    }
+
+    public void Run() {
+        if (!enable) {
+            WorkingTexture = previousNode.WorkingTexture;
+            return;
+        }
+        float N = (float) Math.sqrt(0.5 * basePipeline.noiseS + basePipeline.noiseO);
+        float targetN = noiseTarget;
+        float scaleF = Math2.clamp(N/targetN, 1.0f, 4.0f);
+        int scale = (int)(scaleF + 0.5f);
+        GLTexture guide = previousNode.WorkingTexture;
+        GLTexture input = guide;
+        GLFormat format = new GLFormat(GLFormat.DataType.FLOAT_16, GLDrawParams.WorkDim);
+        GLFormat gradientFormat = new GLFormat(GLFormat.DataType.FLOAT_16, 2);
+        if (useColorDenoising && scale > 1) {
+            input = nextMainExcept(guide);
+            try (GLTexture low = glUtils.gaussdown(guide, scale);
+                 GLTexture filtered = new GLTexture(low.mSize, format);
+                 GLTexture gradient = new GLTexture(low.mSize, gradientFormat)) {
+                glUtils.ConvDiff(low, gradient, 0.f);
+                ESD3DRun(low, filtered, gradient, 0.f, scaleF * 0.75f);
+                guidedUpsample(filtered, low, guide, input, scale);
+            }
+        }
+        try (GLTexture scratch = new GLTexture(guide.mSize, useColorDenoising && scale == 1 ? format : gradientFormat)) {
+            if (useColorDenoising && scale == 1) {
+                input = nextMainExcept(guide);
+                // The gradient is dead once the filter has written scratch.
+                glUtils.ConvDiff(guide, input, 0.f);
+                ESD3DRun(guide, scratch, input, 0.f, 1.f);
+                guidedUpsample(scratch, guide, guide, input, 1);
+            }
+            WorkingTexture = nextMainExcept(input);
+            glUtils.ConvDiff(input, scratch, 0.f);
+            ESD3DRun(input, WorkingTexture, scratch, moire, 1.f);
+            glProg.closed = true;
+        }
+    }
+
+    private GLTexture nextMainExcept(GLTexture sampled) {
+        GLTexture target = basePipeline.getMain();
+        return target == sampled ? basePipeline.getMain() : target;
+    }
+}

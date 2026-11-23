@@ -7,6 +7,7 @@
 #include <string.h>
 #include <android/bitmap.h>
 #include "android/log.h"
+#include "packedRaw.hpp"
 
 #define LOGD(...) __android_log_print(ANDROID_LOG_DEBUG, "Allocator", __VA_ARGS__)
 
@@ -17,9 +18,12 @@ JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_allocate(JNIEnv *env, jclass clazz,
                                                             jint capacity) {
     // Allocate a direct ByteBuffer of the specified size
-    jobject buffer = env->NewDirectByteBuffer(malloc(capacity), capacity);
+    if (capacity < 0) return nullptr;
+    void* allocation = malloc(capacity);
+    if (!allocation) return nullptr;
+    jobject buffer = env->NewDirectByteBuffer(allocation, capacity);
     if (buffer == nullptr) {
-        // Handle allocation failure
+        free(allocation);
         LOGD("Failed to allocate buffer of size %d", capacity);
         return nullptr;
     }
@@ -538,11 +542,6 @@ static inline uint32_t maxSampleForBits(int bits) {
     return bits >= 32 ? 0xFFFFFFFFu : ((1u << bits) - 1u);
 }
 
-// Bitstream decode helpers (defined below, used by packBits' verify block).
-static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
-                         int start, int pixels, int bits, uint32_t mask);
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels);
-
 extern "C"
 JNIEXPORT jobject JNICALL
 Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass clazz,
@@ -620,7 +619,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
             free(dst);
             return nullptr;
         }
-        unpackScalar(dst, 0, check, 0, pixels, bits, mask);
+        photon::unpackScalar(dst, 0, check, 0, pixels, bits, mask);
         jboolean ok = memcmp(check, src, (size_t) pixels * 2) == 0 ? JNI_TRUE : JNI_FALSE;
         free(check);
         if (ok && bits == 10) {
@@ -632,7 +631,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
                 free(dst);
                 return nullptr;
             }
-            unpackFast10(dst, checkFast, pixels);
+            photon::unpackFast10(dst, checkFast, pixels);
             if (memcmp(checkFast, src, (size_t) pixels * 2) != 0) {
                 LOGD("packBits: fast10 unpack mismatch pixels=%d", pixels);
                 ok = JNI_FALSE;
@@ -654,44 +653,6 @@ Java_com_particlesdevs_photoncamera_util_Allocator_packBits(JNIEnv *env, jclass 
     LOGD("packBits: %d px %d-bit -> %lld bytes, memory %ld MB",
          pixels, bits, (long long) packedSize, (memoryCount / 1024) / 1024);
     return buffer;
-}
-
-// Scalar bitstream decode (reference implementation; also the tail handler
-// and the fallback for bit depths without a fast path).
-static void unpackScalar(const uint8_t *packed, int64_t startByte, uint16_t *out,
-                         int start, int pixels, int bits, uint32_t mask) {
-    uint32_t acc = 0;
-    int accBits = 0;
-    int64_t inByte = startByte;
-    for (int i = start; i < pixels; i++) {
-        while (accBits < bits) {
-            acc |= (uint32_t) packed[inByte++] << accBits;
-            accBits += 8;
-        }
-        out[i] = (uint16_t) (acc & mask);
-        acc >>= bits;
-        accBits -= bits;
-    }
-}
-
-// 10-bit fast path: straight-line 5-byte/4-sample groups, then scalar tail.
-// Pure integer regrouping of unpackScalar — bit-identical output.
-static void unpackFast10(const uint8_t *packed, uint16_t *out, int pixels) {
-    int n4 = pixels & ~3;
-    for (int i = 0, j = 0; i < n4; i += 4, j += 5) {
-        uint32_t w;
-        memcpy(&w, packed + j, sizeof(w));
-        uint32_t b4 = packed[j + 4];
-        out[i]     = (uint16_t) (w & 0x3FFu);
-        out[i + 1] = (uint16_t) ((w >> 10) & 0x3FFu);
-        out[i + 2] = (uint16_t) ((w >> 20) & 0x3FFu);
-        out[i + 3] = (uint16_t) (((w >> 30) & 0x3u) | (b4 << 2));
-    }
-    if (n4 < pixels) {
-        // 4-sample groups consume whole 5-byte units, so the tail always
-        // restarts on a byte boundary.
-        unpackScalar(packed, (int64_t) n4 * 10 / 8, out, n4, pixels, 10, 0x3FFu);
-    }
 }
 
 extern "C"
@@ -716,12 +677,7 @@ Java_com_particlesdevs_photoncamera_util_Allocator_unpack16(JNIEnv *env, jclass 
         return;
     }
     uint16_t *out = reinterpret_cast<uint16_t *>(dst);
-    const uint32_t mask = maxSampleForBits(bits);
-    if (bits == 10) {
-        unpackFast10(packed, out, pixels);
-    } else {
-        unpackScalar(packed, 0, out, 0, pixels, bits, mask);
-    }
+    photon::unpackSensorSamples(packed, out, pixels, bits);
 }
 // Converts one tile of tightly packed RGBA8888 into 8-bit YUV420 full-range
 // BT.709, writing the Y/U/V plane buffers of an encoder input Image. Strides

@@ -1,0 +1,121 @@
+#
+# Created by eszdman on 19.11.2026.
+#
+
+--- a/src/include/kompute/Tensor.hpp
++++ b/src/include/kompute/Tensor.hpp
+@@ -38,7 +38,8 @@
+            uint32_t elementTotalCount,
+            uint32_t elementMemorySize,
+            const DataTypes& dataType,
+-           const MemoryTypes& tensorType = MemoryTypes::eDevice);
++           const MemoryTypes& tensorType = MemoryTypes::eDevice,
++           bool uniformBuffer = false);
+ 
+     /**
+      *  Constructor with size provided which would be used to create the
+--- a/src/include/kompute/Manager.hpp
++++ b/src/include/kompute/Manager.hpp
+@@ -143,7 +143,8 @@
+       uint32_t elementTotalCount,
+       uint32_t elementMemorySize,
+       const Memory::DataTypes& dataType,
+-      Memory::MemoryTypes tensorType = Memory::MemoryTypes::eDevice)
++      Memory::MemoryTypes tensorType = Memory::MemoryTypes::eDevice,
++      bool uniformBuffer = false)
+     {
+         std::shared_ptr<Tensor> tensor{ new kp::Tensor(this->mPhysicalDevice,
+                                                        this->mDevice,
+@@ -151,7 +152,8 @@
+                                                        elementTotalCount,
+                                                        elementMemorySize,
+                                                        dataType,
+-                                                       tensorType) };
++                                                       tensorType,
++                                                       uniformBuffer) };
+ 
+         if (this->mManageResources) {
+             this->mManagedMemObjects.push_back(tensor);
+--- a/src/Tensor.cpp
++++ b/src/Tensor.cpp
+@@ -11,7 +11,8 @@
+                uint32_t elementTotalCount,
+                uint32_t elementMemorySize,
+                const DataTypes& dataType,
+-               const MemoryTypes& memoryType)
++               const MemoryTypes& memoryType,
++               bool uniformBuffer)
+   : Memory(physicalDevice, device, dataType, memoryType, elementTotalCount, 1)
+ {
+     this->mSize = elementTotalCount;
+@@ -23,7 +24,8 @@
+                  elementTotalCount,
+                  Memory::toString(memoryType));
+ 
+-    this->mDescriptorType = vk::DescriptorType::eStorageBuffer;
++    this->mDescriptorType = uniformBuffer ? vk::DescriptorType::eUniformBuffer
++                                          : vk::DescriptorType::eStorageBuffer;
+ 
+     this->reserve();
+     this->updateRawData(data);
+@@ -275,7 +277,7 @@
+       binding, // Destination binding
+       0,       // Destination array element
+       1,       // Descriptor count
+-      vk::DescriptorType::eStorageBuffer,
++      mDescriptorType,
+       nullptr, // Descriptor image info
+       // Using a member variable here means the address is still valid later
+       &mDescriptorBufferInfo);
+@@ -286,6 +288,11 @@
+ vk::BufferUsageFlags
+ Tensor::getPrimaryBufferUsageFlags()
+ {
++    if (mDescriptorType == vk::DescriptorType::eUniformBuffer)
++        return vk::BufferUsageFlagBits::eUniformBuffer |
++               vk::BufferUsageFlagBits::eTransferSrc |
++               vk::BufferUsageFlagBits::eTransferDst;
++
+     switch (this->mMemoryType) {
+         case MemoryTypes::eDevice:
+         case MemoryTypes::eHost:
+--- a/src/Algorithm.cpp
++++ b/src/Algorithm.cpp
+@@ -130,12 +130,15 @@
+ {
+     uint32_t numImages = 0;
+     uint32_t numTensors = 0;
++    uint32_t numUniforms = 0;
+ 
+     KP_LOG_DEBUG("Kompute Algorithm createParameters started");
+ 
+     for (const std::shared_ptr<Memory>& mem : this->mMemObjects) {
+         if (mem->getDescriptorType() == vk::DescriptorType::eStorageImage) {
+             numImages++;
++        } else if (mem->getDescriptorType() == vk::DescriptorType::eUniformBuffer) {
++            numUniforms++;
+         } else {
+             numTensors++;
+         }
+@@ -149,6 +152,9 @@
+           static_cast<uint32_t>(numTensors) // Descriptor count
+           ));
+     }
++
++    if (numUniforms > 0)
++        descriptorPoolSizes.emplace_back(vk::DescriptorType::eUniformBuffer, numUniforms);
+ 
+     if (numImages > 0) {
+         descriptorPoolSizes.push_back(vk::DescriptorPoolSize(
+--- a/src/OpAlgoDispatch.cpp
++++ b/src/OpAlgoDispatch.cpp
+@@ -38,7 +38,8 @@
+             mem->recordPrimaryMemoryBarrier(
+               commandBuffer,
+               vk::AccessFlagBits::eTransferWrite,
+-              vk::AccessFlagBits::eShaderRead,
++              mem->getDescriptorType() == vk::DescriptorType::eUniformBuffer
++                ? vk::AccessFlagBits::eUniformRead : vk::AccessFlagBits::eShaderRead,
+               vk::PipelineStageFlagBits::eTransfer,
+               vk::PipelineStageFlagBits::eComputeShader);
+         }

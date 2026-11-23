@@ -1,0 +1,97 @@
+#
+# Created by eszdman on 19.11.2026.
+#
+
+--- a/src/include/kompute/Algorithm.hpp
++++ b/src/include/kompute/Algorithm.hpp
+@@ -45,11 +45,13 @@
+               const std::vector<uint32_t>& spirv = {},
+               const Workgroup& workgroup = {},
+               const std::vector<S>& specializationConstants = {},
+-              const std::vector<P>& pushConstants = {}) noexcept
++              const std::vector<P>& pushConstants = {},
++              std::shared_ptr<vk::PipelineCache> pipelineCache = {})
+     {
+         KP_LOG_DEBUG("Kompute Algorithm Constructor with device");
+ 
+         this->mDevice = device;
++        this->mPipelineCache = pipelineCache;
+ 
+         if (memObjects.size() && spirv.size()) {
+             KP_LOG_INFO(
+--- a/src/Algorithm.cpp
++++ b/src/Algorithm.cpp
+@@ -305,12 +305,11 @@
+                                                vk::Pipeline(),
+                                                0);
+ 
+-    vk::PipelineCacheCreateInfo pipelineCacheInfo =
+-      vk::PipelineCacheCreateInfo();
+-    this->mPipelineCache = std::make_shared<vk::PipelineCache>();
+-    this->mDevice->createPipelineCache(
+-      &pipelineCacheInfo, nullptr, this->mPipelineCache.get());
+-    this->mFreePipelineCache = true;
++    if (!this->mPipelineCache) {
++        this->mPipelineCache = std::make_shared<vk::PipelineCache>(
++          this->mDevice->createPipelineCache(vk::PipelineCacheCreateInfo{}));
++        this->mFreePipelineCache = true;
++    }
+ 
+ #ifdef KOMPUTE_CREATE_PIPELINE_RESULT_VALUE
+     vk::ResultValue<vk::Pipeline> pipelineResult =
+--- a/src/include/kompute/Manager.hpp
++++ b/src/include/kompute/Manager.hpp
+@@ -494,7 +494,8 @@
+           spirv,
+           workgroup,
+           specializationConstants,
+-          pushConstants) };
++          pushConstants,
++          this->mPipelineCache) };
+ 
+         if (this->mManageResources) {
+             this->mManagedAlgorithms.push_back(algorithm);
+@@ -520,6 +521,21 @@
+      *device
+      **/
+     vk::PhysicalDeviceProperties getDeviceProperties() const;
++
++    // Call before creating algorithms. The manager owns the cache until destroy().
++    void initPipelineCache(const std::vector<uint8_t>& data)
++    {
++        if (mPipelineCache)
++            throw std::logic_error("Pipeline cache already initialized");
++        vk::PipelineCacheCreateInfo info({}, data.size(), data.empty() ? nullptr : data.data());
++        mPipelineCache = std::make_shared<vk::PipelineCache>(mDevice->createPipelineCache(info));
++    }
++
++    std::vector<uint8_t> pipelineCacheData() const
++    {
++        return mDevice->getPipelineCacheData(*mPipelineCache);
++    }
++
+ 
+     /**
+      * List the devices available in the current vulkan instance.
+@@ -543,6 +559,7 @@
+     std::shared_ptr<vk::PhysicalDevice> mPhysicalDevice = nullptr;
+     std::shared_ptr<vk::Device> mDevice = nullptr;
+     bool mFreeDevice = false;
++    std::shared_ptr<vk::PipelineCache> mPipelineCache;
+ 
+     // -------------- ALWAYS OWNED RESOURCES
+     std::vector<std::weak_ptr<Memory>> mManagedMemObjects;
+--- a/src/Manager.cpp
++++ b/src/Manager.cpp
+@@ -138,6 +138,11 @@
+             }
+         }
+         this->mManagedMemObjects.clear();
++    }
++
++    if (this->mPipelineCache) {
++        this->mDevice->destroyPipelineCache(*this->mPipelineCache);
++        this->mPipelineCache.reset();
+     }
+ 
+     if (this->mFreeDevice) {

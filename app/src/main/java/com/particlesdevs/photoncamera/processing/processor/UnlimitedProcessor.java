@@ -6,6 +6,7 @@ import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
 import android.media.Image;
+import android.os.SystemClock;
 import com.particlesdevs.photoncamera.api.ParseExif;
 import com.particlesdevs.photoncamera.app.PhotonCamera;
 import com.particlesdevs.photoncamera.processing.ImageSaver;
@@ -85,11 +86,13 @@ public class UnlimitedProcessor extends ProcessorBase {
             ParseExif.syncWithParameters(exifData, parameters);
             fillParams = true;
         }
+        long mergeStartNs = SystemClock.elapsedRealtimeNanos();
         if (averageRaw == null) {
             averageRaw = new AverageRaw(parameters.rawSize, "UnlimitedAvr");
         }
         averageRaw.additionalParams = new AverageParams(null, image.getPlanes()[0].getBuffer(), parameters);
         averageRaw.Run();
+        parameters.mergeTimeNs += SystemClock.elapsedRealtimeNanos() - mergeStartNs;
         unlimitedCounter++;
         /*
         if (unlimitedEnd) {
@@ -114,10 +117,11 @@ public class UnlimitedProcessor extends ProcessorBase {
         processingEventsListener.onProcessingStarted("Unlimited");
         Allocator.resetPeakMemory();
         GLTexture.resetPeakVram();
-        long processStartMs = System.currentTimeMillis();
+        long mergeStartNs = SystemClock.elapsedRealtimeNanos();
         averageRaw.FinalScript();
         ByteBuffer unlimitedBuffer = averageRaw.Output;
         averageRaw.close();
+        parameters.mergeTimeNs += SystemClock.elapsedRealtimeNanos() - mergeStartNs;
         averageRaw = null;
         Allocator.logStage(TAG, "unlimited-start " + parameters.rawSize.x + "x" + parameters.rawSize.y);
 
@@ -148,6 +152,7 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         // PostPipeline consumes normalized fp16 raw; IncreaseWLBL above set
         // wl = FAKE_WL / black = 0, so this is a plain v/65535 conversion.
+        long renderStartNs = SystemClock.elapsedRealtimeNanos();
         {
             ByteBuffer unlimitedF16 = Allocator.createF16(unlimitedBuffer,
                     parameters.rawSize.x, parameters.rawSize.y,
@@ -159,6 +164,7 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         PostPipeline pipeline = new PostPipeline();
         Bitmap bitmap = pipeline.Run(unlimitedBuffer, parameters);
+        parameters.postProcessingTimeNs = SystemClock.elapsedRealtimeNanos() - renderStartNs;
 
         // The stacked RAW frame is dead once it has been rendered - free it
         // before the memory-heavy Ultra HDR gain-map pass (it previously
@@ -175,26 +181,26 @@ public class UnlimitedProcessor extends ProcessorBase {
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
+            long gainMapStartNs = SystemClock.elapsedRealtimeNanos();
             try {
                 gm = pipeline.RunHDRGainMap(parameters, bitmap, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e("UnlimitedProcessor", "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
+            } finally {
+                parameters.postProcessingTimeNs += SystemClock.elapsedRealtimeNanos() - gainMapStartNs;
             }
         }
 
         processingEventsListener.onProcessingFinished("Unlimited JPG Processing Finished");
         Allocator.logStage(TAG, "post-gainmap");
-        // Total processing time: onProcessing start -> onProcessing finished,
-        // stopping before encode so the values can go into this shot's EXIF.
-        parameters.totalProcessingTimeMs = System.currentTimeMillis() - processStartMs;
         if (PhotonCamera.DEBUG) {
             parameters.peakVramMB = GLTexture.getPeakVramMB();
             parameters.peakMemoryMB = Allocator.getPeakMemoryMB();
         }
         exifData.IMAGE_DESCRIPTION = parameters.toString();
         if (PhotonCamera.DEBUG) {
-            Log.d(TAG, "TotalProcessingTime=" + parameters.totalProcessingTimeMs
-                    + "ms PeakVram=" + parameters.peakVramMB
+            Log.d(TAG, parameters.processingTimeDescription()
+                    + " PeakVram=" + parameters.peakVramMB
                     + "MB PeakMemory=" + parameters.peakMemoryMB + "MB");
         }
         imageFile = Paths.get(imageFile.toAbsolutePath() + (useHeic ? ".heic" : ".jpg"));

@@ -20,6 +20,7 @@ import androidx.annotation.StringRes;
 import androidx.core.content.ContextCompat;
 import androidx.core.os.HandlerCompat;
 
+import com.particlesdevs.photoncamera.BuildConfig;
 import com.particlesdevs.photoncamera.api.Settings;
 import com.particlesdevs.photoncamera.capture.CaptureController;
 import com.particlesdevs.photoncamera.control.Gravity;
@@ -36,6 +37,8 @@ import com.particlesdevs.photoncamera.processing.render.PreviewParameters;
 import com.particlesdevs.photoncamera.settings.MigrationManager;
 import com.particlesdevs.photoncamera.settings.PreferenceKeys;
 import com.particlesdevs.photoncamera.settings.SettingsManager;
+import com.particlesdevs.photoncamera.settings.TunableInjector;
+import com.particlesdevs.photoncamera.settings.merge.ESD4D;
 import com.particlesdevs.photoncamera.ui.SplashActivity;
 import com.particlesdevs.photoncamera.util.AssetLoader;
 import com.particlesdevs.photoncamera.util.Log;
@@ -222,15 +225,46 @@ public class PhotonCamera extends Application {
         initModules();
         super.onCreate();
     }
+    private static native int prepareVulkanPipelines(String cacheDirectory);
+    private static native boolean prepareBurstKernelNet(int rawWidth, int rawHeight, int cfa);
+    private boolean burstKernelPrepared; // Accessed on executorService.
+
+    public void warmBurstKernelNet(int width, int height, int cfa) {
+        if (!BuildConfig.BUILD_ESD4D || cfa < 0 || cfa > 3) return;
+        executorService.execute(() -> {
+            if (burstKernelPrepared) return;
+            ESD4D tuning = new ESD4D();
+            TunableInjector.inject(tuning);
+            if (!tuning.supportsKomputeMerge()) return;
+            try {
+                System.loadLibrary("esd4d_startup");
+                long start = System.nanoTime();
+                if (prepareBurstKernelNet(width, height, cfa)) {
+                    Log.d("PhotonCamera", "Burst KernelNet warmed for " + width + "x" + height
+                            + " in " + (System.nanoTime() - start) / 1_000_000 + " ms");
+                }
+                burstKernelPrepared = true;
+            } catch (RuntimeException | UnsatisfiedLinkError e) {
+                android.util.Log.w("PhotonCamera", "Burst KernelNet warmup unavailable", e);
+            }
+        });
+    }
+
     private void initModules() {
 
         SimpleStorageHelper.init(this);
+        if (BuildConfig.BUILD_ESD4D) {
+            executorService.execute(() -> {
+                try {
+                    System.loadLibrary("esd4d_startup");
+                    int prepared = prepareVulkanPipelines(getCacheDir().getAbsolutePath());
+                    Log.d("PhotonCamera", "Prepared " + prepared + " Vulkan merge/post pipelines");
+                } catch (RuntimeException | UnsatisfiedLinkError e) {
+                    android.util.Log.w("PhotonCamera", "Vulkan pipeline warm-up unavailable", e);
+                }
+            });
+        }
 
-        // Load the FlowNet optical-flow model + warm its shaders on a background
-        // thread right now, so the first HDR/ESD4D session is already warm.
-        FlowNetNcnnProcessor.start(this);
-
-        // Same for the KernelNet parameter model (per-shot loads removed).
         KernelNetNcnnProcessor.start(this);
 
         SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -249,6 +283,12 @@ public class PhotonCamera extends Application {
         PreferenceKeys.initialise(mSettingsManager);
 
         mSettings = new Settings();
+
+        ESD4D mergeTuning = new ESD4D();
+        TunableInjector.inject(mergeTuning);
+        if (!mergeTuning.gyroOnly && "flownet".equals(mergeTuning.alignerSelect)) {
+            FlowNetNcnnProcessor.start(this);
+        }
 
         //mParameters = new Parameters();
         mPreviewParameters = new PreviewParameters();

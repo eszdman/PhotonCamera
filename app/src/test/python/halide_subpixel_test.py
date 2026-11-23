@@ -91,7 +91,7 @@ def reference(source, dx, dy, mode, cfa):
 class Renderer:
     def __init__(self, ctx, mode, tile, sampler_only=False, shader_path=None):
         self.ctx, self.mode, self.tile = ctx, mode, tile
-        code = (shader_path or SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+        code = (shader_path or SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
         code = code.replace('#define LAYOUT //', '#define LAYOUT layout(local_size_x=8,local_size_y=8) in;')
         code = code.replace('#define TILE_AL 16', f'#define TILE_AL {tile}')
         code = code.replace('#define HALIDE_SAMPLING 0', f'#define HALIDE_SAMPLING {mode}')

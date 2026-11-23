@@ -10,7 +10,7 @@ from pathlib import Path
 import moderngl
 import numpy as np
 
-SHADER=Path(__file__).resolve().parents[2]/'main/assets/shaders/merge/mergeCombineWeight1.glsl'
+SHADER=Path(__file__).resolve().parents[2]/'main/cpp/shaders/shared/shaders/merge/mergeCombineWeight1Residual.glsl'
 
 
 class Combine:

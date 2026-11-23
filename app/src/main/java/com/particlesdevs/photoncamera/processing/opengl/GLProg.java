@@ -27,6 +27,17 @@ public class GLProg implements AutoCloseable {
     private final ByteBuffer mFlushBuffer = ByteBuffer.allocateDirect(4 * 4 * 4096);
     private final List<Integer> mPrograms = new ArrayList<>();
     private final Map<String, Integer> mProgramCache = new HashMap<>();
+    // Asset compute passes without defines can reuse their linked program and reflected bindings.
+    private static final class ComputeAsset {
+        final int program;
+        final Map<String, GLComputeLayout> layouts;
+
+        ComputeAsset(int program, Map<String, GLComputeLayout> layouts) {
+            this.program = program;
+            this.layouts = layouts;
+        }
+    }
+    private final Map<String, ComputeAsset> computeAssets = new HashMap<>();
     private final int vertexShader;
     private final GLSquareModel mSquare = new GLSquareModel();
     public int mCurrentProgramActive;
@@ -199,7 +210,19 @@ public class GLProg implements AutoCloseable {
         useAssetProgram(name,false);
     }
     public void useAssetProgram(String name,boolean compute){
+        boolean cacheable = compute && !changedDef;
+        if (cacheable) {
+            ComputeAsset asset = computeAssets.get(name);
+            if (asset != null) {
+                isCompute = true;
+                closed = false;
+                mComputeLayouts = asset.layouts;
+                rebindProgram(asset.program);
+                return;
+            }
+        }
         useProgram(PhotonCamera.getAssetLoader().getString("shaders/"+name+".glsl"),compute);
+        if (cacheable) computeAssets.put(name, new ComputeAsset(mCurrentProgramActive, mComputeLayouts));
     }
     public void useFileProgram(String path, boolean compute){
         // open file by path

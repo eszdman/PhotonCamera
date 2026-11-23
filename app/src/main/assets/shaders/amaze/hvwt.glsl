@@ -1,9 +1,7 @@
 #import amaze
 // AMaZE pass 4+5 (fused): adaptive weights hvwt at R/B sites (C++ lines
 // 741-783) and the nyquist texture test (C++ lines 836-857).  Both evaluate
-// at the same sites under the same inside(s, 6) guard and the test's reads
-// (cd2.b, grad.b at s +/- 2) are a subset of the hvwt staging (halo 4 covers
-// s +/- 3), so one dispatch computes both outputs from one staged tile.
+// at the same sites under the same inside(s, 6) guard.
 //
 // The nyquist test value is still computed and stored per site - the
 // per-pixel flags gate the correction math in nyq2/area/nyqref - but the
@@ -14,38 +12,15 @@ uniform sampler2D u_cd2;   // vcd', hcd', cddiffsq
 uniform sampler2D u_cdb;   // dgintv, dginth
 uniform sampler2D u_grad;
 
-const int HALO = 4;
-const int TW = LW + 2 * HALO;
-const int TH = LH + 2 * HALO;
-const int TN = TW * TH;
-
-ivec2 T0() { return ivec2(gl_WorkGroupID.xy * uvec2(LW, LH)) - HALO; }
-int SIDX(ivec2 q) { ivec2 l = q - T0(); return l.y * TW + l.x; }
-int SIDX_H(ivec2 q) { ivec2 l = ivec2(q.x & ~1, q.y) - T0(); return l.y * TW + l.x; }
-
-shared vec4 s_cd2[TN];
-shared vec2 s_cdb[TN];
-shared vec4 s_grad[TN];
-float V(ivec2 p) { return s_cd2[SIDX(p)].r; }
-float H(ivec2 p) { return s_cd2[SIDX(p)].g; }
-float dgi(ivec2 p) { return s_cdb[SIDX(p)].r; }   // dgintv
-float dgh(ivec2 p) { return s_cdb[SIDX(p)].g; }   // dginth
-float dw0(ivec2 p) { return s_grad[SIDX(p)].r; }
-float dw1(ivec2 p) { return s_grad[SIDX(p)].g; }
-float cds(ivec2 q) { return s_cd2[SIDX(q)].b; }   // cddiffsq
-float dhs(ivec2 q) { return s_grad[SIDX(q)].b; }  // delhvsqsum
-
-void load_tile() {
-    ivec2 t0 = T0();
-    for (int i = int(gl_LocalInvocationIndex); i < TN; i += LW * LH) {
-        ivec2 q = clamp(t0 + ivec2(i % TW, i / TW), ivec2(0), u_size - 1);
-        s_cd2[i] = texelFetch(u_cd2, q, 0);
-        s_cdb[i] = texelFetch(u_cdb, q, 0).xy;
-        s_grad[i] = texelFetch(u_grad, q, 0);
-    }
-    memoryBarrierShared();
-    barrier();
-}
+// All taps are inside the six-pixel guard in main.
+float V(ivec2 p)   { return texelFetch(u_cd2, p, 0).r; }
+float H(ivec2 p)   { return texelFetch(u_cd2, p, 0).g; }
+float dgi(ivec2 p) { return texelFetch(u_cdb, p, 0).r; }
+float dgh(ivec2 p) { return texelFetch(u_cdb, p, 0).g; }
+float dw0(ivec2 p) { return texelFetch(u_grad, p, 0).r; }
+float dw1(ivec2 p) { return texelFetch(u_grad, p, 0).g; }
+float cds(ivec2 p) { return texelFetch(u_cd2, p, 0).b; }
+float dhs(ivec2 p) { return texelFetch(u_grad, p, 0).b; }
 
 layout(binding = 0, r32f) writeonly uniform highp image2D img_hvwt;
 layout(binding = 1, r32f) writeonly uniform highp image2D img_nyq;
@@ -91,7 +66,6 @@ float nyq_val(ivec2 s) {
 }
 
 void main() {
-    load_tile();
     ivec2 p = ivec2(gl_GlobalInvocationID.xy);
     float hv = 0.0, val = 0.0;
     if (p.x < u_size.x && p.y < u_size.y) {

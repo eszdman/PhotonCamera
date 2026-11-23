@@ -68,7 +68,7 @@ def prewarp_checks():
 
 def shader_checks(black=False):
     ctx = moderngl.create_standalone_context(require=430, backend='egl')
-    shader = (SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+    shader = (SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
     cases = 0
     for tile in (16, 32):
         for enabled in ((1,) if black else (0, 1)):

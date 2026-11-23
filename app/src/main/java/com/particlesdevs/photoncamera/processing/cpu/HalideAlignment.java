@@ -15,6 +15,8 @@ import com.particlesdevs.photoncamera.util.BufferUtils;
 import com.particlesdevs.photoncamera.util.Log;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
 
 import static android.opengl.GLES20.GL_CLAMP_TO_EDGE;
@@ -163,8 +165,43 @@ public class HalideAlignment implements AutoCloseable {
                 + " rem=" + b.remaining() + " direct=" + b.isDirect());
     }
 
-    @SuppressLint("DefaultLocale")
+    private int gridWidth, gridHeight;
+    private Point rawHalf;
+    private float[] frameField;
+    private FloatBuffer upload;
+    private static final Point ORIGIN = new Point(0, 0);
+    private long prewarpNs, matchingNs;
+    private int warpedFrames;
+
+    /** Full atlas for callers which inspect or replace motion before merging. */
     public void Run() {
+        prepareReference();
+        float[] atlas = new float[size.x * size.y * 4];
+        for (int f = 1; f < images.size(); f++)
+            packFrame(f, atlas, size, PyramidAlignment.alignmentShift(parameters, f));
+        Result = new GLTexture(size, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                BufferUtils.getFrom(atlas), GL_NEAREST, GL_CLAMP_TO_EDGE);
+    }
+
+    /** Keep the reference pyramid and reuse one motion texture for the merge loop. */
+    public void startStreaming() {
+        prepareReference();
+        Point grid = parameters.alignmentSize;
+        frameField = new float[grid.x * grid.y * 4];
+        upload = ByteBuffer.allocateDirect(frameField.length * Float.BYTES)
+                .order(ByteOrder.nativeOrder()).asFloatBuffer();
+        Result = new GLTexture(grid, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
+                null, GL_NEAREST, GL_CLAMP_TO_EDGE);
+    }
+
+    public void alignFrame(int index) {
+        packFrame(index, frameField, parameters.alignmentSize, ORIGIN);
+        upload.clear();
+        upload.put(frameField).flip();
+        Result.loadData(upload);
+    }
+
+    private void prepareReference() {
         // The baked kernels match on a 32-raw-px native grid (level-1) or a
         // 16-raw-px one (level-0 refined), and the pack loop below samples
         // the field 1:1 onto parameters.alignmentSize, so everything here
@@ -178,7 +215,7 @@ public class HalideAlignment implements AutoCloseable {
         }
         final int rawW = parameters.rawSize.x;
         final int rawH = parameters.rawSize.y;
-        final Point rawHalf = new Point(rawW / 2, rawH / 2);
+        rawHalf = new Point(rawW / 2, rawH / 2);
 
         // Refined (level-0) or plain (min_level = 1) field for this run:
         // push the tunable into the library first, then read back the mode
@@ -195,13 +232,13 @@ public class HalideAlignment implements AutoCloseable {
         int gw = rawW, gh = rawH;
         final int halvings = refine ? 1 : MIN_LEVEL + 1;
         for (int i = 0; i < halvings; i++) { gw /= 2; gh /= 2; }
-        final int NTX = Math.max(1, (gw - TILE) / STRIDE + 1);
-        final int NTY = Math.max(1, (gh - TILE) / STRIDE + 1);
+        gridWidth = Math.max(1, (gw - TILE) / STRIDE + 1);
+        gridHeight = Math.max(1, (gh - TILE) / STRIDE + 1);
 
         Log.d(TAG, "raw " + rawW + "x" + rawH + ", " + images.size()
                 + " frames (1 base + " + (images.size() - 1) + " aligned), "
-                + (refine ? "flow-refined L0 field " + NTX + "x" + NTY
-                          : "hierarchical L1 field " + NTX + "x" + NTY));
+                + (refine ? "flow-refined L0 field " + gridWidth + "x" + gridHeight
+                          : "hierarchical L1 field " + gridWidth + "x" + gridHeight));
         try {
             ctx = nInit(rawW, rawH);
         } catch (Throwable t) {
@@ -217,92 +254,82 @@ public class HalideAlignment implements AutoCloseable {
         if (err != 0) throw new IllegalStateException("alignburst_base_f16 failed: " + err);
         Log.d(TAG, "base pyramid: " + (System.currentTimeMillis() - t0) + "ms");
 
-        // Zero-initialized atlas = identity alignment for uncovered cells.
-        float[] atlas = new float[size.x * size.y * 4];
+    }
 
-        long prewarpNs = 0, matchingNs = 0;
-        int warpedFrames = 0;
-        for (int f = 1; f < images.size(); f++) {
-            ImageFrame frame = images.get(f);
-            // Alt normalized values are layerMpy times larger than base's;
-            // effective white rescales them back (highlights clamp at the
-            // base's range, same as the GLSL exposure clamp).
-            float whiteEff = frame.pair.layerMpy > 0.f ? frame.pair.layerMpy : 1.f;
-            t0 = System.currentTimeMillis();
-            float[] homography = gyroHomographies == null ? null : gyroHomographies[f];
-            float[] vecs;
-            long stageStart = SystemClock.elapsedRealtimeNanos();
-            if (homography != null) {
-                if (gyroPrewarp == null) {
-                    if (gyroProgram == null || gyroInput == null) {
-                        throw new IllegalStateException("Gyro prealignment requires a GPU program and raw texture");
-                    }
-                    gyroPrewarp = new GpuGyroPrewarp(gyroProgram, gyroInput);
+    @SuppressLint("DefaultLocale")
+    private void packFrame(int f, float[] atlas, Point size, Point shift) {
+        ImageFrame frame = images.get(f);
+        // Alt normalized values are layerMpy times larger than base's;
+        // effective white rescales them back (highlights clamp at the
+        // base's range, same as the GLSL exposure clamp).
+        float whiteEff = frame.pair.layerMpy > 0.f ? frame.pair.layerMpy : 1.f;
+        long t0 = System.currentTimeMillis();
+        float[] homography = gyroHomographies == null ? null : gyroHomographies[f];
+        float[] vecs;
+        long stageStart = SystemClock.elapsedRealtimeNanos();
+        if (homography != null) {
+            if (gyroPrewarp == null) {
+                if (gyroProgram == null || gyroInput == null) {
+                    throw new IllegalStateException("Gyro prealignment requires a GPU program and raw texture");
                 }
-                try (GpuGyroPrewarp.WarpedFrame warped = gyroPrewarp.warp(frame.buffer, homography)) {
-                    prewarpNs += SystemClock.elapsedRealtimeNanos() - stageStart;
-                    stageStart = SystemClock.elapsedRealtimeNanos();
-                    // Both hierarchical matching and flow refinement see the GPU-warped raw.
-                    vecs = nAlignFrame(ctx, warped.pixels, whiteEff);
-                    matchingNs += SystemClock.elapsedRealtimeNanos() - stageStart;
-                }
-                warpedFrames++;
-            } else {
-                vecs = nAlignFrame(ctx, frame.buffer, whiteEff);
+                gyroPrewarp = new GpuGyroPrewarp(gyroProgram, gyroInput);
+            }
+            try (GpuGyroPrewarp.WarpedFrame warped = gyroPrewarp.warp(frame.buffer, homography)) {
+                prewarpNs += SystemClock.elapsedRealtimeNanos() - stageStart;
+                stageStart = SystemClock.elapsedRealtimeNanos();
+                // Both hierarchical matching and flow refinement see the GPU-warped raw.
+                vecs = nAlignFrame(ctx, warped.pixels, whiteEff);
                 matchingNs += SystemClock.elapsedRealtimeNanos() - stageStart;
             }
-            if (vecs == null) {
-                throw new IllegalStateException("alignburst_f16 failed for frame " + f);
-            }
-            long tAlign = System.currentTimeMillis() - t0;
-
-            if (f == 1) {
-                // Sample vectors for diagnostics: center + corners of the
-                // native field, in raw/2 texel units (before atlas packing).
-                int[][] probe = {{NTX / 2, NTY / 2}, {1, 1}, {NTX - 2, 1},
-                        {1, NTY - 2}, {NTX - 2, NTY - 2}};
-                StringBuilder sb = new StringBuilder("frame 1 native vectors:");
-                for (int[] pc : probe) {
-                    sb.append(String.format(" [(%d,%d) d=(%+.1f,%+.1f)]", pc[0], pc[1],
-                            vecs[pc[1] * NTX + pc[0]],
-                            vecs[NTX * NTY + pc[1] * NTX + pc[0]]));
-                }
-                Log.d(TAG, sb.toString());
-            }
-            Point shift = PyramidAlignment.alignmentShift(parameters, f);
-            // Sample the vector field 1:1 onto the atlas grid (values
-            // already raw/2 units). The grid matches whichever stage
-            // produced the field - refined level-0 tile origins sit at
-            // multiples of 16 raw px, plain level-1 ones at multiples of 32
-            // - both exactly the atlas cell origins of their mode (ESD4D
-            // sizes parameters.alignmentSize and the merge's TILE_AL
-            // accordingly); only the far-edge tail cells clamp to the last
-            // native vector.
-            for (int ty = 0; ty < parameters.alignmentSize.y && ty + shift.y < size.y; ty++) {
-                int sy = Math.min(ty, NTY - 1);
-                int row = sy * NTX;
-                for (int tx = 0; tx < parameters.alignmentSize.x && tx + shift.x < size.x; tx++) {
-                    int sx = Math.min(tx, NTX - 1);
-                    float dx = vecs[row + sx];
-                    float dy = vecs[NTX * NTY + row + sx];
-                    float fdx = (float) Math.floor(dx);
-                    float fdy = (float) Math.floor(dy);
-                    int o = ((shift.y + ty) * size.x + shift.x + tx) * 4;
-                    atlas[o] = fdx / rawHalf.x;
-                    atlas[o + 1] = fdy / rawHalf.y;
-                    atlas[o + 2] = dx - fdx;
-                    atlas[o + 3] = dy - fdy;
-                }
-            }
-            Log.d(TAG, "frame " + f + " (" + frame.pair.curlayer.name() + " x" + whiteEff
-                    + "): " + tAlign + "ms");
+            warpedFrames++;
+        } else {
+            vecs = nAlignFrame(ctx, frame.buffer, whiteEff);
+            matchingNs += SystemClock.elapsedRealtimeNanos() - stageStart;
         }
+        if (vecs == null) {
+            throw new IllegalStateException("alignburst_f16 failed for frame " + f);
+        }
+        long tAlign = System.currentTimeMillis() - t0;
 
-        Log.d(TAG, "GPU prewarp: " + warpedFrames + " frames, upload+warp+readback="
-                + prewarpNs / 1_000_000.0 + "ms; native matching=" + matchingNs / 1_000_000.0 + "ms");
-
-        Result = new GLTexture(size, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
-                BufferUtils.getFrom(atlas), GL_NEAREST, GL_CLAMP_TO_EDGE);
+        if (f == 1 && gridWidth >= 2 && gridHeight >= 2) {
+            // Sample vectors for diagnostics: center + corners of the
+            // native field, in raw/2 texel units (before atlas packing).
+            int[][] probe = {{gridWidth / 2, gridHeight / 2}, {1, 1}, {gridWidth - 2, 1},
+                    {1, gridHeight - 2}, {gridWidth - 2, gridHeight - 2}};
+            StringBuilder sb = new StringBuilder("frame 1 native vectors:");
+            for (int[] pc : probe) {
+                sb.append(String.format(" [(%d,%d) d=(%+.1f,%+.1f)]", pc[0], pc[1],
+                        vecs[pc[1] * gridWidth + pc[0]],
+                        vecs[gridWidth * gridHeight + pc[1] * gridWidth + pc[0]]));
+            }
+            Log.d(TAG, sb.toString());
+        }
+        // Sample the vector field 1:1 onto the atlas grid (values
+        // already raw/2 units). The grid matches whichever stage
+        // produced the field - refined level-0 tile origins sit at
+        // multiples of 16 raw px, plain level-1 ones at multiples of 32
+        // - both exactly the atlas cell origins of their mode (ESD4D
+        // sizes parameters.alignmentSize and the merge's TILE_AL
+        // accordingly); only the far-edge tail cells clamp to the last
+        // native vector.
+        for (int ty = 0; ty < parameters.alignmentSize.y && ty + shift.y < size.y; ty++) {
+            int sy = Math.min(ty, gridHeight - 1);
+            int row = sy * gridWidth;
+            for (int tx = 0; tx < parameters.alignmentSize.x && tx + shift.x < size.x; tx++) {
+                int sx = Math.min(tx, gridWidth - 1);
+                float dx = vecs[row + sx];
+                float dy = vecs[gridWidth * gridHeight + row + sx];
+                float fdx = (float) Math.floor(dx);
+                float fdy = (float) Math.floor(dy);
+                int o = ((shift.y + ty) * size.x + shift.x + tx) * 4;
+                atlas[o] = fdx / rawHalf.x;
+                atlas[o + 1] = fdy / rawHalf.y;
+                atlas[o + 2] = dx - fdx;
+                atlas[o + 3] = dy - fdy;
+            }
+        }
+        Log.d(TAG, "frame " + f + " (" + frame.pair.curlayer.name() + " x" + whiteEff
+                + "): " + tAlign + "ms");
     }
 
     @Override
@@ -314,6 +341,8 @@ public class HalideAlignment implements AutoCloseable {
             }
         } finally {
             if (ctx != 0) {
+                Log.d(TAG, "GPU prewarp: " + warpedFrames + " frames, upload+warp+readback="
+                        + prewarpNs / 1_000_000.0 + "ms; native matching=" + matchingNs / 1_000_000.0 + "ms");
                 nRelease(ctx);
                 ctx = 0;
             }

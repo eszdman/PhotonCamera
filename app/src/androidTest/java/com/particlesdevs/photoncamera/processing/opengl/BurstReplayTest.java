@@ -109,6 +109,16 @@ public class BurstReplayTest {
                     frame.pair.layerMpy = (float)entry.getDouble("layer");
                     frame.pair.curlayer = IsoExpoSelector.ExpoPair.exposureLayer.Normal;
                     frames.add(frame);
+                    if (args.containsKey("benchmarkBackend")) {
+                        int bits = 32 - Integer.numberOfLeadingZeros(parameters.whiteLevel);
+                        if (bits > 0 && bits < 16) {
+                            ByteBuffer packed = Allocator.packBits(frame.buffer,frame.width*frame.height,bits,false);
+                            assertNotNull(packed);
+                            frame.close();
+                            frame.buffer = packed;
+                            frame.packedBits = bits;
+                        }
+                    }
                 }
             }
             assertNotNull(parameters);
@@ -119,6 +129,14 @@ public class BurstReplayTest {
                 Pair<Double,Double>[] model=new Pair[3];
                 for(int i=0;i<3;++i) model[i]=new Pair<>(noise.getDouble(2*i),noise.getDouble(2*i+1));
                 parameters.noiseModeler=new NoiseModeler(model,3200,parameters.iso,parameters.cfaPattern,null);
+            }
+            if (args.containsKey("benchmarkBackend")) {
+                JSONObject timing = com.particlesdevs.photoncamera.processing.processor.BurstMergeBenchmark
+                        .measure(args.getString("benchmarkBackend"), frames, parameters);
+                Bundle metrics = new Bundle();
+                metrics.putString("burst_timing",timing.toString());
+                InstrumentationRegistry.getInstrumentation().sendStatus(0,metrics);
+                return;
             }
             if (args.getString("dumpAlignment", "false").equals("true")) {
                 dumpAlignment(frames, parameters, output, variant);

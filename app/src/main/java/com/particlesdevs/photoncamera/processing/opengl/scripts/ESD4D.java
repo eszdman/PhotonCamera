@@ -7,8 +7,6 @@ import com.particlesdevs.photoncamera.processing.cpu.HalideAlignment;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetNcnnProcessor;
 import com.particlesdevs.photoncamera.processing.ml.KernelNetResult;
 import com.particlesdevs.photoncamera.processing.opengl.GLBuffer;
-import com.particlesdevs.photoncamera.settings.annotations.Tunable;
-import com.particlesdevs.photoncamera.settings.annotations.TunableAction;
 import com.particlesdevs.photoncamera.util.Log;
 
 import com.particlesdevs.photoncamera.app.PhotonCamera;
@@ -45,6 +43,8 @@ import static android.opengl.GLES20.GL_MIRRORED_REPEAT;
 import static android.opengl.GLES20.GL_NEAREST;
 
 public class ESD4D extends GLOneScript {
+    private final com.particlesdevs.photoncamera.settings.merge.ESD4D tuning =
+            new com.particlesdevs.photoncamera.settings.merge.ESD4D();
     public Parameters parameters;
     /** Raw spatial estimate before sensor-prior limits or persistent storage. */
     public AdaptiveNoiseModel.Model measuredNoiseModel;
@@ -60,7 +60,7 @@ public class ESD4D extends GLOneScript {
     }
 
     /**
-     * KernelNet runs natively through ncnn on the Vulkan backend (see
+     * KernelNet runs natively on the CPU through ncnn (see
      * {@link KernelNetNcnnProcessor}).
      */
 
@@ -91,13 +91,6 @@ public class ESD4D extends GLOneScript {
     Point cfaShift;
     /** Packed texture size (rawSize/2 + cfaShift) shared by all quad-packed stages. */
     Point packedSize;
-    @Tunable(title = "Max hotPixels", category = "Merge", description = "Maximum proposed Bayer quads; skip correction if exceeded", min = 16384, max = 262144, step = 1000, defaultValue = 65535)
-    int MAX_HOT_PIXELS;
-    @Tunable(title = "Max reasonable hotPixels", category = "Merge", description = "Maximum confirmed defect sites; skip correction if exceeded", min = 1000, max = 10000, step = 100, defaultValue = 2000)
-    int MAX_REASONABLE_HOTPIXELS;
-
-    @Tunable(title = "Enable hotPixel correction", category = "Merge", description = "Conservative burst-only correction of persistent isolated bright sensor defects before alignment. Requires at least three frames", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean enableHotPixelCorrection;
 
     private void hotPixels(float sensorNoiseS, float sensorNoiseO) {
         if (images.size() < 3 || parameters.cfaPattern < 0 || parameters.cfaPattern > 3) return;
@@ -110,9 +103,9 @@ public class ESD4D extends GLOneScript {
             }
         }
         long proposalStart = System.nanoTime();
-        float sigma = BurstHotPixelFilter.sigmaThreshold(detectThr);
+        float sigma = BurstHotPixelFilter.sigmaThreshold(tuning.detectThr);
         int[] candidates;
-        try (GLBuffer proposals = new GLBuffer(MAX_HOT_PIXELS * 4 + 1,
+        try (GLBuffer proposals = new GLBuffer(tuning.MAX_HOT_PIXELS * 4 + 1,
                 new GLFormat(GLFormat.DataType.UNSIGNED_32))) {
             glProg.setLayout(8, 8, 1);
             glProg.useAssetProgram("merge/hotpixeldetect", true);
@@ -125,12 +118,12 @@ public class ESD4D extends GLOneScript {
             // in frame zero. Sparse temporal verification still requires strong
             // evidence in a majority and spatial isolation in at least 80% of samples.
             glProg.setVar("detectThr", Math.max(3f, sigma * .5f));
-            glProg.setVar("maxCount", MAX_HOT_PIXELS);
+            glProg.setVar("maxCount", tuning.MAX_HOT_PIXELS);
             glProg.setTexture("inTexture", base);
             glProg.setBufferCompute("HotPixelList", proposals);
             glProg.computeAuto(packedSize, 1);
             int[] data = proposals.readBufferIntegers(false);
-            if (data == null || data[0] < 0 || data[0] > MAX_HOT_PIXELS) {
+            if (data == null || data[0] < 0 || data[0] > tuning.MAX_HOT_PIXELS) {
                 Log.d(Name, "Hot pixel proposals unavailable or overfull; correction skipped");
                 return;
             }
@@ -164,7 +157,7 @@ public class ESD4D extends GLOneScript {
         }
         hotPixelResult = BurstHotPixelFilter.correct(frames, parameters.rawSize.x,
                 parameters.rawSize.y, parameters.cfaPattern, candidates,
-                sensorNoiseS, sensorNoiseO, sigma, MAX_REASONABLE_HOTPIXELS);
+                sensorNoiseS, sensorNoiseO, sigma, tuning.MAX_REASONABLE_HOTPIXELS);
         Log.d(Name, "Hot pixels: proposed=" + candidates.length + " confirmed="
                 + hotPixelResult.sites.length + " overfull=" + hotPixelResult.rejectedOverfull
                 + " proposal_ms=" + (verifyStart - proposalStart) / 1e6
@@ -229,106 +222,9 @@ public class ESD4D extends GLOneScript {
     GLTexture inputAlter;
     GLTexture alter;
     GLTexture alignmentTex;
+    private HalideAlignment frameAlignment;
     /** Dense optical-flow alignment (FlowNet); non-null when useNcnnFlow ran. */
     FlowNetAlignment flowNetAlignment;
-    @Tunable(title = "HotPixels detect threshold", category = "Merge", description = "Higher values require stronger outliers; minimum six-sigma and burst/texture safeguards always apply", min = 0.5f, max = 5.0f, step = 0.1f, defaultValue = 1.5f)
-    double detectThr;
-
-    @Tunable(title = "Enable Adaptive Noise Model", category = "Merge", description = "Creates noise multiplier based on stdev", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean enableAdaptiveNoise;
-
-    @Tunable(title = "Alignment start level", category = "Alignment", description = "Finest resolution fed to the block pyramid matcher: 0 = raw/2 (default), 1 = raw/4, 2 = raw/8. Each skipped level removes the most expensive matching pass (~4x faster alignment core per level) at the cost of a coarser alignment vector field", min = 0, max = 2, step = 1, defaultValue = 0)
-    int alignmentStartLevel;
-    @Tunable(
-            title = "Aligner",
-            description = "GL - GL block pyramid, FlowNet - network optical flow, Halide - Halide CPU",
-            category = "Alignment",
-            entries = {"Halide CPU neon", "PyramidAlign GPU", "FlowNet optical flow", "Off"},
-            entryValues = {"halide", "gl", "flownet", "off"},
-            defaultValue = 0
-    )
-    String alignerSelect = "halide";
-
-    @Tunable(title = "Gyroscope prealignment", category = "Alignment", description = "Prewarp Halide input using timestamped gyro motion and available OIS telemetry; off uses local alignment only", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean gyroPrealignment;
-
-    @Tunable(title = "Gyroscope only", category = "Alignment", description = "Test mergeAlign with gyro/OIS warping and no local matcher. Overrides Aligner and enables gyro prealignment; missing gyro data uses identity", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean gyroOnly;
-
-    @Tunable(title = "Aligner debug compare", category = "Alignment", description = "1 = when the Halide aligner runs, also run the GL block pyramid and log per-frame vector differences (diagnoses constant biases/shift conventions)", min = 0, max = 1, step = 1, defaultValue = 0)
-    int alignDebugCompare;
-
-    @Tunable(title = "Halide flow refinement", category = "Alignment", description = "Refine Halide vectors with Lucas-Kanade on the raw/2 grid: denser subpixel vectors, at increased alignment cost. Off uses the hierarchical field with one vector per 32 raw pixels. Only applies to Halide", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean halideRefineFlow;
-
-    @Tunable(title = "Halide accurate subpixel", category = "Alignment", description = "Fit fractional motion on the existing Halide grid, with noise-aware shift scoring. Off restores the original matcher for comparison. Applies when Halide flow refinement is off", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean halideAccurateSubpixel = true;
-
-    @Tunable(title = "Halide global coarse seed", category = "Alignment", description = "Experimental: ambiguous coarse tiles prefer a shift supported by the whole image; strong local matches can override it. Keeps the existing grid. Requires accurate subpixel and flow refinement off", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean halideCoarseGlobal;
-
-    @Tunable(title = "Halide merge sampling", category = "Alignment",
-            description = "Without gyro: cubic and Lanczos preserve fine detail; bilinear smooths more. Interpolated greens share their physical quincunx lattice while retaining distinct CFA positions. Residual fusion uses the matching sampling model",
-            entries = {"CFA cubic (sharp subpixel)", "CFA bilinear (subpixel)", "CFA Lanczos-2", "Texel nearest (rounded)", "Texel legacy (floor)"},
-            entryValues = {"cubic", "bilinear", "lanczos2", "nearest", "texel"}, defaultValue = 2)
-    String halideMergeSampling = "lanczos2";
-
-    @Tunable(title = "Halide interpolate motion", category = "Alignment", description = "Experimental: interpolate vectors at their patch centers and sample the CFA once, instead of blending four warped samples", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean halideInterpolateMotion;
-
-    @Tunable(title = "CFA residual fusion", category = "Merge", description = "Experimental Halide merge without gyro: 0 keeps the selected sampler; 0.5 tests regularized CFA residual reconstruction at 1x. Uses one interpolated motion vector and retains robust merge rejection. Higher values can amplify noise and ringing", min = 0, max = 1, step = 0.05f, defaultValue = 0)
-    float cfaResidualFusion;
-
-    @Tunable(title = "CFA residual robustness", category = "Merge", description = "Track locally accepted frame weights to reduce unmerged blotches, independently of CFA residual fusion strength. Off restores the original robustness for comparison", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean cfaResidualRobustness;
-
-    @Tunable(title = "Enable Adaptive Noise Storage", category = "Merge", description = "Persist fitted noise model into the dynamic multisample store", min = 0, max = 1, step = 1, defaultValue = 1)
-    boolean enableNoiseStore;
-
-    @TunableAction(title = "Reset adaptive noise model", category = "Merge",
-            description = "Clear learned noise estimates for all cameras, including binned captures",
-            confirmation = "Clear learned noise models for all cameras and resolutions? New photos will rebuild the calibration.",
-            successMessage = "Adaptive noise models reset",
-            failureMessage = "Could not reset adaptive noise models")
-    public static void resetAdaptiveNoiseModel() throws java.io.IOException {
-        DynamicNoiseStore.dynamicNoiseStore.resetAll();
-    }
-
-    @Tunable(title = "Low ISO noise variance limit", category = "Merge", description = "Maximum fitted variance relative to the sensor model at low ISO until a higher-ISO calibration is available; 2 limits sigma to sqrt(2) of the sensor model", min = 1.0f, max = 8.0f, step = 0.25f, defaultValue = 2.0f)
-    float lowIsoNoiseVarianceLimit;
-
-    @Tunable(title = "Network merge noise multiplier", category = "Merge", description = "Scales the noise model fed to the kernel network", min = 0.1f, max = 20.0f, step = 0.05f, defaultValue = 1.0f)
-    float noiseMpy;
-
-    @Tunable(title = "Noise blend max frames", category = "Merge", description = "Frames combined into the deliberately misaligned progressive Gaussian blend used for noise estimation (blurs scene detail while noise only drops by a known factor)", min = 1, max = 9, step = 1, defaultValue = 9)
-    int noiseBlendMaxFrames;
-
-    @Tunable(title = "Noise blend calibration", category = "Merge", description = "Trim multiplier on the physical spatial and temporal residual response (1.0 = analytical response)", min = 0.5f, max = 2.0f, step = 0.05f, defaultValue = 1.0f)
-    float noiseBlendCalMpy;
-
-    @Tunable(title = "Noise histogram range", category = "Merge", description = "Residual histogram range in expected noise sigmas; lower values resolve low ISO more finely", min = 2.0f, max = 8.0f, step = 0.5f, defaultValue = 4.0f)
-    float noiseHistogramRange;
-
-    @Tunable(title = "Noise brightness texture gate", category = "Merge", description = "Variance allowance above the noise curve supported by neighboring brightness rows", min = 1.25f, max = 4.0f, step = 0.05f, defaultValue = 1.8f)
-    float noiseBrightnessTextureGate;
-
-    @Tunable(title = "Noise scan subsample", category = "Merge", description = "Maximum stride between texels evaluated by the noise histogram; small inputs use denser scanning to retain enough samples", min = 1, max = 8, step = 1, defaultValue = 3)
-    int noiseScanSubsample;
-
-    @Tunable(title = "Read noise floor multiplier", category = "Merge", description = "Multiplier on the analytic OPlace read-noise floor applied to fitted O; the legacy 3.0 compensated texture leakage that the noise blend now removes", min = 0.5f, max = 4.0f, step = 0.25f, defaultValue = 1.0f)
-    float noiseOFloorMpy;
-
-    @Tunable(title = "Fit O correction", category = "Merge", description = "Legacy fitO += 3/8*fitS^2 correction that compensated the under-rescaled fit; keep off with the calibrated blend", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean enableFitOCorrection;
-
-    @Tunable(title = "Adaptive fallback min", category = "Merge", description = "Lower clamp of the fallback adaptive multiplier (was 1.0, up-only)", min = 0.25f, max = 2.0f, step = 0.25f, defaultValue = 0.5f)
-    float adaptiveFallbackMin;
-
-    @Tunable(title = "Adaptive fallback max", category = "Merge", description = "Upper clamp of the fallback adaptive multiplier (was 4.0)", min = 1.0f, max = 4.0f, step = 0.25f, defaultValue = 2.0f)
-    float adaptiveFallbackMax;
-
-    @Tunable(title = "GPU sync profiling", category = "Merge", description = "Drain the GPU queue after every merge-loop stage so Stage[merge:*] logs measure true per-stage time (submit + GPU execution) instead of submit-only. Measurement only: serializes the pipeline and inflates the shot time", min = 0, max = 1, step = 1, defaultValue = 0)
-    boolean profileGpuSync;
 
     /** Progressive noise-blend grid, must match BLEND_GRID in
      * tools/noise-blend-calibration/mc.py: center first, then edges, then
@@ -441,16 +337,31 @@ public class ESD4D extends GLOneScript {
      * it serializes the pipeline and inflates the shot time.
      */
     private void gpuSyncProfile() {
-        if (profileGpuSync) android.opengl.GLES30.glFinish();
+        if (tuning.profileGpuSync) android.opengl.GLES30.glFinish();
     }
 
     @Override
     public void Run() {
+        try {
+            runBurst();
+        } finally {
+            releaseFrameAlignment();
+        }
+    }
+
+    private void releaseFrameAlignment() {
+        if (frameAlignment != null) {
+            frameAlignment.close();
+            frameAlignment = null;
+        }
+    }
+
+    private void runBurst() {
         measuredNoiseModel = null;
-        com.particlesdevs.photoncamera.settings.TunableInjector.inject(this);
-        if (profileGpuSync)
+        com.particlesdevs.photoncamera.settings.TunableInjector.inject(tuning);
+        if (tuning.profileGpuSync)
             Log.d("ESD4D", "GPU sync profiling ON: Stage[merge:*] times now include GPU execution");
-        Log.d("ESD4D", "Noise multiplier: " + noiseMpy);
+        Log.d("ESD4D", "Noise multiplier: " + tuning.noiseMpy);
             //Log.d("ESD4D", "Optical flow refinement: " + enableFlowRefinement + " maxShift: " + flowRefineMaxDisp);
         glUtils = new GLUtils(glOne.glProcessing);
 
@@ -611,10 +522,10 @@ public class ESD4D extends GLOneScript {
         double adaptiveNMpy = 1.0;
         final double baselineNoiseS = noiseS;
         final double baselineNoiseO = noiseO;
-        if (enableAdaptiveNoise) {
+        if (tuning.enableAdaptiveNoise) {
             // Load independently of this capture's fit: a scene with too
             // little brightness variation must still use learned calibration.
-            DynamicNoiseStore.NoiseEstimate storedNoise = enableNoiseStore
+            DynamicNoiseStore.NoiseEstimate storedNoise = tuning.enableNoiseStore
                     ? DynamicNoiseStore.dynamicNoiseStore.getEstimate(parameters.physicalID,
                             parameters.iso, modeler.AnalogueISO, parameters.binned) : null;
             if (storedNoise != null) {
@@ -622,7 +533,7 @@ public class ESD4D extends GLOneScript {
                 if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
                         && !storedNoise.higherIsoReference) {
                     prior = AdaptiveNoiseModel.limitToBaseline(prior, baselineNoiseS,
-                            baselineNoiseO, lowIsoNoiseVarianceLimit);
+                            baselineNoiseO, tuning.lowIsoNoiseVarianceLimit);
                 }
                 noiseS = (float) prior.s;
                 noiseO = (float) Math.max(prior.o, 0.05 * baselineNoiseO);
@@ -634,7 +545,7 @@ public class ESD4D extends GLOneScript {
                 frameIsos[i] = images.get(i).pair.iso;
             }
             int[] noiseFrames = AdaptiveNoiseModel.selectFrames(exposureLayers, frameIsos,
-                    parameters.iso, Math.min(noiseBlendMaxFrames, BLEND_GRID.length));
+                    parameters.iso, Math.min(tuning.noiseBlendMaxFrames, BLEND_GRID.length));
             if (noiseFrames.length > 0) {
                 // 2D histogram: (brightness_bin * NUM_VARIANCE_BINS + variance_bin) -> count
                 // Model: variance = NoiseS * brightness + NoiseO  =>  sigma = sqrt(NoiseS*b + NoiseO)
@@ -647,7 +558,7 @@ public class ESD4D extends GLOneScript {
                 // drops by the analytical residual response below.
                 int blendFrames = noiseFrames.length;
                 final double residualResponse = NoiseHistogramCalibration.residualStdResponse(
-                        blendFrames, parameters.binned, parameters.cfaPattern) * noiseBlendCalMpy;
+                        blendFrames, parameters.binned, parameters.cfaPattern) * tuning.noiseBlendCalMpy;
                 float maxBlack = Math.max(Math.max(parameters.blackLevel[0], parameters.blackLevel[1]),
                         Math.max(parameters.blackLevel[2], parameters.blackLevel[3]));
                 final double rawStep = 1.0 / Math.max(1.0, parameters.whiteLevel - maxBlack);
@@ -655,7 +566,7 @@ public class ESD4D extends GLOneScript {
                 // The prior sets measurement resolution only; it does not set
                 // the row estimates or their fitted coefficients.
                 final float varianceScale = (float) NoiseHistogramCalibration.varianceScale(
-                        numVarianceBins, residualResponse, noiseS, noiseO, rawStep, noiseHistogramRange);
+                        numVarianceBins, residualResponse, noiseS, noiseO, rawStep, tuning.noiseHistogramRange);
                 // Concentrate bins on the lower RAW signal range. Mobile RAWs
                 // remain dark with the exposure metering used here; the sqrt(3)
                 // factor intentionally excludes the upper range from calibration.
@@ -677,7 +588,7 @@ public class ESD4D extends GLOneScript {
                 noiseHist.CustomShader = "merge/noisehist";
                 noiseHist.input1 = brightnessScale;
                 noiseHist.input2 = varianceScale;
-                int scanStride = Math.max(1, noiseScanSubsample);
+                int scanStride = Math.max(1, tuning.noiseScanSubsample);
                 // Small or strongly reduced inputs otherwise leave too few
                 // observations in each lower-RAW row for a reliable median.
                 while (scanStride > 1 && (long) packedSize.x * packedSize.y
@@ -695,7 +606,7 @@ public class ESD4D extends GLOneScript {
                 long fitT = System.currentTimeMillis();
                 AdaptiveNoiseModel.Model fitted = AdaptiveNoiseModel.fitSpatialHistogram(hist,
                         numBrightnessBins, numVarianceBins, brightnessScale, varianceScale,
-                        residualResponse, noiseBrightnessTextureGate);
+                        residualResponse, tuning.noiseBrightnessTextureGate);
                 measuredNoiseModel = fitted;
                 if (fitted != null) {
                     Log.d("DynamicNoise", "Noise histogram fit: S=" + fitted.s + " O=" + fitted.o
@@ -707,11 +618,11 @@ public class ESD4D extends GLOneScript {
                     if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
                             && (storedNoise == null || !storedNoise.higherIsoReference)) {
                         fitted = AdaptiveNoiseModel.limitToBaseline(fitted, baselineNoiseS,
-                                baselineNoiseO, lowIsoNoiseVarianceLimit);
+                                baselineNoiseO, tuning.lowIsoNoiseVarianceLimit);
                     }
                     double fitS = Math.max(fitted.s, 1e-10);
                     double fitO = Math.max(fitted.o, 0.05 * baselineNoiseO);
-                    if (enableNoiseStore) {
+                    if (tuning.enableNoiseStore) {
                         DynamicNoiseStore.NoiseEstimate blended =
                                 DynamicNoiseStore.dynamicNoiseStore.commitAndGet(
                                         parameters.physicalID, parameters.iso, modeler.AnalogueISO,
@@ -721,13 +632,13 @@ public class ESD4D extends GLOneScript {
                             if (AdaptiveNoiseModel.isLowIso(parameters.iso, modeler.AnalogueISO)
                                     && !blended.higherIsoReference) {
                                 resolved = AdaptiveNoiseModel.limitToBaseline(resolved, baselineNoiseS,
-                                        baselineNoiseO, lowIsoNoiseVarianceLimit);
+                                        baselineNoiseO, tuning.lowIsoNoiseVarianceLimit);
                             }
                             fitS = resolved.s;
                             fitO = Math.max(resolved.o, 0.05 * baselineNoiseO);
                         }
                     }
-                    if (enableFitOCorrection) fitO += fitS * fitS * 3.0 / 8.0;
+                    if (tuning.enableFitOCorrection) fitO += fitS * fitS * 3.0 / 8.0;
                     noiseS = (float) fitS;
                     noiseO = (float) fitO;
                     Log.d("DynamicNoise", "Fitted noise model: NoiseS=" + noiseS
@@ -760,7 +671,7 @@ public class ESD4D extends GLOneScript {
         float rawNoiseO = noiseO;
         noiseS = (float)Math.max(noiseS * noisempy * adaptiveNMpy * adaptiveNMpy,noiseMin);
         noiseO = (float)Math.max(noiseO * noisempy * adaptiveNMpy * adaptiveNMpy,noiseMin);
-        if(enableHotPixelCorrection) {
+        if(tuning.enableHotPixelCorrection) {
             long hotT = System.currentTimeMillis();
             hotPixels(rawNoiseS, rawNoiseO);
             Log.d("ESD4D", "Stage[hotpixels] elapsed:" + (System.currentTimeMillis() - hotT) + " ms");
@@ -786,7 +697,7 @@ public class ESD4D extends GLOneScript {
         // mergeAlign) and collect it just before the first combine pass needs
         // kernelsMap. The inference (and the model load inside it) touches no
         // GL state; the kernelsMap build/upload must rejoin the GL thread.
-        final float kernelSigmaArg = kernelSigma * noiseMpy;
+        final float kernelSigmaArg = kernelSigma * tuning.noiseMpy;
         final AtomicReference<KernelNetResult> kernelNetResult = new AtomicReference<>();
         Thread kernelNetThread = new Thread(() -> {
             try {
@@ -809,21 +720,21 @@ public class ESD4D extends GLOneScript {
         // texture object sampled identically). Halide's gyro prewarp also
         // borrows this upload texture; its GPU scratch is released after matching.
         inputAlter = new GLTexture(parameters.rawSize, new GLFormat(GLFormat.DataType.FLOAT_16, 1), null, GL_NEAREST, GL_MIRRORED_REPEAT);
-        if (gyroOnly) alignerSelect = "off";
-        if (Objects.equals(alignerSelect, "halide") && !HalideAlignment.isAvailable()) {
+        if (tuning.gyroOnly) tuning.alignerSelect = "off";
+        if (Objects.equals(tuning.alignerSelect, "halide") && !HalideAlignment.isAvailable()) {
             Log.w("ESD4D", "Halide unavailable; using GL alignment");
-            alignerSelect = "gl";
+            tuning.alignerSelect = "gl";
         }
         float[][] gyroHomographies = new float[images.size()][];
         int gyroFrames = 0;
-        if (gyroOnly || (gyroPrealignment && Objects.equals(alignerSelect, "halide"))) {
+        if (tuning.gyroOnly || (tuning.gyroPrealignment && Objects.equals(tuning.alignerSelect, "halide"))) {
             for (int f = 1; f < images.size(); f++) {
                 gyroHomographies[f] = GyroAlignment.between(images.get(0), images.get(f), parameters);
                 if (gyroHomographies[f] != null) gyroFrames++;
-                else if (gyroOnly) gyroHomographies[f] = new float[]{1,0,0,0,1,0,0,0,1};
+                else if (tuning.gyroOnly) gyroHomographies[f] = new float[]{1,0,0,0,1,0,0,0,1};
             }
             Log.d("ESD4D", "Gyro prealignment: " + gyroFrames + "/" + (images.size()-1)
-                    + " frames; local alignment=" + !gyroOnly);
+                    + " frames; local alignment=" + !tuning.gyroOnly);
         }
         // Merge tile size: parameters.tile (16 raw px) normally, doubled
         // when the Halide aligner runs without flow refinement - its plain
@@ -836,7 +747,7 @@ public class ESD4D extends GLOneScript {
         Log.d("Alignment", "alignment pipeline size: " + alignmentOutputSize.x + " " + alignmentOutputSize.y);
         // Aligner selector: 0 = GL pyramid (disables FlowNet), 1 = FlowNet,
         // 2 = Halide CPU. FlowNet keeps its init fallback to the pyramid.
-        if (Objects.equals(alignerSelect, "flownet")) {
+        if (Objects.equals(tuning.alignerSelect, "flownet")) {
             FlowNetAlignment flowNetAlignmentTmp = new FlowNetAlignment(alignmentOutputSize, images, glProg, glUtils, this, minExpIdx);
             flowNetAlignmentTmp.parameters = parameters;
             flowNetAlignmentTmp.shareInputTextures(inputBase, inputAlter);
@@ -848,15 +759,15 @@ public class ESD4D extends GLOneScript {
                 alignmentTex = flowNetAlignment.flowTex;
             } else {
                 flowNetAlignmentTmp.close();
-                alignerSelect = "off";
+                tuning.alignerSelect = "off";
                 Log.d("ESD4D", "FlowNet alignment disabled, using identity alignment");
             }
         }
-        if (Objects.equals(alignerSelect, "halide")) {
+        if (Objects.equals(tuning.alignerSelect, "halide")) {
             // CPU/NEON Halide path; identical Result
             // atlas format, so the merge below is unchanged.
-            boolean halideRefine = halideRefineFlow;
-            if (!halideRefine && alignDebugCompare == 1) {
+            boolean halideRefine = tuning.halideRefineFlow;
+            if (!halideRefine && tuning.alignDebugCompare == 1) {
                 // The aligner debug compare indexes both aligners' atlases
                 // cell-by-cell on the shared raw/16 grid; the level-1-native
                 // atlas does not match it. Force the refined field for this
@@ -881,28 +792,29 @@ public class ESD4D extends GLOneScript {
             HalideAlignment halideAlignment = new HalideAlignment(alignmentOutputSize, images, glProg, inputAlter);
             halideAlignment.parameters = parameters;
             halideAlignment.refineFlow = halideRefine;
-            halideAlignment.accurateSubpixel = halideAccurateSubpixel;
-            halideAlignment.coarseGlobal = halideCoarseGlobal;
+            halideAlignment.accurateSubpixel = tuning.halideAccurateSubpixel;
+            halideAlignment.coarseGlobal = tuning.halideCoarseGlobal;
             halideAlignment.noiseS = rawNoiseS * alignmentNoiseModelScale;
             halideAlignment.noiseO = rawNoiseO * alignmentNoiseModelScale;
             halideAlignment.gyroHomographies = gyroHomographies;
-            long startTime = System.currentTimeMillis();
-            try {
-                halideAlignment.Run();
-            } finally {
-                halideAlignment.close();
+            if (alignmentObserver != null || tuning.alignDebugCompare == 1) {
+                try (HalideAlignment batch = halideAlignment) {
+                    batch.Run();
+                }
+            } else {
+                frameAlignment = halideAlignment;
+                frameAlignment.startStreaming();
             }
-            Log.d("ESD4D", "Halide alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
             alignmentTex = halideAlignment.Result;
-            if (alignDebugCompare == 1 && gyroFrames == 0) {
+            if (tuning.alignDebugCompare == 1 && gyroFrames == 0) {
                 logAlignerCompare(alignmentOutputSize, images);
-            } else if (alignDebugCompare == 1) {
+            } else if (tuning.alignDebugCompare == 1) {
                 Log.d("ESD4D", "Aligner comparison skipped: Halide vectors are gyro-space residuals");
             }
-        } else if (Objects.equals(alignerSelect, "gl")) {
+        } else if (Objects.equals(tuning.alignerSelect, "gl")) {
             PyramidAlignment pyramidAlignment = new PyramidAlignment(alignmentOutputSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
-            pyramidAlignment.startLevel = alignmentStartLevel;
+            pyramidAlignment.startLevel = tuning.alignmentStartLevel;
             pyramidAlignment.shareInputTextures(inputBase, inputAlter);
             // P2 (H2): lend baseDiff as pyramid scratch. Valid only when the
             // packed grid matches rawHalf exactly (cfaShift==0); otherwise the
@@ -913,11 +825,11 @@ public class ESD4D extends GLOneScript {
             Log.d("ESD4D", "Alignment time: " + (System.currentTimeMillis() - startTime) + "ms");
             alignmentTex = pyramidAlignment.Result;
             pyramidAlignment.close();
-        } else if (Objects.equals(alignerSelect, "off")) {
+        } else if (Objects.equals(tuning.alignerSelect, "off")) {
             alignmentTex = new GLTexture(alignmentOutputSize, new GLFormat(GLFormat.DataType.FLOAT_16, 4),
                     BufferUtils.getFrom(new float[alignmentOutputSize.x * alignmentOutputSize.y * 4]),
                     GL_NEAREST, GL_CLAMP_TO_EDGE);
-            Log.d("ESD4D", gyroOnly ? "Gyro-only merge: zero local residuals"
+            Log.d("ESD4D", tuning.gyroOnly ? "Gyro-only merge: zero local residuals"
                     : "Alignment disabled, using identity alignment");
         }
 
@@ -961,17 +873,23 @@ public class ESD4D extends GLOneScript {
             }
             ImageFrame frame = images.get(ind);
             float exposure = 1.f/frame.pair.layerMpy;
-            Point shift = PyramidAlignment.alignmentShift(parameters, ind);
+            Point shift;
+            if (frameAlignment != null) {
+                frameAlignment.alignFrame(ind);
+                shift = new Point(0, 0);
+            } else {
+                shift = PyramidAlignment.alignmentShift(parameters, ind);
+            }
             //int f = 1;
             Log.d("ESD4D", "load:"+frame.pair.curlayer.name() + " " + frame.pair.layerMpy);
             long stageT = System.currentTimeMillis();
             inputAlter.loadRawHalf(frame.buffer);
             gpuSyncProfile();
-            if (profileGpuSync)
+            if (tuning.profileGpuSync)
                 Log.d("ESD4D", "Stage[merge:upload] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             GLTexture flowTex = null;
-            if(Objects.equals(alignerSelect, "flownet")) {
+            if(Objects.equals(tuning.alignerSelect, "flownet")) {
                 // Dense FlowNet optical flow for THIS alter frame, computed just
                 // in time (one pair at a time, no stored flow fields). Must run
                 // before the mergeAlign program is bound below.
@@ -989,7 +907,7 @@ public class ESD4D extends GLOneScript {
             glProg.setTextureCompute("outTexture", alter, true);
             glProg.computeAuto(new Point(alter.mSize.x, alter.mSize.y), 1);
             gpuSyncProfile();
-            if (profileGpuSync)
+            if (tuning.profileGpuSync)
                 Log.d("ESD4D", "Stage[merge:pack] elapsed:" + (System.currentTimeMillis() - stageT) + " ms f=" + f);
 
             //alignmentTex.loadData(alignment.position((ind-1)*(aSize.x*aSize.y*4*2)));
@@ -997,27 +915,27 @@ public class ESD4D extends GLOneScript {
             boolean gyroWarp = gyroHomographies[ind] != null;
             glProg.setDefine("GYRO_WARP", gyroWarp ? 1 : 0);
             int halideSampling = 0;
-            if (Objects.equals(alignerSelect, "halide")) {
-                if (Objects.equals(halideMergeSampling, "nearest")) halideSampling = 1;
-                else if (Objects.equals(halideMergeSampling, "bilinear")) halideSampling = 2;
-                else if (Objects.equals(halideMergeSampling, "cubic")) halideSampling = 3;
-                else if (Objects.equals(halideMergeSampling, "lanczos2")) halideSampling = 4;
+            if (Objects.equals(tuning.alignerSelect, "halide")) {
+                if (Objects.equals(tuning.halideMergeSampling, "nearest")) halideSampling = 1;
+                else if (Objects.equals(tuning.halideMergeSampling, "bilinear")) halideSampling = 2;
+                else if (Objects.equals(tuning.halideMergeSampling, "cubic")) halideSampling = 3;
+                else if (Objects.equals(tuning.halideMergeSampling, "lanczos2")) halideSampling = 4;
             }
             glProg.setDefine("HALIDE_SAMPLING", halideSampling);
-            glProg.setDefine("HALIDE_MOTION_FIELD", halideInterpolateMotion ? 1 : 0);
-            boolean residualFusion = cfaResidualFusion > 0.0f && !gyroWarp
-                    && Objects.equals(alignerSelect, "halide") && halideSampling > 0;
+            glProg.setDefine("HALIDE_MOTION_FIELD", tuning.halideInterpolateMotion ? 1 : 0);
+            boolean residualFusion = tuning.cfaResidualFusion > 0.0f && !gyroWarp
+                    && Objects.equals(tuning.alignerSelect, "halide") && halideSampling > 0;
             glProg.setDefine("CFA_RESIDUAL_FUSION", residualFusion ? 1 : 0);
             stageT = System.currentTimeMillis();
             glProg.setLayout(tile, tile, 1);
-            glProg.useAssetProgram(Objects.equals(alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
+            glProg.useAssetProgram(Objects.equals(tuning.alignerSelect, "flownet") ? "merge/mergeAlignFlow" : "merge/mergeAlign", true);
             if (gyroWarp) {
                 // GLES requires transpose=false; Java matrices are row-major.
                 glProg.setVar("gyroHomography", false, GyroAlignment.columnMajor(gyroHomographies[ind]));
             }
             glProg.setVar("rawHalf", rawHalf);
             if (residualFusion) {
-                glProg.setVar("cfaResidualStrength", Math.min(cfaResidualFusion, 1.0f));
+                glProg.setVar("cfaResidualStrength", Math.min(tuning.cfaResidualFusion, 1.0f));
                 glProg.setVar("cfaNoiseS", rawNoiseS);
                 glProg.setVar("cfaNoiseO", rawNoiseO);
             }
@@ -1041,7 +959,7 @@ public class ESD4D extends GLOneScript {
             glProg.setVar("noiseS", noiseS);
             glProg.setVar("noiseO", noiseO);
             glProg.setVar("border", border);
-            if(Objects.equals(alignerSelect, "flownet")) {
+            if(Objects.equals(tuning.alignerSelect, "flownet")) {
                 glProg.setTexture("alignmentTexture", flowTex);
             } else {
                 glProg.setVar("shift", shift);
@@ -1051,7 +969,7 @@ public class ESD4D extends GLOneScript {
             glProg.setTexture("inTexture", inputBase);
             // Zero-strength Halide warping does not read the accumulator.
             // FlowNet still needs it for its luma guide.
-            if (residualFusion || Objects.equals(alignerSelect, "flownet")) {
+            if (residualFusion || Objects.equals(tuning.alignerSelect, "flownet")) {
                 glProg.setTextureCompute("baseTexture", mergeAcc, false);
             }
             glProg.setTextureCompute("alterTexture", alter, false);
@@ -1088,9 +1006,8 @@ public class ESD4D extends GLOneScript {
             stageT = System.currentTimeMillis();
             // Robustness measures frame-minus-base residuals for every sampler;
             // it does not require the optional residual reconstruction update.
-            boolean robustResidual = cfaResidualRobustness;
-            glProg.setDefine("RESIDUAL_ROBUSTNESS", robustResidual ? 1 : 0);
-            glProg.useAssetProgram("merge/mergeCombineWeight1", true);
+            boolean robustResidual = tuning.cfaResidualRobustness;
+            glProg.useAssetProgram(robustResidual ? "merge/mergeCombineWeight1Residual" : "merge/mergeCombineWeight1", true);
             if (robustResidual) {
                 if (mergeSupport == null) {
                     mergeSupport = new GLTexture(packedSize,new GLFormat(GLFormat.DataType.FLOAT_32,1),null,GL_NEAREST,GL_CLAMP_TO_EDGE);
@@ -1129,6 +1046,8 @@ public class ESD4D extends GLOneScript {
             //glProg.setVar("exposure", exposure);
             //glProg.setVar("weight",  1.0f);
             glProg.computeAuto(mergeAcc.mSize, 1);
+            // Submit this frame before the CPU enters Halide for the next one.
+            if (frameAlignment != null) android.opengl.GLES30.glFlush();
             supportInitialized = robustResidual;
             if (mergeObserver != null) {
                 float mergeWeight = exposure >= 0.95f ? 1.0f/(cnt1-1.0f) : 1.0f/(cnt2-1.0f);
@@ -1146,6 +1065,7 @@ public class ESD4D extends GLOneScript {
             images.get(ind).close();
             endT();
         }
+        releaseFrameAlignment();
         Log.d("ESD4D", "Stage[merge-loop] elapsed:" + (System.currentTimeMillis() - mergeLoopT) + " ms");
 
         // The merge result stays normalized fp16 end-to-end: merge2o unpacks
@@ -1279,7 +1199,7 @@ public class ESD4D extends GLOneScript {
             kernelsMap = null;
         }
         result.close();
-        if(Objects.equals(alignerSelect, "flownet") && flowNetAlignment != null) {
+        if(Objects.equals(tuning.alignerSelect, "flownet") && flowNetAlignment != null) {
             // Closes flowTex (== alignmentTex), so drop the reference to avoid
             // a double close below.
             flowNetAlignment.close();
@@ -1304,7 +1224,7 @@ public class ESD4D extends GLOneScript {
             long t0 = System.currentTimeMillis();
             PyramidAlignment pyramidAlignment = new PyramidAlignment(atlasSize, images, glProg, glUtils, this);
             pyramidAlignment.parameters = parameters;
-            pyramidAlignment.startLevel = alignmentStartLevel;
+            pyramidAlignment.startLevel = tuning.alignmentStartLevel;
             pyramidAlignment.Run();
             Log.d("AlignerCompare", "GL pyramid reference computed in "
                     + (System.currentTimeMillis() - t0) + "ms");

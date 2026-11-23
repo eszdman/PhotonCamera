@@ -14,10 +14,17 @@ const int TN = TW * TH;
 
 ivec2 T0() { return ivec2(gl_WorkGroupID.xy * uvec2(LW, LH)) - HALO; }
 int SIDX(ivec2 q) { ivec2 l = q - T0(); return l.y * TW + l.x; }
-int SIDX_H(ivec2 q) { ivec2 l = ivec2(q.x & ~1, q.y) - T0(); return l.y * TW + l.x; }
+// Only even columns in the block plus a two-pixel halo carry diagonal gradients.
+const int DIAG_W = (LW + 4) / 2;
+const int DIAG_H = LH + 4;
+ivec2 diagonalOrigin() { return ivec2(gl_WorkGroupID.xy * uvec2(LW, LH)) - 2; }
+int SIDX_H(ivec2 q) {
+    ivec2 local = q - diagonalOrigin();
+    return local.y * DIAG_W + (local.x >> 1);
+}
 
 shared float s_cfa[TN];
-shared vec4 s_delpm[TN];   // half-grid slots (even columns)
+shared vec4 s_delpm[DIAG_W * DIAG_H];   // half-grid slots (even columns)
 float delp(ivec2 q) { return s_delpm[SIDX_H(q)].r; }
 float delm(ivec2 q) { return s_delpm[SIDX_H(q)].g; }
 float sq1p(ivec2 q) { return s_delpm[SIDX_H(q)].b; }
@@ -56,18 +63,9 @@ vec4 delpm_val(ivec2 q) {
 }
 
 void compute_delpm() {
-    ivec2 t0 = T0();
-    // block origin (tile origin + halo); sites of the block span
-    // [b, b+7] x [b, b+8), so the reachable slots are (site +/- 2):
-    // [b-2, b+8] x [b-2, b+9] -> tile coords below; their Cf taps stay
-    // inside the staged tile
-    ivec2 b = ivec2(gl_WorkGroupID.xy * uvec2(LW, LH));
-    for (int i = int(gl_LocalInvocationIndex); i < TN; i += LW * LH) {
-        ivec2 q = t0 + ivec2(i % TW, i / TW);
-        bool needed = (q.x & 1) == 0
-            && q.x >= b.x - 2 && q.x <= b.x + 8
-            && q.y >= b.y - 2 && q.y <= b.y + 9;
-        s_delpm[i] = needed ? delpm_val(q) : vec4(0.0);
+    for (int i = int(gl_LocalInvocationIndex); i < DIAG_W * DIAG_H; i += LW * LH) {
+        ivec2 q = diagonalOrigin() + ivec2(2 * (i % DIAG_W), i / DIAG_W);
+        s_delpm[i] = delpm_val(q);
     }
     memoryBarrierShared();
     barrier();

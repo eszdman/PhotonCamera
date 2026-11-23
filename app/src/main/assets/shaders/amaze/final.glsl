@@ -6,7 +6,7 @@
 // demosaiced skirt never reaches the output; stores land at o + u_outoff in
 // the full-size output image.
 uniform sampler2D u_chroma;   // D0', D1', rgbgreen
-uniform sampler2D u_hvwt;     // firmed hvwt
+uniform sampler2D u_hvwt; // @post-r32f — firmed hvwt
 uniform ivec2 u_outsize;      // tile interior size (tw, th)
 uniform ivec2 u_outoff;       // tile origin in the output image
 uniform ivec2 u_inner;        // interior origin in window coords (PAD + BORDER)

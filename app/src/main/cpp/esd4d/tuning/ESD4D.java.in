@@ -1,0 +1,34 @@
+//
+// Created by eszdman on 20.11.2026.
+//
+
+// Generated from annotated native fields. The simple class name is part of the preference key.
+package com.particlesdevs.photoncamera.settings.merge;
+
+import com.particlesdevs.photoncamera.settings.DynamicNoiseStore;
+import com.particlesdevs.photoncamera.settings.annotations.Tunable;
+import com.particlesdevs.photoncamera.settings.annotations.TunableAction;
+import java.util.Arrays;
+
+public final class @GROUP@ {
+@FIELDS@
+
+    public boolean supportsKomputeMerge() {
+        return (gyroOnly || !"flownet".equals(alignerSelect)) && alignDebugCompare == 0 && !profileGpuSync;
+    }
+
+    public double[] pack() {
+        return new double[] {
+@WIRE@
+        };
+    }
+
+    @TunableAction(title = "Reset adaptive noise model", category = "Merge",
+            description = "Clear learned noise estimates for all cameras, including binned captures",
+            confirmation = "Clear learned noise models for all cameras and resolutions? New photos will rebuild the calibration.",
+            successMessage = "Adaptive noise models reset",
+            failureMessage = "Could not reset adaptive noise models")
+    public static void resetAdaptiveNoiseModel() throws java.io.IOException {
+        DynamicNoiseStore.dynamicNoiseStore.resetAll();
+    }
+}

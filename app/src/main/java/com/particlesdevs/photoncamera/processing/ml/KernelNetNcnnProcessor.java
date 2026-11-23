@@ -11,10 +11,9 @@ import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
 
 /**
- * Runs the PKN anisotropic kernel PARAMETER model natively (ONNX graph exported
- * to ncnn, Vulkan backend for GPU inference).
+ * Runs the exported PKN anisotropic kernel parameter model on the CPU with ncnn.
  *
- * The exported graph is dynamic-shape (pure convolutions), so any camera
+ * The exported graph has dynamic spatial dimensions, so any camera
  * resolution works: the model halves the spatial dims internally.
  *
  *   in0  (W,H,1)  luma plane, values in [0,1]
@@ -27,7 +26,7 @@ import java.nio.FloatBuffer;
  */
 public final class KernelNetNcnnProcessor {
     private static final String TAG = "KernelNetNcnnProcessor";
-    private static final String MODEL_PARAM = "models/kernelnet_aniso_v2_2_params.ncnn.param";
+    private static final String MODEL_PARAM = "models/kernelnet_v3_params.ncnn.param";
     private static final int OUT_CHANNELS = 4;    // interleaved RGBA stride
 
     static { System.loadLibrary("ncnnMl"); }

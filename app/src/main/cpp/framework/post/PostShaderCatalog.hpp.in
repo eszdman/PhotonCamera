@@ -1,0 +1,10 @@
+//
+// Created by eszdman on 23.11.2026.
+//
+
+#pragma once
+@post_catalog_includes@
+namespace photon::post {
+template <class Visitor> void forEachPostShader(Visitor visit) {
+@post_catalog_entries@}
+} // namespace photon::post

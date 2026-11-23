@@ -13,7 +13,7 @@ precision highp image2D;
 // guaranteed by every GLES 3.1 implementation (mobile target).
 layout(local_size_x = 8, local_size_y = 8) in;
 
-uniform sampler2D u_cfa;      // R32F, padded CFA in [0, 1]
+uniform sampler2D u_cfa; // @post-r32f — R32F, padded CFA in [0, 1]
 uniform ivec2 u_size;         // (W, H) of the padded image, both even
 uniform ivec4 u_fc;           // fc[0][0], fc[0][1], fc[1][0], fc[1][1]  (0=R 1=G 2=B)
 uniform float u_clip;         // clip_pt (1 / initialGain in RawTherapee)

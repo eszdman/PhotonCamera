@@ -1,0 +1,45 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#define TILE 8
+#define OFFSETS 9
+#define SUBPIXEL 1
+#include "workgroup.glsl"
+layout(std430,binding=0) readonly buffer Base {uvec2 base[];};
+layout(std430,binding=1) readonly buffer Alternate {uvec2 alternate[];};
+layout(std430,binding=2) readonly buffer Previous {vec4 previous[];};
+layout(std430,binding=3) writeonly buffer Result {vec4 result[];};
+layout(push_constant) uniform Match {
+    ivec2 size,rawHalf,previousSize;
+    int first,precisionMode;
+    float noiseS,noiseO,exposure,integralNorm;
+};
+const float significancy=2.0;
+shared mat4 inputDifferences[TILE*TILE];
+vec4 decode(uvec2 words) {
+    vec4 v=vec4(unpackHalf2x16(words.x),unpackHalf2x16(words.y));
+    return precisionMode==1?v*v:v;
+}
+bool outside(ivec2 p) {return any(lessThan(p,ivec2(0))) || any(greaterThanEqual(p,size));}
+vec4 basePixel(ivec2 p) {if(outside(p)) return vec4(0);return decode(base[p.y*size.x+p.x]);}
+vec4 alterPixel(ivec2 p) {if(outside(p)) return vec4(0);return decode(alternate[p.y*size.x+p.x]);}
+vec4 getAlignment(ivec2 p) {p=clamp(p,ivec2(0),previousSize-1);return previous[p.y*previousSize.x+p.x];}
+void writeAlignment(ivec2 p,vec4 v) {
+    result[p.y*(size.x/TILE+1)+p.x]=vec4(unpackHalf2x16(packHalf2x16(v.xy)),unpackHalf2x16(packHalf2x16(v.zw)));
+}
+#ifdef ESD4D_ROW_WIDTH
+// Each workgroup still reduces one 8x8 image tile in the original lane order.
+#if ESD4D_ROW_WIDTH != TILE * TILE
+#error A block-matching workgroup needs one lane per tile sample
+#endif
+#define TILE_LOCAL_XY ivec2(int(gl_LocalInvocationIndex) % TILE, int(gl_LocalInvocationIndex) / TILE)
+#endif
+#define ESD4D_BUFFER_BACKEND 1
+#define getPixel(p,resource) resource(p)
+#define baseTexture basePixel
+#define alterTexture alterPixel
+#define imageStore(resource,p,v) writeAlignment(p,v)
+#include "alignment/align2.glsl"

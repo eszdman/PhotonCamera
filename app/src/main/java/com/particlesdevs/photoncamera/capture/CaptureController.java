@@ -2681,6 +2681,16 @@ public class CaptureController implements MediaRecorder.OnInfoListener {
             mImageReaderRaw = ImageReader.newInstance(target.getWidth(), target.getHeight(), mTargetFormat, maxjpg);
         }
         mImageReaderRaw.setOnImageAvailableListener(mOnRawImageAvailableListener, mBackgroundHandler);
+        CameraMode mode = PhotonCamera.getSettings().selectedMode;
+        if (mTargetFormat == RAW_FORMAT && PhotonCamera.getSettings().frameCount != 1
+                && (mode == CameraMode.PHOTO || mode == CameraMode.NIGHT || mode == CameraMode.MOTION)) {
+            int cfa = PhotonCamera.getSettings().cfaPattern;
+            if (cfa < 0) {
+                Integer arrangement = characteristics.get(CameraCharacteristics.SENSOR_INFO_COLOR_FILTER_ARRANGEMENT);
+                cfa = arrangement == null ? 0 : arrangement;
+            }
+            PhotonCamera.getInstance(activity).warmBurstKernelNet(target.getWidth(), target.getHeight(), cfa);
+        }
         // Find out if we need to swap dimension to get the preview size relative to sensor
         // coordinate.
         int displayRotation = PhotonCamera.getGravity().getRotation();

@@ -1,0 +1,60 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "workgroup.glsl"
+layout(std430,binding=0) readonly buffer Source {uvec2 source[];};
+layout(std430,binding=1) readonly buffer Gain {float gain[];};
+layout(std430,binding=2) writeonly buffer Destination {uvec2 outputPixels[];};
+layout(push_constant) uniform Prepare {
+    ivec2 size,sourceSize,gainSize;
+    int stage,precisionMode;
+    vec4 black;
+    float exposure,sharpness;
+};
+vec4 getPixel(ivec2 p) {
+    p=clamp(p,ivec2(0),sourceSize-1);
+    uvec2 q=source[p.y*sourceSize.x+p.x];
+    return vec4(unpackHalf2x16(q.x),unpackHalf2x16(q.y));
+}
+float gainAt(ivec2 p) {
+    p=clamp(p,ivec2(0),gainSize-1);
+    return gain[p.y*gainSize.x+p.x];
+}
+float lensGain(ivec2 p) {
+    vec2 uv=(vec2(p)+.5)*vec2(gainSize)/vec2(size)-.5;
+    ivec2 lo=ivec2(floor(uv));vec2 f=fract(uv);
+    return mix(mix(gainAt(lo),gainAt(lo+ivec2(1,0)),f.x),
+               mix(gainAt(lo+ivec2(0,1)),gainAt(lo+1),f.x),f.y);
+}
+vec4 cubicWeights(float x) {
+    float xx=x*x,xxx=xx*x;
+    return vec4(1.-3.*x+3.*xx-xxx,4.-6.*xx+3.*xxx,1.+3.*x+3.*xx-3.*xxx,xxx)/6.;
+}
+void main(){
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+    if(any(greaterThanEqual(p,size))) return;
+    vec4 value=vec4(0);
+    if(stage==0) {
+        float weights[5]; float sum=0.;
+        for(int i=0;i<5;++i) {weights[i]=exp(-float((i-2)*(i-2))/4.5);sum+=weights[i];}
+        for(int j=0;j<5;++j) for(int i=0;i<5;++i)
+            value+=weights[i]*weights[j]/(sum*sum)*getPixel(p+ivec2(i-2,j-2));
+        value=clamp(clamp(value*lensGain(p),0.,1.)*exposure,0.,1.);
+    } else if(stage==1) {
+        ivec2 q=clamp(p,ivec2(1),size-2);
+        vec4 lap=getPixel(q+ivec2(-1,0))+getPixel(q+ivec2(1,0))
+            +getPixel(q+ivec2(0,-1))+getPixel(q+ivec2(0,1))-3.*getPixel(q);
+        value=clamp((mix(getPixel(p),lap,sharpness)-black)/(1.-black),0.,1.);
+        if(precisionMode==1) value=sqrt(value);
+    } else {
+        vec2 uv=(vec2(p)+.5)*vec2(sourceSize)/vec2(size)-.5;
+        ivec2 lo=ivec2(floor(uv))-1;
+        vec4 wx=cubicWeights(fract(uv.x)),wy=cubicWeights(fract(uv.y));
+        for(int j=0;j<4;++j) for(int i=0;i<4;++i) value+=getPixel(lo+ivec2(i,j))*wx[i]*wy[j];
+    }
+    if(stage!=0 && precisionMode!=0) value=round(clamp(value,0.,1.)*255.)/255.;
+    outputPixels[p.y*size.x+p.x]=uvec2(packHalf2x16(value.rg),packHalf2x16(value.ba));
+}

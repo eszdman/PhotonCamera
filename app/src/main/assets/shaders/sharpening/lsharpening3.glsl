@@ -50,7 +50,7 @@ void main() {
     float N = sqrt(avr*NOISES*INTENSE + NOISEO*INTENSE); + 0.00001;
     vec3 center = texelFetch(InputBuffer, (xy), 0).rgb;
     float c2 = edges[(size)*size2 + size];
-    float sharp;
+    float sharp = 0.0;
     for(int i = -size; i<=size;i++){
         float k0 = pdf(float(i)/SHARPSIZE);
         for (int j = -size; j<=size;j++){

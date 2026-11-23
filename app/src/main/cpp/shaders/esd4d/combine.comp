@@ -1,0 +1,8 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "combine_buffers.glsl"
+#include "merge/mergeCombineWeight1Residual.glsl"

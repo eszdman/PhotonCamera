@@ -1,3 +1,8 @@
+//
+// Created by eszdman on 15.09.2026.
+//
+
+#ifndef ESD4D_BUFFER_BACKEND
 #define LAYOUT //
 LAYOUT
 precision highp float;
@@ -65,6 +70,12 @@ highp vec4 getAlignment(ivec2 coords) {
     return texelFetch(prevAlignment, coords, 0);
 }
 
+#endif
+
+#ifndef TILE_LOCAL_XY
+#define TILE_LOCAL_XY ivec2(gl_LocalInvocationID.xy)
+#endif
+
 highp vec4 alignmentToVec4(highp vec2 alignment) {
     highp vec4 converted = vec4(floor(alignment.x), floor(alignment.y), fract(alignment.x), fract(alignment.y));
     converted.xy /= vec2(rawHalf);
@@ -125,7 +136,7 @@ mat4 evaluateWindow(ivec2 tile_xy, ivec2 windowCenter) {
     localOffsets[7] = ivec2(1, -1);
     localOffsets[8] = ivec2(1, 1);
 #endif
-    ivec2 localID = ivec2(gl_LocalInvocationID.xy) - ivec2(TILE/2, TILE/2);
+    ivec2 localID = TILE_LOCAL_XY - ivec2(TILE/2, TILE/2);
     int localIndex = int(gl_LocalInvocationIndex);
     mat4 acc = mat4(0.0);
     for (int s = 0; s < OFFSETS; s++) {
@@ -271,7 +282,7 @@ highp vec2 getPrevOffset(ivec2 tile_xy) {
     localOffsets[8] = ivec2(1, 1);
 #endif
     // Local thread ID within work group
-    ivec2 localID = ivec2(gl_LocalInvocationID.xy) - ivec2(TILE/2, TILE/2); // 0 - TILE-1
+    ivec2 localID = TILE_LOCAL_XY - ivec2(TILE/2, TILE/2); // 0 - TILE-1
     int localIndex = int(gl_LocalInvocationIndex); // 0 - TILE*TILE-1
     // Get previous alignment if not first level
     // split to 4 calls to increase scan window size

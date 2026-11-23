@@ -19,8 +19,7 @@ out vec4 Output;
 #define SIGMA 10.0
 #define BSIGMA 0.1
 #define KERNELSIZE 3.5
-#define MSIZE 15
-#define KSIZE (MSIZE-1)/2
+uniform int kernelRadius;
 #define TRANSPOSE 1
 #define INSIZE 1,1
 #define NRcancell (0.90)
@@ -58,6 +57,10 @@ bool s = (abs(x) > abs(y));
 return mix(PI/2.0 - atan(x,y+0.00001), atan(y,x+0.00001), s);
 }
 
+#define ESD_CONSENSUS 1
+#define ESD_PEEL_AXES 0
+#import esd3d2_kernel
+
 void main() {
     ivec2 xy = ivec2(gl_FragCoord.xy);
     xy+=ivec2(0,yOffset);
@@ -91,8 +94,6 @@ void main() {
     xDelta /= 3.0;
     yDelta /= 3.0;
     // calculate chromatic noise percentage
-    vec3 final_colour = vec3(0.0);
-    vec3 final_colour2 = vec3(0.0);
     float sigX = 2.5;
     // Deep-shadow sigma boost. Below the noise model's read-noise crossover
     // (NOISEO/NOISES) the signal is read-noise dominated, and every later
@@ -116,8 +117,6 @@ void main() {
     float chromaNoise = max(chromaDiff.r,max(chromaDiff.g,chromaDiff.b))-min(chromaDiff.r,min(chromaDiff.g,chromaDiff.b));
     float sigZ = max(sigY,min(abs(chromaNoise)*MOIRE,0.2));
     //sigY += min(abs(chromaNoise)/32.0,0.2);
-    float Z = 0.01f;
-    float Z2 = 0.01f;
     // self-guided stable reference: 3x3 similarity-weighted mean around cin,
     // using the same robust weight shape and sigY as the main filter
     vec3 gref = vec3(0.0);
@@ -132,56 +131,17 @@ void main() {
         }
     }
     vec3 cref = gref/max(gW,0.0001);
-    final_colour += cin*Z;
-    final_colour2 += cin*Z;
-    //sigY /= 25.0;
-    // Use hybrid SNN filtering to denoise the image
-    //vec3 cc[4];
-    for (int i=0; i <= KSIZE; ++i)
-    {
-        for (int j=0; j <= KSIZE; ++j)
-        {
-            ivec2 pos = ivec2(i,j);
-            ivec2 pos2 = ivec2(-i,-j);
-            ivec2 pos3 = ivec2(i,-j);
-            ivec2 pos4 = ivec2(-i,j);
-            vec3 cc0 = vec3(texelFetch(InputBuffer, xy+pos, 0).rgb);
-            vec3 cc1 = vec3(texelFetch(InputBuffer, xy+pos2, 0).rgb);
-            vec3 cc2 = vec3(texelFetch(InputBuffer, xy+pos3, 0).rgb);
-            vec3 cc3 = vec3(texelFetch(InputBuffer, xy+pos4, 0).rgb);
-            // Consensus weights: raw center x self-guided reference
-            vec4 d = vec4(length(abs(cc0-cref)),length(abs(cc1-cref)),length(abs(cc2-cref)),length(abs(cc3-cref)));
-            vec4 d0 = vec4(length(abs(cc0-cin)),length(abs(cc1-cin)),length(abs(cc2-cin)),length(abs(cc3-cin)));
-            vec4 w = (1.0-d*d/(d*d + sigY))*(1.0-d0*d0/(d0*d0 + sigY));
-            vec4 w2 = (1.0-d*d/(d*d + sigZ))*(1.0-d0*d0/(d0*d0 + sigZ));
-            float wm = min(min(min(w[0],w[1]),w[2]),w[3])*1.0;
-            vec4 ws = w - wm;
-            ws /= length(ws) + 0.000001;
-            vec4 w2s = w2 - wm;
-            w2s /= length(w2s) + 0.000001;
-            w *= ws;
-            w2 *= w2s;
-            float ut = float(i)*tng.x + float(j)*tng.y;
-            float f1 = mix(normpdf(float(i),KERNELSIZE)*normpdf(float(j),KERNELSIZE),
-                           normpdf(ut,KERNELSIZE), coh);
-            final_colour += f1*mat4x3(cc0,cc1,cc2,cc3)*w;
-            final_colour2 += f1*mat4x3(cc0,cc1,cc2,cc3)*w2;
-            Z += dot(vec4(f1),w);
-            Z2 += dot(vec4(f1),w2);
-        }
-    }
-
-    //if (Z <= 0.002f) {
-    //    Output = vec4(cin,1.0);
-    //} else {
-    float br = dot(final_colour/Z,vec3(0.25,0.5,0.25));
+    SteeredKernel kernel = SteeredKernel(xy, cin, cref, tng, coh, sigY, sigZ);
+    FilterSum sum = FilterSum(cin * 0.01, cin * 0.01, 0.01, 0.01);
+    filterWindow(kernel, sum);
+    vec3 filtered = sum.luma / sum.lumaWeight;
+    float br = dot(filtered, vec3(0.25,0.5,0.25));
     br = mix(dot(cin,vec3(0.25,0.5,0.25)),br,LUMA);
-    vec3 resColour = final_colour2/Z2;
+    // When moire does not widen sigma, luma and chroma use identical weights.
+    vec3 resColour = sigZ == sigY ? filtered : sum.chroma / sum.chromaWeight;
     resColour /= max(1e-6,dot(resColour,vec3(0.25,0.5,0.25)));
     // no upper clamp: inpaint-opposed reconstruction emits scene-referred
     // values above 1.0 that must survive the denoise
     resColour = max(resColour*br,0.0);
     Output = vec4(resColour,1.0);
-    //Output = vec4(final_colour/Z,1.0);
-    //}
 }

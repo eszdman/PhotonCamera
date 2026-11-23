@@ -17,7 +17,7 @@ precision highp sampler2D;
 precision highp image2D;
 layout(local_size_x = 8, local_size_y = 8) in;
 
-uniform sampler2D u_in;       // full-resolution CFA (rgba16f), mosaic in .r, [0, 1]
+uniform sampler2D u_in; // @post-r32f — full-resolution CFA (rgba16f), mosaic in .r, [0, 1]
 uniform ivec2 u_insize;       // full (W, H)
 uniform ivec2 u_off;          // window origin in full-image coords (ox - B - 16, oy - B - 16)
 uniform ivec2 u_size;         // padded window size (tile + 2*B + 32)

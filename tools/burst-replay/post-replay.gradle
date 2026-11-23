@@ -1,0 +1,13 @@
+//
+// Created by eszdman on 21.11.2026.
+//
+
+gradle.beforeProject { p ->
+    if (p.path == ':app') p.plugins.withId('com.android.application') {
+        p.androidComponents.finalizeDsl { dsl ->
+            dsl.buildTypes.getByName('debug').applicationIdSuffix = '.postoracle'
+            dsl.defaultConfig.ndk.abiFilters.clear()
+            dsl.defaultConfig.ndk.abiFilters.add('arm64-v8a')
+        }
+    }
+}

@@ -1,10 +1,12 @@
 package com.particlesdevs.photoncamera.processing.processor;
 
 import android.graphics.Bitmap;
+import com.particlesdevs.photoncamera.BuildConfig;
 import android.graphics.Point;
 import android.hardware.camera2.CameraCharacteristics;
 import android.hardware.camera2.CaptureRequest;
 import android.hardware.camera2.CaptureResult;
+import android.os.SystemClock;
 import android.util.Pair;
 
 import com.particlesdevs.photoncamera.processing.opengl.scripts.ESD4D;
@@ -111,12 +113,12 @@ public class HdrxProcessor extends ProcessorBase {
     private void ApplyHdrX() {
         callback.onStarted();
         processingEventsListener.onProcessingStarted("HDRX");
+        long processingStartMs = SystemClock.elapsedRealtime();
         Allocator.resetPeakMemory();
         GLTexture.resetPeakVram();
 
         Log.d(TAG, "ApplyHdrX() called from" + Thread.currentThread().getName());
 
-        long startTime = System.currentTimeMillis();
         Log.d(TAG, "ApplyHdrX() mImageFramesToProcess.size():" + mImageFramesToProcess.size());
         int width = mImageFramesToProcess.get(0).width;
         int height = mImageFramesToProcess.get(0).height;
@@ -151,7 +153,7 @@ public class HdrxProcessor extends ProcessorBase {
         if (mImageFramesToProcess.size() > 1 && packBits > 0 && packBits < 16) {
             int packedCount = 0;
             for (ImageFrame frame : mImageFramesToProcess) {
-                if (frame.buffer == null
+                if (frame.buffer == null || frame.fp16 || frame.packedBits != 0
                         || frame.buffer.capacity() != frame.width * frame.height * 2) {
                     continue;
                 }
@@ -167,7 +169,7 @@ public class HdrxProcessor extends ProcessorBase {
             Log.d(TAG, "Packed burst frames: " + packedCount + "/"
                     + mImageFramesToProcess.size() + " at " + packBits + " bits");
         }
-        Log.d(TAG, "Stage[params+pack] elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
+        Log.d(TAG, "Stage[params+pack] elapsed:" + (SystemClock.elapsedRealtime() - processingStartMs) + " ms");
         long frameSelectT = System.currentTimeMillis();
         // sort by timestamp first
         mImageFramesToProcess.sort(Comparator.comparingLong(ImageFrame::getTimestamp));
@@ -375,22 +377,27 @@ public class HdrxProcessor extends ProcessorBase {
         Log.d(TAG, "Packed");
         Log.d(TAG, "Stage[frame-select] elapsed:" + (System.currentTimeMillis() - frameSelectT) + " ms");
         ESD4D esd4d = null;
-        if(images.size() > 1) {
-            long esdT = System.currentTimeMillis();
-            esd4d = new ESD4D(new Point(width, height), images);
-            Log.d(TAG, "Stage[esd4d-init] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
-            esdT = System.currentTimeMillis();
-            esd4d.parameters = processingParameters;
-            esd4d.Run();
-            Log.d(TAG, "Stage[esd4d.Run] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
-            esdT = System.currentTimeMillis();
-            esd4d.close();
-            Log.d(TAG, "Stage[esd4d.close] elapsed:" + (System.currentTimeMillis() - esdT) + " ms");
-            output = esd4d.Output;
-            long postMergeT = System.currentTimeMillis();
-            for (int i = 0; i < images.size(); i++) {
-                images.get(i).close();
+        KomputeBurst nativeBurst = null;
+        if (images.size() > 1) {
+            long mergeStartNs = SystemClock.elapsedRealtimeNanos();
+            if (BuildConfig.BUILD_ESD4D) nativeBurst = KomputeBurst.tryMerge(images, processingParameters);
+            if (nativeBurst != null) {
+                output = nativeBurst.bayer;
+            } else {
+                esd4d = new ESD4D(new Point(width, height), images);
+                esd4d.parameters = processingParameters;
+                try {
+                    esd4d.Run();
+                    output = esd4d.Output;
+                } finally {
+                    esd4d.close();
+                    for (ImageFrame frame : images) if (frame.buffer != null) frame.close();
+                }
             }
+            processingParameters.mergeTimeNs = SystemClock.elapsedRealtimeNanos() - mergeStartNs;
+            Log.d(TAG, (nativeBurst != null ? "Kompute" : "GLES") + " ESD4D merged " + images.size()
+                    + " frames in " + processingParameters.mergeTimeNs / 1_000_000L + " ms");
+            long postMergeT = System.currentTimeMillis();
             Allocator.logStage(TAG, "post-merge");
             Allocator.logProc(TAG, "post-merge");
             Log.d(TAG, "Stage[post-merge-logging] elapsed:" + (System.currentTimeMillis() - postMergeT) + " ms");
@@ -417,68 +424,79 @@ public class HdrxProcessor extends ProcessorBase {
             output = images.get(0).buffer;
             images.get(0).buffer = null;
         }
-        Log.d(TAG, "HDRX Alignment elapsed:" + (System.currentTimeMillis() - startTime) + " ms");
+        Log.d(TAG, "HDRX Alignment elapsed:" + (SystemClock.elapsedRealtime() - processingStartMs) + " ms");
         int saveMode = ImageFormatConfig.resolve(saveRAW, PhotonCamera.getSettings().isHeicSave());
         boolean useHeic = ImageFormatConfig.usesHeic(saveMode);
         if (useHeic && !HeicSupport.isHeicEncodeSupported()) {
             Log.e(TAG, "HEIC save mode on unsupported device; JPEG fallback");
             useHeic = false;
         }
-        if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
-            // DNG carries uint16 raw counts: re-encode the fp16 merge back to
-            // the IncreasedWL scale (FAKE_WL, black 0) just for the save.
-            ByteBuffer dngOut = output;
-            if (outputF16) {
-                dngOut = Allocator.createU16FromF16(output, width, height,
+        Bitmap img;
+        PostPipeline pipeline = null;
+        try {
+            if (ImageFormatConfig.savesRaw(saveMode) && alignAlgorithm != 2) {
+                // DNG carries uint16 raw counts: re-encode the fp16 merge back to
+                // the IncreasedWL scale (FAKE_WL, black 0) just for the save.
+                ByteBuffer dngOut = output;
+                if (outputF16) {
+                    dngOut = Allocator.createU16FromF16(output, width, height,
+                            processingParameters.whiteLevel, processingParameters.blackLevel);
+                }
+                boolean imageSaved;
+                try {
+                    imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, dngOut, processingParameters);
+                } finally {
+                    if (dngOut != output && dngOut != null) Allocator.free(dngOut);
+                }
+                processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
+                if (ImageFormatConfig.isRawOnly(saveMode)) {
+                    processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
+                    callback.onFinished();
+                    Allocator.logStage(TAG, "raw-only-exit");
+                    return;
+                }
+            }
+            // PostPipeline consumes normalized fp16 raw (Bayer2Float uploads a
+            // FLOAT_16 texture). The single-frame path skips ESD4D, so its raw
+            // uint16 buffer is normalized here with the sensor levels.
+            long renderStartNs = SystemClock.elapsedRealtimeNanos();
+            if (!outputF16) {
+                ByteBuffer f16 = Allocator.createF16(output, width, height,
                         processingParameters.whiteLevel, processingParameters.blackLevel);
-            }
-            boolean imageSaved = ImageSaver.Util.saveStackedRaw(dngFile, dngOut,
-                    processingParameters);
-            if (dngOut != output) Allocator.free(dngOut);
-            processingEventsListener.notifyImageSavedStatus(imageSaved, dngFile);
-            if (ImageFormatConfig.isRawOnly(saveMode)) {
-                processingEventsListener.onProcessingFinished("HdrX RAW Processing Finished");
-                callback.onFinished();
                 Allocator.free(output);
-                Allocator.logStage(TAG, "raw-only-exit");
-                return;
+                output = f16;
+            }
+
+            processingParameters.noiseModeler.computeStackingNoiseModel(images.size());
+
+            pipeline = new PostPipeline();
+            if (nativeBurst != null) {
+                nativeBurst.handOffKernels(pipeline);
+            } else if (esd4d != null) {
+                pipeline.kernelParams = esd4d.kernelsMapCPU;
+                pipeline.kernelParamsSize = esd4d.kernelsMapCPUSize;
+                pipeline.kernelParamsBase = esd4d.kernelsMapBase;
+                // CPU copy handed off; UpscaleCrop nulls the pipeline side after
+                // its GPU upload, freeing the result buffer for the render.
+                esd4d.kernelsMapCPU = null;
+                esd4d.kernelsMapCPUSize = null;
+                esd4d.kernelsMapBase = null;
+            }
+
+            img = pipeline.Run(output, processingParameters);
+            processingParameters.postProcessingTimeNs = SystemClock.elapsedRealtimeNanos() - renderStartNs;
+            Allocator.logStage(TAG, "post-render");
+            Allocator.logProc(TAG, "post-render");
+        } finally {
+            if (output != null && (pipeline == null || !pipeline.isStackFrameReleased())) Allocator.free(output);
+            if (nativeBurst != null) nativeBurst.releaseKernels();
+            if (esd4d != null && esd4d.kernelsMapBase != null) Allocator.free(esd4d.kernelsMapBase);
+            if (pipeline != null && pipeline.kernelParamsBase != null) {
+                Allocator.free(pipeline.kernelParamsBase);
+                pipeline.kernelParamsBase = null;
+                pipeline.kernelParams = null;
             }
         }
-        // PostPipeline consumes normalized fp16 raw (Bayer2Float uploads a
-        // FLOAT_16 texture). The single-frame path skips ESD4D, so its raw
-        // uint16 buffer is normalized here with the sensor levels.
-        if (!outputF16) {
-            ByteBuffer f16 = Allocator.createF16(output, width, height,
-                    processingParameters.whiteLevel, processingParameters.blackLevel);
-            Allocator.free(output);
-            output = f16;
-        }
-
-        processingParameters.noiseModeler.computeStackingNoiseModel(images.size());
-
-        PostPipeline pipeline = new PostPipeline();
-        pipeline.kernelParams = esd4d != null ? esd4d.kernelsMapCPU : null;
-        pipeline.kernelParamsSize = esd4d != null ? esd4d.kernelsMapCPUSize : null;
-        pipeline.kernelParamsBase = esd4d != null ? esd4d.kernelsMapBase : null;
-        if (esd4d != null) {
-            // CPU copy handed off; UpscaleCrop nulls the pipeline side after
-            // its GPU upload, freeing the result buffer for the render.
-            esd4d.kernelsMapCPU = null;
-            esd4d.kernelsMapCPUSize = null;
-            esd4d.kernelsMapBase = null;
-        }
-
-        Bitmap img = pipeline.Run(output, processingParameters);
-        Allocator.logStage(TAG, "post-render");
-        Allocator.logProc(TAG, "post-render");
-        // The merged RAW frame is dead once it has been rendered - free it
-        // before the memory-heavy Ultra HDR gain-map pass (~130 MB at 64 MP).
-        // PostPipeline frees it as soon as its last GL consumer has uploaded
-        // it (KernelNetPrep); only free here if that never ran.
-        if (!pipeline.isStackFrameReleased()) {
-            Allocator.free(output);
-        }
-        output = null;
         Allocator.logStage(TAG, "post-raw-free");
         Allocator.logProc(TAG, "post-raw-free");
         // Deterministic collection of pipeline garbage (e.g. ~90 MB transient
@@ -489,26 +507,30 @@ public class HdrxProcessor extends ProcessorBase {
 
         PostPipeline.GainMapRaw gm = null;
         if (PhotonCamera.getSettings().ultraHdr) {
+            long gainMapStartNs = SystemClock.elapsedRealtimeNanos();
             try {
                 gm = pipeline.RunHDRGainMap(processingParameters, img, GainMapComputer.SCALE);
             } catch (Exception e) {
                 Log.e(TAG, "Ultra HDR gain-map pass failed, falling back to SDR JPEG", e);
+            } finally {
+                processingParameters.postProcessingTimeNs += SystemClock.elapsedRealtimeNanos() - gainMapStartNs;
             }
         }
         Allocator.logStage(TAG, "post-gainmap");
 
-        img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
-        // Total processing time: onProcessing start -> onProcessing finished,
-        // stopping before encode so the values can go into this shot's EXIF.
-        processingParameters.totalProcessingTimeMs = System.currentTimeMillis() - startTime;
+        if (!pipeline.debugData.isEmpty()) {
+            long overlayStartNs = SystemClock.elapsedRealtimeNanos();
+            img = overlay(img, pipeline.debugData.toArray(new Bitmap[0]));
+            processingParameters.postProcessingTimeNs += SystemClock.elapsedRealtimeNanos() - overlayStartNs;
+        }
         if (PhotonCamera.DEBUG) {
             processingParameters.peakVramMB = GLTexture.getPeakVramMB();
             processingParameters.peakMemoryMB = Allocator.getPeakMemoryMB();
         }
         exifData.IMAGE_DESCRIPTION = processingParameters.toString();
         if (PhotonCamera.DEBUG) {
-            Log.d(TAG, "TotalProcessingTime=" + processingParameters.totalProcessingTimeMs
-                    + "ms PeakVram=" + processingParameters.peakVramMB
+            Log.d(TAG, processingParameters.processingTimeDescription()
+                    + " PeakVram=" + processingParameters.peakVramMB
                     + "MB PeakMemory=" + processingParameters.peakMemoryMB + "MB");
         }
         try {

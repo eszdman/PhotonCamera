@@ -32,6 +32,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.Arrays;
 import java.util.Scanner;
+import java.util.concurrent.TimeUnit;
 
 
 public class Parameters {
@@ -109,8 +110,9 @@ public class Parameters {
     public String cameraID = PhotonCamera.getSettings().mCameraID;
     public int physicalID = 0;
     public int logicalID = 0;
-    /** Wall time from onProcessing start to onProcessing finished (stop before encode), ms. 0 = not measured. */
-    public long totalProcessingTimeMs = 0;
+    /** Elapsed time in the merge and render stages, accumulated per shot. */
+    public long mergeTimeNs;
+    public long postProcessingTimeNs;
     /** Highest VramStage (live+renderbuffer) sample this shot, MB. 0 = not measured. */
     public long peakVramMB = 0;
     /** Highest MemStage entry this shot, MB. 0 = not measured. */
@@ -725,7 +727,17 @@ public class Parameters {
         params.cameraRotation = cameraRotation;
         params.gyroCalibration = gyroCalibration;
         params.CCT = CCT;
+        params.mergeTimeNs = mergeTimeNs;
+        params.postProcessingTimeNs = postProcessingTimeNs;
         return params;
+    }
+
+    public String processingTimeDescription() {
+        long mergeMs = TimeUnit.NANOSECONDS.toMillis(mergeTimeNs);
+        long postMs = TimeUnit.NANOSECONDS.toMillis(postProcessingTimeNs);
+        return "TotalProcessingTime=" + (mergeMs + postMs) + "ms"
+                + "\n MergeTime=" + mergeMs + "ms"
+                + "\n PostProcessingTime=" + postMs + "ms";
     }
 
     @NonNull
@@ -748,7 +760,7 @@ public class Parameters {
                 "\n Color=" + PhotonCamera.getSettings().colorMethod +
                 "\n PreviewFormat=" + PhotonCamera.getSettings().previewFormat +
                 "\n FocalL=" + FltFormat(focalLength) +
-                "\n TotalProcessingTime=" + totalProcessingTimeMs + "ms" +
+                "\n " + processingTimeDescription() +
                 (PhotonCamera.DEBUG
                         ? "\n PeakVram=" + peakVramMB + "MB"
                         + "\n PeakMemory=" + peakMemoryMB + "MB"

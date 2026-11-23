@@ -1,3 +1,8 @@
+//
+// Created by eszdman on 05.08.2026.
+//
+
+#ifndef ESD4D_BUFFER_BACKEND
 #define LAYOUT //
 LAYOUT
 precision highp float;
@@ -33,11 +38,16 @@ uniform ivec2 cfaShift; // sensor red-site offset (cfa%2, cfa/2), 0..1 per axis
 #define HALIDE_SAMPLING 0 // 0 legacy floor, 1 nearest, 2 CFA bilinear, 3 bounded CFA cubic, 4 bounded CFA Lanczos-2
 #define HALIDE_MOTION_FIELD 0
 #define CFA_RESIDUAL_FUSION 0
+#if GYRO_WARP
+uniform mat3 gyroHomography;
+#endif
 #if CFA_RESIDUAL_FUSION
 layout(rgba16f, binding = 2) uniform highp readonly image2D baseTexture;
 uniform float cfaResidualStrength;
 uniform float cfaNoiseS;
 uniform float cfaNoiseO;
+#endif
+
 #endif
 
 #if !GYRO_WARP && HALIDE_SAMPLING > 0
@@ -167,6 +177,10 @@ vec2 fourTapGreenObservation(vec2 quad, bool bounded) {
 }
 
 vec4 sampleCfa(vec2 p) {
+#if HALIDE_SAMPLING == 4
+    // At a whole-quad shift both Bayer lattices land on their original sites.
+    if (all(equal(p, floor(p)))) return cfaTexel(ivec2(p));
+#endif
 #if HALIDE_SAMPLING == 1
     vec4 value=cfaTexel(ivec2(floor(p+vec2(0.5))));
     ivec2 green=ivec2(floor(vec2(p.x+p.y,p.x-p.y)+vec2(0.5)));
@@ -339,7 +353,6 @@ vec4 residualCandidate(ivec2 xy, vec2 displacement, vec4 base) {
 #endif
 
 #if GYRO_WARP
-uniform mat3 gyroHomography;
 
 // Match the GPU Bayer-plane prewarp, but sample the original only once.
 // Residuals are in the prewarped raw/2 grid: source = H(2*(p+d)+site).
@@ -365,23 +378,6 @@ vec4 warpedBayer(vec2 p) {
                 warpedChannel(p,ivec2(0,1),2), warpedChannel(p,ivec2(1,1),3));
 }
 #endif
-
-float getBayer(ivec2 coords, highp sampler2D tex){
-    return texelFetch(tex,coords,0).r;
-}
-
-// Repack raw with the same red-site origin shift as merge00 (negative shift,
-// edge-duplicated fetches), so the normalized quad layout (R, Gr, Gb, B)
-// matches the packed textures.
-vec4 getBayerVec(ivec2 coords, highp sampler2D tex){
-    ivec2 sz = textureSize(tex, 0);
-    ivec2 org = coords - cfaShift;
-    vec4 c0 = vec4(getBayer(clamp(org, ivec2(0), sz - ivec2(1)),tex),
-                   getBayer(clamp(org + ivec2(1,0), ivec2(0), sz - ivec2(1)),tex),
-                   getBayer(clamp(org + ivec2(0,1), ivec2(0), sz - ivec2(1)),tex),
-                   getBayer(clamp(org + ivec2(1,1), ivec2(0), sz - ivec2(1)),tex));
-    return clamp(c0, 0.0, 1.0);
-}
 
 float window(float x){
     return 0.5f - 0.5f * cos(2.f * M_PI * ((0.5f * (x + 0.5f) / float(TILE_AL))));
@@ -414,12 +410,6 @@ void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outSize = imageSize(outTexture);
     if (any(greaterThanEqual(xy, outSize))) return;
-    vec2 uvScale = vec2(outSize-border);
-    vec2 uv = vec2(xy)/uvScale + vec2(0.5)/uvScale;
-    vec4 bayer = getBayerVec(xy*TILE, inTexture);
-    //vec4 hp = imageLoad(hotPixTexture, xy);
-    //bayer = bayer * vec4(1.0-hp) + imageLoad(avrTexture, xy) * hp;
-    vec4 noise = vec4(max(sqrt(max(bayer * noiseS + noiseO, 1e-6)), vec4(minLevel)));
     vec4 w[4];
     w[3] = windowxy4((TILE*xy)%TILE_AL);
     w[2] = windowxy4((TILE*xy)%TILE_AL + ivec2(TILE_AL,0));

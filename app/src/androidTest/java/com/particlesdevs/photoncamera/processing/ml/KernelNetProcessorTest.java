@@ -25,7 +25,7 @@ import static org.junit.Assert.assertTrue;
 /**
  * Device-side tests for {@link KernelNetNcnnProcessor}. Runs the real
  * kernelnet ncnn model from assets on the ncnnMl native lib
- * (Vulkan backend), feeding random luma planes + random sigma.
+ * (CPU backend), feeding random luma planes + random sigma.
  */
 @RunWith(AndroidJUnit4.class)
 public class KernelNetProcessorTest {
@@ -35,7 +35,7 @@ public class KernelNetProcessorTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
 
             Random rnd = new Random(42L);
             int width = 128;
@@ -69,7 +69,7 @@ public class KernelNetProcessorTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
             assertNullSafe(processor);
         } finally {
             processor.close();
@@ -81,25 +81,29 @@ public class KernelNetProcessorTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
 
             int width = 2000;
             int height = 1500;
             FloatBuffer gray = randomGray(new Random(0L), width, height);
-            float sigma = 0.08f;
-
-            long best = Long.MAX_VALUE;
-            KernelNetNcnnProcessor.Result result = null;
-            for (int i = 0; i < 3; i++) {
+            long[] times = new long[30];
+            for (int i = -3; i < times.length; i++) {
                 long start = System.nanoTime();
-                result = processor.runInference(gray, width, height, sigma);
+                KernelNetNcnnProcessor.Result result = processor.runInference(gray, width, height, 0.05f);
                 long elapsed = System.nanoTime() - start;
-                best = Math.min(best, elapsed);
+                assertNotNull(result);
+                try {
+                    assertEquals(1000, result.width);
+                    assertEquals(750, result.height);
+                    if (i >= 0) times[i] = elapsed;
+                } finally {
+                    com.particlesdevs.photoncamera.util.Allocator.free(result.params());
+                }
             }
-            assertNotNull(result);
-            android.util.Log.d("KernelNetBenchmark",
-                    "2000x1500 -> " + result.width + "x" + result.height
-                            + " best=" + (best / 1_000_000) + "ms");
+            java.util.Arrays.sort(times);
+            double medianMs = (times[14] + times[15]) / 2e6;
+            android.util.Log.i("KernelNetBenchmark", "2000x1500 -> 1000x750 median=" + medianMs
+                    + "ms p10=" + times[2] / 1e6 + "ms p90=" + times[26] / 1e6 + "ms");
         } finally {
             processor.close();
         }
@@ -114,7 +118,7 @@ public class KernelNetProcessorTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
 
             int width = 4000;
             int height = 3000;
@@ -149,7 +153,7 @@ public class KernelNetProcessorTest {
      * used to grow ncnn's Vulkan blob/workspace caches monotonically).
      *
      * Protocol: preallocate all inputs, warm up once on every shape (warms the
-     * tile-sized Vulkan allocators + output-buffer malloc arenas), take a
+     * tile-sized allocations and output-buffer malloc arenas), take a
      * baseline RSS, then run 3 more rounds over all shapes and require
      * max(RSS) - baseline to stay under RSS_TOLERANCE_KB.
      */
@@ -159,7 +163,7 @@ public class KernelNetProcessorTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
 
             final int[][] sizes = {{4000, 3000}, {4096, 3072}, {4160, 3120}, {4208, 3120}};
             final float sigma = 0.08f;
@@ -216,7 +220,7 @@ public class KernelNetProcessorTest {
         float[] full;
         KernelNetNcnnProcessor fullProcessor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", fullProcessor.isReady());
+            assertTrue("model should load from assets", fullProcessor.waitReady(30000));
             android.system.Os.setenv("KN_NOTILE", "1", true);
             full = paramsToArray(fullProcessor.runInference(gray, width, height, sigma));
         } finally {
@@ -229,7 +233,7 @@ public class KernelNetProcessorTest {
             android.system.Os.setenv("KN_TILE", String.valueOf(tileSize), true);
             KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
             try {
-                assertTrue("model should load from assets", processor.isReady());
+                assertTrue("model should load from assets", processor.waitReady(30000));
                 processor.runInference(gray, width, height, sigma); // warmup
                 long start = System.nanoTime();
                 float[] tiled = paramsToArray(processor.runInference(gray, width, height, sigma));
@@ -290,7 +294,7 @@ public class KernelNetProcessorTest {
         long fullResMs;
         KernelNetNcnnProcessor fullProcessor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue(fullProcessor.isReady());
+            assertTrue(fullProcessor.waitReady(30000));
             assertNotNull(fullProcessor.runInference(grays[0], sizes[0][0], sizes[0][1], sigma));
             long baseline = settleAndReadRssKb();
             long maxRss = baseline;
@@ -316,7 +320,7 @@ public class KernelNetProcessorTest {
         long tiledMs;
         KernelNetNcnnProcessor tiledProcessor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue(tiledProcessor.isReady());
+            assertTrue(tiledProcessor.waitReady(30000));
             assertNotNull(tiledProcessor.runInference(grays[0], sizes[0][0], sizes[0][1], sigma));
             long baseline = settleAndReadRssKb();
             long maxRss = baseline;
@@ -343,34 +347,20 @@ public class KernelNetProcessorTest {
                 tiledGrowth < 96L * 1024);
     }
 
-    /**
-     * Backend A/B: Vulkan vs CPU (KN_CPU=1) timing on the tiled path.
-     * Best-of-3 after warmup at small/mid/capture resolutions. The native side
-     * logs which backend each net actually got (see "kernelnet backend:" in
-     * logcat, including vulkan_device= state).
-     */
     @Test
-    public void perf_vulkanVsCpu() throws Exception {
+    public void perf_cpuAcrossResolutions() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final int[][] sizes = {{512, 512}, {2048, 1536}, {4000, 3000}};
-        final float sigma = 0.08f;
-
-        android.system.Os.setenv("KN_CPU", "1", true);
-        long[] cpuMs = timeBackend(context, sizes, sigma);
-        android.system.Os.unsetenv("KN_CPU");
-        long[] vkMs = timeBackend(context, sizes, sigma);
-
+        long[] cpuMs = timeBackend(context, sizes, 0.08f);
         for (int i = 0; i < sizes.length; i++) {
-            String verdict = vkMs[i] < cpuMs[i] ? "vulkan faster" : "CPU faster";
-            android.util.Log.i("KernelNetRss", sizes[i][0] + "x" + sizes[i][1]
-                    + ": cpu=" + cpuMs[i] + "ms vulkan=" + vkMs[i] + "ms -> " + verdict);
+            android.util.Log.i("KernelNetRss", sizes[i][0] + "x" + sizes[i][1] + ": cpu=" + cpuMs[i] + "ms");
         }
     }
 
     private static long[] timeBackend(Context context, int[][] sizes, float sigma) {
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load from assets", processor.isReady());
+            assertTrue("model should load from assets", processor.waitReady(30000));
             long[] best = new long[sizes.length];
             for (int i = 0; i < sizes.length; i++) {
                 int w = sizes[i][0];
@@ -390,42 +380,19 @@ public class KernelNetProcessorTest {
         }
     }
 
-    /**
-     * Diagnostic for backend verification: sustained 12MP inference on CPU
-     * (KN_CPU=1) then on Vulkan, each ~10s, with logcat phase markers. Correlate
-     * with `adb shell dumpsys gpu | grep "Proc <pid>"` sampled from the host:
-     * GPU device memory must appear only in the vulkan phase, proving the ops
-     * really dispatch to the GPU (not per-layer CPU fallback).
-     */
     @Test
-    public void diag_gpuMemory_backends() throws Exception {
+    public void diag_sustainedCpuInference() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final int width = 4000;
         final int height = 3000;
-        final float sigma = 0.08f;
         FloatBuffer gray = randomGray(new Random(400L), width, height);
-        android.util.Log.i("KernelNetDiag", "PID " + android.os.Process.myPid());
-
-        android.system.Os.setenv("KN_CPU", "1", true);
         KernelNetNcnnProcessor cpu = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue(cpu.isReady());
-            runSustained(cpu, gray, width, height, sigma, 10000, "cpu");
+            assertTrue(cpu.waitReady(30000));
+            runSustained(cpu, gray, width, height, 0.08f, 10000, "cpu");
         } finally {
             cpu.close();
-            android.system.Os.unsetenv("KN_CPU");
         }
-
-        KernelNetNcnnProcessor vk = new KernelNetNcnnProcessor(context);
-        try {
-            assertTrue(vk.isReady());
-            runSustained(vk, gray, width, height, sigma, 10000, "vulkan");
-        } finally {
-            vk.close();
-        }
-        // Give the host sampler time to observe post-close GPU memory release.
-        android.util.Log.i("KernelNetDiag", "DONE");
-        Thread.sleep(3000);
     }
 
     private static void runSustained(KernelNetNcnnProcessor processor, FloatBuffer gray,
@@ -445,12 +412,6 @@ public class KernelNetProcessorTest {
                 + " min=" + minMs + "ms");
     }
 
-    /**
-     * Per-stage profiling sweep (native logs "kernelnet stages"): vulkan with
-     * pooled allocators (new default), old per-extraction allocators
-     * (KN_NOALLOC=1), one big tile (KN_TILE=2048), fp32 path (KN_FP32=1), and
-     * a CPU reference — all on the same 2048x1536 input, best-of-3.
-     */
     @Test
     public void perf_backendStageProfile() throws Exception {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -460,11 +421,10 @@ public class KernelNetProcessorTest {
         FloatBuffer gray = randomGray(new Random(500L), width, height);
         android.system.Os.setenv("KN_STAGETIMING", "1", true);
         try {
-            profileConfig(context, "12mp vulkan-tile1024(default)", null, gray, width, height, sigma);
-            profileConfig(context, "12mp vulkan-tile1536", "KN_TILE=1536", gray, width, height, sigma);
-            profileConfig(context, "12mp vulkan-tile2048", "KN_TILE=2048", gray, width, height, sigma);
-            profileConfig(context, "12mp vulkan-tile4096", "KN_TILE=4096", gray, width, height, sigma);
-            profileConfig(context, "12mp cpu", "KN_CPU=1", gray, width, height, sigma);
+            profileConfig(context, "12mp cpu-tile1024(default)", null, gray, width, height, sigma);
+            profileConfig(context, "12mp cpu-tile1536", "KN_TILE=1536", gray, width, height, sigma);
+            profileConfig(context, "12mp cpu-tile2048", "KN_TILE=2048", gray, width, height, sigma);
+            profileConfig(context, "12mp cpu-tile4096", "KN_TILE=4096", gray, width, height, sigma);
         } finally {
             android.system.Os.unsetenv("KN_STAGETIMING");
         }
@@ -483,7 +443,7 @@ public class KernelNetProcessorTest {
         android.util.Log.i("KernelNetRss", "=== config " + name + " ===");
         KernelNetNcnnProcessor processor = new KernelNetNcnnProcessor(context);
         try {
-            assertTrue("model should load", processor.isReady());
+            assertTrue("model should load", processor.waitReady(30000));
             assertNotNull(processor.runInference(gray, width, height, sigma)); // warmup
             long best = Long.MAX_VALUE;
             for (int r = 0; r < 3; r++) {

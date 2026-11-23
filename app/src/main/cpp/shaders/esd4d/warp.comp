@@ -1,0 +1,49 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "workgroup.glsl"
+layout(std430, binding=0) readonly buffer Source { uvec2 source[]; };
+layout(std430, binding=1) readonly buffer Accumulator { uvec2 guide[]; };
+layout(std430, binding=2) readonly buffer Motion { vec4 field[]; };
+layout(std430, binding=3) writeonly buffer Destination { uvec2 destination[]; };
+layout(push_constant) uniform WarpParameters {
+    ivec2 rawHalf;
+    ivec2 cfaShift;
+    ivec2 alignmentSize;
+    int tileSize;
+    float exposure;
+    float cfaResidualStrength;
+    float cfaNoiseS;
+    float cfaNoiseO;
+    mat3 gyroHomography;
+};
+#define TILE 2
+#define TILE_AL tileSize
+#define M_PI 3.14159265358979323846
+const ivec2 shift = ivec2(0); // callers supply one frame's field
+ivec2 warpSize() { return rawHalf+cfaShift; }
+ivec2 motionSize() { return alignmentSize; }
+vec4 decodeQuad(uvec2 q) { return vec4(unpackHalf2x16(q.x),unpackHalf2x16(q.y)); }
+vec4 readAlter(ivec2 p) { return decodeQuad(source[p.y*warpSize().x+p.x]); }
+vec4 readRunning(ivec2 p) { return decodeQuad(guide[p.y*warpSize().x+p.x]); }
+vec4 readMotion(ivec2 p) { return field[p.y*alignmentSize.x+p.x]; }
+void writeWarp(ivec2 p,vec4 v) {
+    destination[p.y*warpSize().x+p.x] = uvec2(packHalf2x16(v.rg),packHalf2x16(v.ba));
+}
+// Match the image-access vocabulary of the shared GLES entry points.
+#define ESD4D_BUFFER_BACKEND 1
+#define imageSize(resource) warpSize()
+#define imageLoad(resource,p) resource(p)
+#define imageStore(resource,p,v) writeWarp(p,v)
+#define alterTexture readAlter
+#define baseTexture readRunning
+#define textureSize(resource,lod) motionSize()
+#define texelFetch(resource,p,lod) readMotion(p)
+#if FLOW
+#include "merge/mergeAlignFlow.glsl"
+#else
+#include "merge/mergeAlign.glsl"
+#endif

@@ -1,0 +1,189 @@
+#version 450
+//
+// Created by eszdman on 20.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "combine_buffers.glsl"
+
+vec4 validCfaSites(ivec2 p) {
+    vec2 raw = vec2(2 * p - cfaShift);
+    vec4 x = raw.x + vec4(0, 1, 0, 1), y = raw.y + vec4(0, 0, 1, 1);
+    return step(vec4(0.0), x) * step(x, vec4(2 * rawHalf.x - 1)) * step(vec4(0.0), y) *
+           step(y, vec4(2 * rawHalf.y - 1));
+}
+
+vec4 residualRobustWeight(vec4 penalty, float scale) {
+    return vec4(scale / max(penalty.r, max(penalty.g, max(penalty.b, penalty.a))));
+}
+
+#define EPS 1e-6
+#define NOISE_EPS 1e-10
+#define E_ABS 0.7978845608   // sqrt(2/pi): E|X| for X ~ N(0, sigma)
+#define SIG_ABS 0.6027980    // sqrt(1 - 2/pi): std|X|
+#define SQRT2 1.41421356     // Var(r^2) = 2*sigma^4 for Gaussian r
+#define GATE_SENSITIVITY 2.5 // reject at this many statistic-sigmas (higher = merge more)
+// The edge path counts only valid sites and shares one tap weight between the two greens.
+void combine(bool masked) {
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outTexture);
+    if (any(greaterThanEqual(xy, size)))
+        return;
+    vec4 kernelParams = texture(kernelsMap, vec2(xy) / vec2(2.0 * vec2(textureSize(kernelsMap, 0)))).rgba;
+    float s1 = max(kernelParams.x, EPS);
+    float s2 = max(kernelParams.y, EPS);
+    float rho = clamp(kernelParams.z, -1.0 + EPS, 1.0 - EPS);
+    float det = max(1.0 - rho * rho, EPS);
+    float a = 1.0 / (s1 * s1 * det);  // dy² (j) coefficient
+    float b = -rho / (s1 * s2 * det); // dy*dx (i*j) coefficient
+    float c = 1.0 / (s2 * s2 * det);  // dx² (i) coefficient
+    vec4 base = imageLoad(inTexture, xy);
+    ivec2 flow = ivec2(0);
+    vec4 diff = imageLoad(diffTexture, xy + flow);
+    vec4 Z = vec4(0.001);
+    vec4 Z2 = vec4(0.001);
+    vec4 localDiff = vec4(0.0);
+    vec4 localDiffSigned = vec4(0.0);
+    vec4 localEnergy = vec4(0.0);
+    vec4 localDiff2 = vec4(0.001 * diff);
+    vec4 exposure2 = vec4(0.0);
+    vec4 exposureZ = vec4(0.0);
+    for (float i = -5.0; i <= 5.0; i += 1.0) {
+        float qi = c * i * i;
+        for (float j = -5.0; j <= 5.0; j += 1.0) {
+            ivec2 offset = ivec2(i, j);
+            vec4 valid = vec4(1.0);
+            if (masked) {
+                ivec2 at = xy + offset;
+                if (any(lessThan(at, ivec2(0))) || any(greaterThanEqual(at, size)))
+                    continue;
+                valid = validCfaSites(at);
+            }
+            vec4 neighborDiff = imageLoad(diffTexture, xy + offset + flow);
+            vec4 neighborBayer = imageLoad(inTexture, xy + offset);
+            exposure2 += neighborBayer * valid;
+            exposureZ += valid;
+            float q = qi + 2.0 * b * i * j + a * j * j;
+            float w = exp(-1.0 * q);
+            vec4 r = neighborDiff - neighborBayer;
+            r *= valid;
+            vec4 rAbs = abs(r);
+            float wg = w, wb = w;
+            vec4 sq = r * r;
+            localDiff += rAbs * w + vec4(0.0, rAbs.bg * vec2(wg, wb), 0.0);
+            localDiffSigned += r * w + vec4(0.0, r.bg * vec2(wg, wb), 0.0);
+            localEnergy += sq * w + vec4(0.0, sq.bg * vec2(wg, wb), 0.0);
+            Z += valid * w + vec4(0.0, valid.bg * vec2(wg, wb), 0.0);
+            Z2 += valid * (w * w) + vec4(0.0, valid.bg * (vec2(wg, wb) * vec2(wg, wb)), 0.0);
+        }
+    }
+    vec4 meanMain = exposure2 / max(exposureZ, vec4(1.0));
+    vec4 localMean = localDiff / Z;              // kernel mean of |r|
+    vec4 localSigned = abs(localDiffSigned) / Z; // |kernel mean of r|
+    vec4 localEnergyMean = localEnergy / Z;      // kernel mean of r^2
+    vec4 invEff = sqrt(Z2) / Z;
+    float nFrames = max(1.0 / weight - 1.0, 1.0);
+    float accepted = supportInitialized ? max(imageLoad(supportTexture, xy).r, 1.0) : 1.0;
+    nFrames = accepted;
+    vec4 sigmaR = sqrt(max(meanMain * noiseS + noiseO, NOISE_EPS) * (1.0 + 1.0 / nFrames));
+    vec4 tAbs = (localMean - E_ABS * sigmaR) / (SIG_ABS * sigmaR * invEff);
+    vec4 tSigned = (localSigned - E_ABS * sigmaR * invEff) / (SIG_ABS * sigmaR * invEff);
+    vec4 tEnergy = (localEnergyMean - sigmaR * sigmaR) / (SQRT2 * sigmaR * sigmaR * invEff);
+    vec4 t = max(tAbs, max(tSigned, tEnergy));
+    t = max(t, vec4(0.0));
+    vec4 penalty = t * t + GATE_SENSITIVITY * GATE_SENSITIVITY;
+    vec4 comb = residualRobustWeight(penalty, GATE_SENSITIVITY * GATE_SENSITIVITY);
+    if (any(greaterThan(diff, vec4(exposure * 0.80))) && exposure < 0.95) {
+        comb = vec4(0.0); // skip overexposed pixels
+    }
+    float updated = accepted + comb.r;
+    imageStore(supportTexture, xy, vec4(updated));
+    imageStore(outTexture, xy, mix(base, diff, comb / updated));
+}
+
+const uint tileWidth = gl_WorkGroupSize.x + 10u;
+const uint tileCount = tileWidth * (gl_WorkGroupSize.y + 10u);
+shared vec4 guideTile[tileCount];
+
+// Include the five-quad halo. Every invocation participates, including partial edge groups.
+void loadTile() {
+    ivec2 origin = ivec2(gl_WorkGroupID.xy * gl_WorkGroupSize.xy) - ivec2(5);
+    for (uint k = gl_LocalInvocationIndex; k < tileCount; k += gl_WorkGroupSize.x * gl_WorkGroupSize.y) {
+        ivec2 at = origin + ivec2(k % tileWidth, k / tileWidth);
+        vec4 baseValue = imageLoad(inTexture, at);
+        vec4 residual = imageLoad(diffTexture, at) - baseValue;
+        guideTile[k] = vec4(dot(baseValue, vec4(0.25)), dot(residual, vec4(0.25)),
+                            dot(abs(residual), vec4(0.25)), dot(residual, residual) * 0.25);
+    }
+    barrier();
+}
+
+void combineInterior() {
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    vec4 kernel = texture(kernelsMap, vec2(xy) / (2.0 * vec2(textureSize(kernelsMap, 0))));
+    float s1 = max(kernel.x, EPS), s2 = max(kernel.y, EPS);
+    float rho = clamp(kernel.z, -1.0 + EPS, 1.0 - EPS);
+    float det = max(1.0 - rho * rho, EPS);
+    // Preserve the area of the predicted ellipse with a circular, separable Gaussian.
+    float k = 1.0 / (s1 * s2 * sqrt(det));
+    float axis[6] = float[6](1.0, exp(-k), exp(-4.0 * k), exp(-9.0 * k), exp(-16.0 * k), exp(-25.0 * k));
+    float z = 1.0, z2 = 1.0;
+    for (int d = 1; d <= 5; ++d) {
+        z += 2.0 * axis[d];
+        z2 += 2.0 * axis[d] * axis[d];
+    }
+    z *= z;
+    z2 *= z2;
+    float absSum = float(0.0), signedSum = float(0.0), energySum = float(0.0);
+    float exposureSum = float(0.0);
+    for (int ix = -5; ix <= 5; ++ix) {
+        float i = float(ix);
+        float row = axis[abs(ix)];
+        for (int jy = -5; jy <= 5; ++jy) {
+            float j = float(jy);
+            float w = row * axis[abs(jy)];
+            ivec2 localTap = ivec2(gl_LocalInvocationID.xy) + ivec2(ix + 5, jy + 5);
+            int k = localTap.y * int(tileWidth) + localTap.x;
+
+            float baseGuide = guideTile[k].x;
+            float guide = guideTile[k].y;
+            exposureSum += baseGuide;
+            signedSum += guide * w;
+            absSum += guideTile[k].z * w;
+            energySum += guideTile[k].w * w;
+        }
+    }
+    float accepted = supportInitialized ? max(imageLoad(supportTexture, xy).r, 1.0) : 1.0;
+    float normalization = z + 0.001;
+    float invEff = sqrt(z2 + 0.001) / normalization;
+    float variance = max(exposureSum / 121.0 * noiseS + noiseO, NOISE_EPS) * (1.0 + 1.0 / accepted);
+    // Pool four raw sites per quad. Keep the unsigned and squared residuals for color edges.
+    float sigma = sqrt(variance);
+    float tAbs = (absSum / normalization - E_ABS * sigma) / (0.5 * SIG_ABS * sigma * invEff);
+    float tSigned =
+        (abs(signedSum) / normalization - 0.5 * E_ABS * sigma * invEff) / (0.5 * SIG_ABS * sigma * invEff);
+    float tEnergy = (energySum / normalization - variance) / (0.5 * SQRT2 * variance * invEff);
+    float score = max(0.0, max(tAbs, max(tSigned, tEnergy)));
+    float cutoff = GATE_SENSITIVITY * GATE_SENSITIVITY;
+    float accept = cutoff / (score * score + cutoff);
+    vec4 frame = imageLoad(diffTexture, xy);
+    if (exposure < 0.95 && any(greaterThan(frame, vec4(exposure * 0.80))))
+        accept = 0.0;
+    float updated = accepted + accept;
+    imageStore(supportTexture, xy, vec4(updated));
+    imageStore(outTexture, xy, mix(imageLoad(inTexture, xy), frame, accept / updated));
+}
+
+void main() {
+    loadTile();
+    ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
+    ivec2 size = imageSize(outTexture);
+    if (any(greaterThanEqual(xy, size)))
+        return;
+    bool fullWindow =
+        all(greaterThanEqual(xy - ivec2(5), cfaShift)) && all(lessThan(xy + ivec2(5), rawHalf));
+    if (fullWindow)
+        combineInterior();
+    else
+        combine(true);
+}

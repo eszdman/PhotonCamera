@@ -120,7 +120,7 @@ def quality(ctx,code):
 if __name__=='__main__':
     OUT.mkdir(parents=True,exist_ok=True)
     ctx=moderngl.create_standalone_context(require=430,backend='egl')
-    code=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+    code=(SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
     report=dict(oracle={str(mode):oracle(ctx,code,mode) for mode in [2,3,4]},fixed_equal_weights_quality=quality(ctx,code))
     (OUT/'quincunx-lanczos-tests.json').write_text(json.dumps(report,indent=2)+'\n')
     print(report['oracle'])

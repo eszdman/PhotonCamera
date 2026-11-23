@@ -7,7 +7,7 @@ import numpy as np
 from halide_subpixel_test import Renderer, SRC, RAW_W, RAW_H, scene
 
 ctx=moderngl.create_standalone_context(require=430,backend='egl')
-shader=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+shader=(SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
 results=[]
 with tempfile.TemporaryDirectory() as directory:
     path=Path(directory)/'motion.glsl'

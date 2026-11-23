@@ -19,15 +19,15 @@ class Merge:
     def __init__(self, ctx, strength=None, motion=False, robust=False, sampling=3):
         self.ctx=ctx
         self.robust=robust; self.support=None
-        code=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+        code=(SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
         if strength is not None: code=code.replace('#define CFA_RESIDUAL_FUSION 0','#define CFA_RESIDUAL_FUSION 1')
         if motion: code=code.replace('#define HALIDE_MOTION_FIELD 0','#define HALIDE_MOTION_FIELD 1')
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'merge.glsl';path.write_text(code)
             self.align=Renderer(ctx,sampling,32,shader_path=path)
         if strength is not None:self.align.program['cfaResidualStrength'].value=strength
-        code=(SRC/'main/assets/shaders/merge/mergeCombineWeight1.glsl').read_text()
-        if robust:code=code.replace('#define RESIDUAL_ROBUSTNESS 0','#define RESIDUAL_ROBUSTNESS 1')
+        shader = 'mergeCombineWeight1Residual.glsl' if robust else 'mergeCombineWeight1.glsl'
+        code = (SRC/'main/cpp/shaders/shared/shaders/merge'/shader).read_text()
         code=code.replace('#define LAYOUT //','#define LAYOUT layout(local_size_x=8,local_size_y=8) in;')
         self.combine=ctx.compute_shader('#version 430\n'+code)
 
@@ -62,7 +62,7 @@ def oracle(ctx):
     # Every residual path now uses the physical green lattice. Check it with
     # two independently resampled lattice images, including all CFA borders.
     from cfa_quincunx_cubic_test import oracle as lattice_oracle
-    code=(SRC/'main/assets/shaders/merge/mergeAlign.glsl').read_text()
+    code=(SRC/'main/cpp/shaders/shared/shaders/merge/mergeAlign.glsl').read_text()
     return {str(mode):lattice_oracle(ctx,code,mode) for mode in (2,3,4)}
 
 

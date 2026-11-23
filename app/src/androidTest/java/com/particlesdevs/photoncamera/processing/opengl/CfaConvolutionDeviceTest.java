@@ -44,7 +44,7 @@ public class CfaConvolutionDeviceTest {
             GLTexture src=new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4),BufferUtils.getFrom(packed));
             GLTexture dst=new GLTexture(size,new GLFormat(GLFormat.DataType.FLOAT_16,4),null);
             GLTexture kernels=new GLTexture(kernelSize,new GLFormat(GLFormat.DataType.FLOAT_16,4),kernelBytes)) {
-            GLProg p=ctx.mProgram;p.setLayout(8,8,1);p.setDefine("RESIDUAL_ROBUSTNESS",0);p.useProgram(code,true);
+            GLProg p=ctx.mProgram;p.setLayout(8,8,1);p.useProgram(code,true);
             p.setTexture("kernelsMap",kernels);p.setTextureCompute("inTexture",src,false);
             p.setTextureCompute("diffTexture",src,false);p.setTextureCompute("outTexture",dst,true);
             p.setVar("weight",.5f);p.setVar("noiseS",0f);p.setVar("noiseO",.0001f);p.setVar("exposure",1f);

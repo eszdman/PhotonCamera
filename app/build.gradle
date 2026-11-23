@@ -2,7 +2,49 @@ apply plugin: 'com.android.application'
 apply plugin: 'kotlin-android'
 //apply plugin: "io.github.wurensen.android-aspectjx"
 Properties versionProps = new Properties()
+def buildEsd4d = providers.gradleProperty("photonBuildEsd4d").getOrElse("true").toBoolean()
+def esd4dTuning = file("src/main/cpp/esd4d/tuning")
+def tuningTools = file("src/main/cpp/framework/tuning")
+def esd4dJava = layout.buildDirectory.dir("generated/source/esd4d")
+def esd4dSettings = esd4dJava.map { it.file("com/particlesdevs/photoncamera/settings/merge/ESD4D.java") }
+def tuningClang = androidComponents.sdkComponents.ndkDirectory.map { directory ->
+    fileTree(directory.dir("toolchains/llvm/prebuilt")) {
+        include "*/bin/clang++", "*/bin/clang++.exe"
+    }.singleFile
+}
+def generateEsd4dSettings = tasks.register("generateEsd4dSettings", Exec) {
+    inputs.files(fileTree(esd4dTuning), fileTree("src/main/cpp/esd4d/nodes") { include "*.hpp" },
+            file("src/main/cpp/framework/kompute/KomputeNode.hpp"), new File(tuningTools, "generate.py"),
+            new File(tuningTools, "Annotations.hpp"), tuningClang)
+    outputs.file(esd4dSettings)
+    doFirst {
+        commandLine "python3", new File(tuningTools, "generate.py"), new File(esd4dTuning, "Esd4dTunables.hpp"),
+                esd4dSettings.get().asFile, "--java-template", new File(esd4dTuning, "ESD4D.java.in"),
+                "--clang", tuningClang.get()
+    }
+}
+def postPackage = "com/particlesdevs/photoncamera/processing/opengl/postpipeline"
+def postJava = layout.buildDirectory.dir("generated/source/postNodes")
+def generatePostSettings = fileTree("src/main/java/${postPackage}") { include "*.java.in" }.collect { template ->
+    def node = template.name - ".java.in"
+    def source = file("src/main/cpp/postpipeline/nodes/${node}.cpp")
+    def destination = postJava.map { it.file("${postPackage}/${node}.java") }
+    tasks.register("generate${node}Settings", Exec) {
+        inputs.files(template, source,
+                new File(tuningTools, "generate.py"), new File(tuningTools, "Annotations.hpp"), tuningClang)
+        outputs.file(destination)
+        doFirst {
+            commandLine "python3", new File(tuningTools, "generate.py"), source, destination.get().asFile,
+                    "--java-template", template, "--clang", tuningClang.get()
+        }
+    }
+}
 android {
+    sourceSets.main.java.srcDir(esd4dJava)
+    sourceSets.main.java.srcDir(postJava)
+    // Package the GLSL shared with Vulkan at its original GLES asset paths.
+    sourceSets.main.assets.srcDir("src/main/cpp/shaders/shared")
+
     signingConfigs {
         debug {
             storeFile file('../key/PcamLeak.jks')
@@ -15,6 +57,7 @@ android {
     def versionBuild
 
     buildFeatures {
+        buildConfig true
         dataBinding true
         mlModelBinding true
     }
@@ -38,6 +81,12 @@ android {
     }
 
     defaultConfig {
+        buildConfigField "boolean", "BUILD_ESD4D", buildEsd4d.toString()
+        externalNativeBuild {
+            cmake {
+                arguments "-DPHOTON_BUILD_ESD4D=${buildEsd4d ? 'ON' : 'OFF'}"
+            }
+        }
         compileSdk 36
         applicationId 'com.particlesdevs.photoncamera'
         minSdkVersion 26
@@ -154,3 +203,5 @@ dependencies {
 repositories {
     mavenCentral()
 }
+
+preBuild.dependsOn(generateEsd4dSettings, generatePostSettings)

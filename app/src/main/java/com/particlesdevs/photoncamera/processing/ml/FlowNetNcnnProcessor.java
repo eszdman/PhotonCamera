@@ -23,15 +23,12 @@ import java.util.concurrent.TimeUnit;
  * graph), so width/height must be 512/384.
  *
  * The model is a process-wide singleton that loads on a background thread the
- * first time {@link #start(Context)} is called. The ncnn Vulkan shaders are
- * compiled at init, so no runtime shader JIT or cache persist is needed; init
- * is just loading the ~38MB model and warming the pipeline.
+ * first time {@link #start(Context)} is called. This loads the model and
+ * initializes its ncnn Vulkan pipelines.
  */
 public final class FlowNetNcnnProcessor {
     private static final String TAG = "FlowNetNcnnProcessor";
     private static final String MODEL_PARAM = "models/flownet_flat.ncnn.param";
-    private static final int MODEL_W = 512;
-    private static final int MODEL_H = 384;
     private static final long INIT_TIMEOUT_MS = 30000;
 
     private static volatile FlowNetNcnnProcessor sInstance;
@@ -47,8 +44,7 @@ public final class FlowNetNcnnProcessor {
 
     /**
      * Ensures the singleton is loading the model in the background (idempotent).
-     * Call from the Application onCreate so the first shot session never waits
-     * for the 38MB model load.
+     * Start when FlowNet is selected, including when a session enables it after startup.
      */
     public static FlowNetNcnnProcessor start(Context context) {
         FlowNetNcnnProcessor inst = sInstance;
@@ -75,7 +71,7 @@ public final class FlowNetNcnnProcessor {
         t.start();
     }
 
-    /** Blocks until the background load + warmup finished (or timed out). */
+    /** Waits for model initialization or the timeout. */
     public boolean waitReady(long timeoutMs) {
         try {
             return initLatch.await(timeoutMs, TimeUnit.MILLISECONDS) && ready;
@@ -90,7 +86,7 @@ public final class FlowNetNcnnProcessor {
     }
 
     private void backgroundInit() {
-        long t0 = System.currentTimeMillis();
+        long start = System.nanoTime();
         AssetManager am = appContext.getAssets();
         try {
             nativeHandle = nativeCreate(am, MODEL_PARAM);
@@ -106,18 +102,8 @@ public final class FlowNetNcnnProcessor {
             return;
         }
 
-        // Throwaway zero-input forward: builds every vulkan pipeline now (not
-        // on the GL thread during the merge).
-        //FloatBuffer zeroBase = zeroRgba(MODEL_W, MODEL_H);
-        //FloatBuffer zeroAlter = zeroRgba(MODEL_W, MODEL_H);
-        //ready = runInferenceLocked(zeroBase, zeroAlter, MODEL_W, MODEL_H) != null;
         ready = true;
-        if (!ready) {
-            Log.e(TAG, "FlowNetNcnn: warmup forward failed");
-        } else {
-            Log.d(TAG, "flownet ncnn init+warmup in "
-                    + (System.currentTimeMillis() - t0) + "ms");
-        }
+        Log.d(TAG, "flownet ncnn initialized in " + (System.nanoTime() - start) / 1_000_000 + "ms");
         initLatch.countDown();
     }
 
@@ -182,14 +168,6 @@ public final class FlowNetNcnnProcessor {
             ready = false;
             nativeDestroy(h);
         }
-    }
-
-    private static FloatBuffer zeroRgba(int w, int h) {
-        FloatBuffer fb = ByteBuffer.allocateDirect(w * h * 4 * 4)
-                .order(ByteOrder.nativeOrder()).asFloatBuffer();
-        for (int i = 0; i < w * h * 4; i++) fb.put(0f);
-        fb.rewind();
-        return fb;
     }
 
     /**

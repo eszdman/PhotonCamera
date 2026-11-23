@@ -140,11 +140,7 @@ public class PostPipeline extends GLBasePipeline {
     }
 
     public int getRotation() {
-        int rotation = mParameters.cameraRotation;
-        String TAG = "ParseExif";
-        Log.d(TAG, "Gravity rotation:" + PhotonCamera.getGravity().getRotation());
-        Log.d(TAG, "Sensor rotation:" + PhotonCamera.getCaptureController().mSensorOrientation);
-        return rotation;
+        return mParameters.cameraRotation;
     }
 
     @SuppressWarnings("SuspiciousNameCombination")

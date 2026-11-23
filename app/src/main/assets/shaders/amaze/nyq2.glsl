@@ -2,7 +2,7 @@
 // AMaZE pass 6: nyquist flag dilate/erode (C++ lines 893-927).
 // The bounding-box test is disabled: every tile processes all of its sites
 // (the per-site flags themselves still gate the downstream math).
-uniform sampler2D u_nyqtest;
+uniform sampler2D u_nyqtest; // @post-r32f
 
 const int HALO = 3;
 const int TW = LW + 2 * HALO;

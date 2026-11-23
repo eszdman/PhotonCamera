@@ -1,0 +1,51 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "workgroup.glsl"
+layout(std430,binding=0) readonly buffer Input {float pixels[];};
+#ifdef GROUP_INPUTS
+layout(std430,binding=1) readonly buffer Model {vec4 coefficients[];};
+layout(std430,binding=2) writeonly buffer Output {vec4 features[];};
+#else
+layout(std430,binding=1) readonly buffer Model {float model[];};
+layout(std430,binding=2) writeonly buffer Output {float result[];};
+#endif
+layout(push_constant) uniform Layer {
+    int width, height, inputs, outputs, stepSize, radius, weights, biases;
+};
+void main() {
+    ivec3 p=ivec3(gl_GlobalInvocationID);
+    ivec2 size=(ivec2(width,height)+stepSize-1)/stepSize;
+    if(any(greaterThanEqual(p.xy,size))) return;
+#ifdef GROUP_INPUTS
+    vec4 v = coefficients[biases / 4 + p.z];
+    int start = weights / 4 + p.z * GROUP_INPUTS * 9;
+    ivec2 origin = p.xy * stepSize - 1;
+    for (int c = 0; c < GROUP_INPUTS; ++c)
+        for (int j = 0; j < 3; ++j)
+            for (int i = 0; i < 3; ++i) {
+                ivec2 q = origin + ivec2(i,j);
+                if (any(lessThan(q,ivec2(0))) || any(greaterThanEqual(q,ivec2(width,height)))) continue;
+                float sampleValue = pixels[(q.y * width + q.x) * GROUP_INPUTS + c];
+                v += sampleValue * coefficients[start + c * 9 + j * 3 + i];
+            }
+    features[(p.y * size.x + p.x) * 4 + p.z] = max(v, vec4(0));
+#else
+    float v=model[biases+p.z];
+    int side=2*radius+1;
+    for(int c=0;c<inputs;++c) for(int j=0;j<side;++j) for(int i=0;i<side;++i) {
+        ivec2 q=p.xy*stepSize+ivec2(i,j)-radius;
+        if(any(lessThan(q,ivec2(0)))||any(greaterThanEqual(q,ivec2(width,height)))) continue;
+        int k=((p.z*inputs+c)*side+j)*side+i;
+        v+=pixels[(q.y*width+q.x)*inputs+c]*model[weights+k];
+    }
+    if(outputs==3) {
+        v=2.0/(1.0+exp(-v));
+        if(p.z==2) v-=1.0;
+    } else v=max(v,0.0);
+    result[(p.y*size.x+p.x)*outputs+p.z]=v;
+#endif
+}

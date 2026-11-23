@@ -1,0 +1,38 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "workgroup.glsl"
+layout(std430,binding=0) readonly buffer Reference {uvec2 pixels[];};
+layout(std430,binding=1) buffer Proposals {uint count;uint entries[];};
+layout(push_constant) uniform Detector {
+    ivec2 rawSize,shift;
+    float exposure,noiseS,noiseO,threshold;
+    uint capacity;
+};
+vec4 unpackAt(int index) {
+    uvec2 q=pixels[index];
+    return vec4(unpackHalf2x16(q.x),unpackHalf2x16(q.y))/exposure;
+}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy),org=2*p-shift;
+    if(any(lessThan(org,ivec2(3))) || any(greaterThanEqual(org,rawSize-4))) return;
+    int pitch=rawSize.x/2+shift.x, index=p.y*pitch+p.x;
+    vec4 maximum=vec4(0);
+    for(int y=-1;y<=1;++y) for(int x=-1;x<=1;++x)
+        if(x!=0 || y!=0) maximum=max(maximum,unpackAt(index+y*pitch+x));
+    vec4 limit=max(vec4(.02),threshold*sqrt(max(vec4(0),noiseS*maximum+noiseO)));
+    bvec4 proposed=greaterThan(unpackAt(index)-maximum,limit);
+    uint mask=0;
+    for(int c=0;c<4;++c) {
+        ivec2 site=org+ivec2(c%2,c/2);
+        if(proposed[c] && all(greaterThanEqual(site,ivec2(4))) && all(lessThan(site,rawSize-4)))
+            mask|=1u<<uint(c);
+    }
+    if(mask!=0) {
+        uint n=atomicAdd(count,1);
+        if(n<capacity) {entries[2*n]=uint(index);entries[2*n+1]=mask;}
+    }
+}

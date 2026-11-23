@@ -27,7 +27,7 @@ def compare(ctx, before):
     for mode in (1, 2, 3, 4):
         for residual in (False, True):
             programs = []
-            for directory in (before, SRC/'main/assets/shaders/merge'):
+            for directory in (before, SRC/'main/cpp/shaders/shared/shaders/merge'):
                 code = (directory/'mergeAlign.glsl').read_text()
                 if residual:
                     code = code.replace('#define CFA_RESIDUAL_FUSION 0', '#define CFA_RESIDUAL_FUSION 1')
@@ -62,8 +62,11 @@ def compare(ctx, before):
                 kernels[...,:2] = rng.uniform(.25,4,kernels[...,:2].shape)
                 kernels[...,2] = rng.uniform(-.95,.95,kernels[...,2].shape)
             else: kernels[...,:3] = kernel
-            pair = [Combine(ctx,kernels,robust=robust,code=(d/'mergeCombineWeight1.glsl').read_text())
-                    for d in (before,SRC/'main/assets/shaders/merge')]
+            baseline = before/'mergeCombineWeight1Residual.glsl'
+            if not robust or not baseline.exists():
+                baseline = before/'mergeCombineWeight1.glsl'
+            pair = [Combine(ctx, kernels, robust=robust, code=baseline.read_text()),
+                    Combine(ctx, kernels, robust=robust)]
             for origin in ((0,0),(1984,1480),(1,1)):
                 base = rng.uniform(.02,.8,(56,64,4)).astype('f4')
                 for n in (2,3,9):

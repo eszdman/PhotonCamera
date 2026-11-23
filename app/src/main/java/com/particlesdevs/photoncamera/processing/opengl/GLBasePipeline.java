@@ -197,7 +197,7 @@ public class GLBasePipeline implements AutoCloseable {
             if (i != Nodes.size() - 1) {
                 drawProgramTexture(Nodes.get(i));
             }
-            Nodes.get(i).postDrawOracle();
+            postDrawOracle(Nodes.get(i));
             Nodes.get(i).AfterRun();
         }
         if(texnum == 1){
@@ -252,6 +252,10 @@ public class GLBasePipeline implements AutoCloseable {
         glint.glProgram.close();
         Nodes.clear();
         return glint.glProcessing.mOutBuffer;
+    }
+
+    protected void postDrawOracle(Node node) {
+        node.postDrawOracle();
     }
 
     private void drawProgramTexture(Node node) {

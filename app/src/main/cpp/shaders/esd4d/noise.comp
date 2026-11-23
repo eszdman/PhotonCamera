@@ -1,0 +1,42 @@
+#version 450
+//
+// Created by eszdman on 19.11.2026.
+//
+
+#extension GL_GOOGLE_include_directive : require
+#include "workgroup.glsl"
+layout(std430,binding=0) readonly buffer Frame {uvec2 pixels[];};
+layout(std430,binding=1) buffer Blend {uvec2 blend[];};
+layout(std430,binding=2) buffer Histogram {uint bins[];};
+layout(push_constant) uniform Measurement {
+    ivec2 extent,offset;
+    float weight,scale;
+    int first,stride;
+};
+vec4 quad(uvec2 words) {return vec4(unpackHalf2x16(words.x),unpackHalf2x16(words.y));}
+void main() {
+    ivec2 p=ivec2(gl_GlobalInvocationID.xy);
+#if HISTOGRAM
+#ifdef ESD4D_ROW_WIDTH
+    // Match the sample coverage of the 8x8 histogram dispatch for partial strides.
+    if(any(greaterThanEqual(p, ((extent / stride + 7) / 8) * 8))) return;
+#endif
+    p*=stride;
+    if(any(lessThan(p,ivec2(2))) || any(greaterThanEqual(p,extent-2))) return;
+    float mean=0.;
+    const float weights[3]=float[](0.27406862,0.45186276,0.27406862);
+    for(int x=-1;x<=1;++x) for(int y=-1;y<=1;++y)
+        mean+=weights[x+1]*weights[y+1]*dot(quad(blend[(p.y+y)*extent.x+p.x+x]),vec4(.25));
+    float center=dot(quad(blend[p.y*extent.x+p.x]),vec4(.25));
+    uint row=uint(min(63.,sqrt(mean+1e-8)*64.*sqrt(3.)));
+    uint col=uint(min(63.,abs(center-mean)*scale));
+    atomicAdd(bins[64*row+col],1);
+#else
+    if(any(greaterThanEqual(p,extent))) return;
+    ivec2 src=clamp(p+offset,ivec2(0),extent-1);
+    int i=p.y*extent.x+p.x;
+    vec4 value=first!=0?vec4(0):quad(blend[i]);
+    value+=quad(pixels[src.y*extent.x+src.x])*weight;
+    blend[i]=uvec2(packHalf2x16(value.rg),packHalf2x16(value.ba));
+#endif
+}

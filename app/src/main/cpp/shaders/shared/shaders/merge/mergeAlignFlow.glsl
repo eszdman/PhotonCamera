@@ -1,3 +1,8 @@
+//
+// Created by eszdman on 19.08.2026.
+//
+
+#ifndef ESD4D_BUFFER_BACKEND
 #define LAYOUT //
 LAYOUT
 precision highp float;
@@ -34,41 +39,8 @@ uniform vec4 analogBalance;
 #define M_PI 3.1415926535897932384626433832795
 #define TILE_AL 16
 
-float getBayer(ivec2 coords, highp sampler2D tex){
-    return texelFetch(tex,coords,0).r;
-}
+#endif
 
-vec4 getBayerVec(ivec2 coords, highp sampler2D tex){
-    vec4 c0 = vec4(getBayer(coords,tex),getBayer(coords+ivec2(1,0),tex),getBayer(coords+ivec2(0,1),tex),getBayer(coords+ivec2(1,1),tex));
-    return clamp(c0, 0.0, 1.0);
-}
-
-float window(float x){
-    return 0.5f - 0.5f * cos(2.f * M_PI * ((0.5f * (x + 0.5f) / float(TILE_AL))));
-}
-
-float windowxy(ivec2 xy){
-    return window(float(xy.x)) * window(float(xy.y));
-}
-
-vec4 windowxy4(ivec2 xy){
-    return vec4(window(float(xy.x)) * window(float(xy.y)),
-                window(float(xy.x+1)) * window(float(xy.y)),
-                window(float(xy.x)) * window(float(xy.y+1)),
-                window(float(xy.x+1)) * window(float(xy.y+1)));
-}
-
-vec2 vec4ToAlignment(vec4 alignment) {
-    vec2 converted = vec2(alignment.x * float(rawHalf.x), alignment.y * float(rawHalf.y));
-    converted.xy += alignment.zw;
-    return converted;
-}
-vec2 hash22(vec2 p)
-{
-    vec3 p3 = fract(vec3(p.xyx) * vec3(.1031, .1030, .0973));
-    p3 += dot(p3, p3.yzx+33.33);
-    return fract((p3.xx+p3.yz)*p3.zy);
-}
 // Grayscale luma of the guidance image (base texture), computed right here
 // with a dot product - no separate luminance pass needed.
 float luma(vec4 c) {
@@ -77,6 +49,7 @@ float luma(vec4 c) {
 void main() {
     ivec2 xy = ivec2(gl_GlobalInvocationID.xy);
     ivec2 outSize = imageSize(outTexture);
+    if (any(greaterThanEqual(xy,outSize))) return;
     vec4 bayerBase = imageLoad(baseTexture,xy);
     // Guided upsampling of the dense flow field (high-res guide + low-res
     // nearest flow), radius 2, eps 3e-4. Local linear model q = a*I + b is fit
@@ -110,6 +83,10 @@ void main() {
     vec2 a = cov / (varI + 3e-4);
     vec2 b = meanP - a * meanI;
     vec2 flowOut = a * curLuma + b;
+    // The guided fit can return an integer translation one ULP toward zero.
+    // Preserve that translation before the legacy integer lookup truncates it.
+    vec2 nearest = round(flowOut);
+    flowOut = mix(flowOut, nearest, lessThan(abs(flowOut-nearest), vec2(1e-5)));
     ivec2 align = ivec2(flowOut);
     ivec2 aligned = clamp(xy + align, ivec2(0), outSize - ivec2(1));
     vec4 bayerAlter = imageLoad(alterTexture, aligned);
